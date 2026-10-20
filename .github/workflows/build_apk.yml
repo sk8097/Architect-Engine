@@ -1,25 +1,21 @@
-name: Build Architect Engine APK
+name: Build Android APK
 
 on:
   push:
     branches: [ main, master ]
-  pull_request:
-    branches: [ main, master ]
-  workflow_dispatch: # Isse aap manually bhi "Run workflow" button daba sakte hain
+  workflow_dispatch:
 
 jobs:
   build:
-    name: Build Flutter APK
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout Repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Java JDK
+      - name: Set up Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
+          distribution: 'temurin'
           java-version: '17'
 
       - name: Set up Flutter
@@ -28,14 +24,23 @@ jobs:
           channel: 'stable'
           cache: true
 
-      - name: Get Dependencies
+      - name: Auto-generate Android files if missing
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Android directory not found. Generating scaffolding..."
+            cp pubspec.yaml pubspec.yaml.bak
+            flutter create . --platforms=android --org com.architectengine
+            cp pubspec.yaml.bak pubspec.yaml
+          fi
+
+      - name: Install dependencies
         run: flutter pub get
 
-      - name: Build Android APK
+      - name: Build Release APK
         run: flutter build apk --release
 
-      - name: Upload APK Artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: architect-engine-release-apk
+          name: architect-engine-apk
           path: build/app/outputs/flutter-apk/app-release.apk
