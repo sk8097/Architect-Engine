@@ -774,6 +774,12 @@ jobs:
         run: flutter pub get
 
       - name: Build APK
+
+- name: Update Kotlin Version
+        run: |
+          sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle 2>/dev/null || true
+          sed -i -E 's/id\("org.jetbrains.kotlin.android"\) version "[^"]+"/id("org.jetbrains.kotlin.android") version "1.9.24"/g' android/settings.gradle* 2>/dev/null || true
+          sed -i -E 's/ext\.kotlin_version = .*/ext.kotlin_version = "1.9.24"/g' android/build.gradle 2>/dev/null || true
         run: flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK Artifact
