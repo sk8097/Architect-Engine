@@ -775,7 +775,7 @@ jobs:
 
       - name: Build APK
 
-- name: Update Kotlin Version
+      - name: Update Kotlin Version
         run: |
           sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle 2>/dev/null || true
           sed -i -E 's/id\("org.jetbrains.kotlin.android"\) version "[^"]+"/id("org.jetbrains.kotlin.android") version "1.9.24"/g' android/settings.gradle* 2>/dev/null || true
