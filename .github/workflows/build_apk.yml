@@ -41,7 +41,7 @@ jobs:
           09wAEmdYQ2lps7amSFTBAwD2OmZ4WzywNXOGfRi5y9j584Ic9p6mAM2xhygERTdDWuXRVVRVN9sz
           Qu6LIL3LpgOOfFwxjHKtcm4s0UDVmpZNw2CGzVk3F4LLJGaQh2UDHQiG/8vrlutaHXnZALmWm3ly
           UnWSO4lqfEt3N66Cz9Dd7XJlvHruXIqo1A0hvWvWVpqsPAEOkRQ/YJpzN2bYZC3ZIz82NL294eY/
-          P4T0BLFcQmCQ84Hru7Fi6x3F3k4KZjIlBnk4G0pXox4baseLHa2OikGVjLzR2R6N1x1m8v7z0qF
+          P4T0BLFcQmCQ84Hru7Fi6x3F3k4KZjIlBnk4G0pXox4basbLHerOikGVjLzR2R6N1x1m8v7z0qF
           C4vL64tzgT/Yl+eCO+aPZ2Q2ECrhdrYJWy6U/P/p1rzTGHHfbAGrwXgNPyy2QeUP/BdyrTaSVm0s
           rusYK1HLe+sL94d5mZ3h+t2M56l9544N5Y03QfEa08B/bQZ195h0L5xS7Y16WlMhF6fFw2479Y
           jVqWb79s+Zc1oQ+78mDcy8Kz60oXvY4j6u8e78uVvTqF28EaVf3HnZ0yKx0d+X2v23nL2R4b0m
@@ -58,12 +58,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK and Update Kotlin
+      - name: Build APK
+        run: flutter build apk --release --no-tree-shake-icons
+
+      - name: Update Kotlin Version
         run: |
           sed -i -E 's/id "org.jetbrains.kotlin.android" version "[^"]+"/id "org.jetbrains.kotlin.android" version "1.9.24"/g' android/settings.gradle 2>/dev/null || true
           sed -i -E 's/id\("org.jetbrains.kotlin.android"\) version "[^"]+"/id("org.jetbrains.kotlin.android") version "1.9.24"/g' android/settings.gradle* 2>/dev/null || true
           sed -i -E 's/ext\.kotlin_version = .*/ext.kotlin_version = "1.9.24"/g' android/build.gradle 2>/dev/null || true
-          flutter build apk --release --no-tree-shake-icons
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
