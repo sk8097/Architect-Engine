@@ -60,6 +60,12 @@ jobs:
         run: flutter pub get
 
       - name: Build Android Release APK
+      - name: Apply Script Fixes
+        run: |
+          if [ -f fix_and_update.py ]; then         python3 fix_and_update.py; fi
+
+      - name: Build Release APK
+        run: flutter build apk --release
         run: flutter build apk --release --android-skip-build-dependency-validation
 
       - name: Upload APK Artifact
