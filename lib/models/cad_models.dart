@@ -1,14 +1,4 @@
-# -*- coding: utf-8 -*-
-"""
-Script to generate enhanced CAD models and CAD Editor screen matching images 1 to 6.
-"""
-import os
-import base64
-
-# ==============================================================
-# 1. lib/models/cad_models.dart
-# ==============================================================
-CAD_MODELS_DART = '''import 'dart:math' as math;
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 enum CadTool {
@@ -99,7 +89,7 @@ class CadBlockLibrary {
       type: CadBlockType.bedDouble,
       name: "Double Bed (King)",
       category: CadBlockCategory.bedroom,
-      icon: "\\u{1F6CF}\\u{FE0F}",
+      icon: "\u{1F6CF}\u{FE0F}",
       defaultWidthFt: 6.0,
       defaultHeightFt: 6.5,
       description: "6.0 x 6.5 ft Master King Bed with pillows",
@@ -108,7 +98,7 @@ class CadBlockLibrary {
       type: CadBlockType.bedSingle,
       name: "Single Bed",
       category: CadBlockCategory.bedroom,
-      icon: "\\u{1F6CF}\\u{FE0F}",
+      icon: "\u{1F6CF}\u{FE0F}",
       defaultWidthFt: 3.5,
       defaultHeightFt: 6.5,
       description: "3.5 x 6.5 ft Single Bed with pillow",
@@ -117,7 +107,7 @@ class CadBlockLibrary {
       type: CadBlockType.wardrobe,
       name: "Wardrobe / Almirah",
       category: CadBlockCategory.bedroom,
-      icon: "\\u{1F6AA}",
+      icon: "\u{1F6AA}",
       defaultWidthFt: 5.0,
       defaultHeightFt: 2.0,
       description: "5.0 x 2.0 ft Bedroom Almirah / Closet",
@@ -126,7 +116,7 @@ class CadBlockLibrary {
       type: CadBlockType.sideTable,
       name: "Side / Night Table",
       category: CadBlockCategory.bedroom,
-      icon: "\\u{1FA91}",
+      icon: "\u{1FA91}",
       defaultWidthFt: 1.5,
       defaultHeightFt: 1.5,
       description: "1.5 x 1.5 ft Bedside nightstand",
@@ -137,7 +127,7 @@ class CadBlockLibrary {
       type: CadBlockType.chulha2,
       name: "Gas Stove (2-Burner)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F373}",
+      icon: "\u{1F373}",
       defaultWidthFt: 2.2,
       defaultHeightFt: 1.6,
       description: "2-Burner standard gas chulha",
@@ -146,7 +136,7 @@ class CadBlockLibrary {
       type: CadBlockType.chulha3,
       name: "Gas Stove (3-Burner)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F373}",
+      icon: "\u{1F373}",
       defaultWidthFt: 2.6,
       defaultHeightFt: 1.8,
       description: "3-Burner triangle/inline gas chulha",
@@ -155,7 +145,7 @@ class CadBlockLibrary {
       type: CadBlockType.chulha4,
       name: "Gas Stove (4-Burner)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F373}",
+      icon: "\u{1F373}",
       defaultWidthFt: 2.8,
       defaultHeightFt: 2.0,
       description: "4-Burner luxury gas cooktop",
@@ -164,7 +154,7 @@ class CadBlockLibrary {
       type: CadBlockType.sinkSingle,
       name: "Kitchen Sink (Single)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F6B0}",
+      icon: "\u{1F6B0}",
       defaultWidthFt: 2.0,
       defaultHeightFt: 1.5,
       description: "Single bowl stainless steel sink",
@@ -173,7 +163,7 @@ class CadBlockLibrary {
       type: CadBlockType.sinkDouble,
       name: "Kitchen Sink (Double Bowl)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F6B0}",
+      icon: "\u{1F6B0}",
       defaultWidthFt: 3.5,
       defaultHeightFt: 1.8,
       description: "Double bowl sink with drain board",
@@ -182,7 +172,7 @@ class CadBlockLibrary {
       type: CadBlockType.refrigerator,
       name: "Refrigerator / Fridge",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F9CA}",
+      icon: "\u{1F9CA}",
       defaultWidthFt: 2.5,
       defaultHeightFt: 2.5,
       description: "2.5 x 2.5 ft Double-door refrigerator",
@@ -191,7 +181,7 @@ class CadBlockLibrary {
       type: CadBlockType.dining4,
       name: "Dining Table (4-Seater)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F37D}\\u{FE0F}",
+      icon: "\u{1F37D}\u{FE0F}",
       defaultWidthFt: 4.0,
       defaultHeightFt: 3.0,
       description: "4-Person rectangular dining set",
@@ -200,7 +190,7 @@ class CadBlockLibrary {
       type: CadBlockType.dining6,
       name: "Dining Table (6-Seater)",
       category: CadBlockCategory.kitchen,
-      icon: "\\u{1F37D}\\u{FE0F}",
+      icon: "\u{1F37D}\u{FE0F}",
       defaultWidthFt: 5.5,
       defaultHeightFt: 3.2,
       description: "6-Person rectangular family dining set",
@@ -211,7 +201,7 @@ class CadBlockLibrary {
       type: CadBlockType.toiletWestern,
       name: "Western WC (Commode)",
       category: CadBlockCategory.toilet,
-      icon: "\\u{1F6BD}",
+      icon: "\u{1F6BD}",
       defaultWidthFt: 1.6,
       defaultHeightFt: 2.3,
       description: "European water closet with cistern",
@@ -220,7 +210,7 @@ class CadBlockLibrary {
       type: CadBlockType.toiletIndian,
       name: "Indian Toilet (Orissa Pan)",
       category: CadBlockCategory.toilet,
-      icon: "\\u{1F6BD}",
+      icon: "\u{1F6BD}",
       defaultWidthFt: 1.8,
       defaultHeightFt: 2.2,
       description: "Squatting Orissa pan with footrests",
@@ -229,7 +219,7 @@ class CadBlockLibrary {
       type: CadBlockType.washBasin,
       name: "Wash Basin",
       category: CadBlockCategory.toilet,
-      icon: "\\u{1F6B0}",
+      icon: "\u{1F6B0}",
       defaultWidthFt: 1.8,
       defaultHeightFt: 1.4,
       description: "Ceramic vanity wash basin with faucet",
@@ -238,7 +228,7 @@ class CadBlockLibrary {
       type: CadBlockType.bathTub,
       name: "Bath Tub",
       category: CadBlockCategory.toilet,
-      icon: "\\u{1F6C1}",
+      icon: "\u{1F6C1}",
       defaultWidthFt: 5.0,
       defaultHeightFt: 2.6,
       description: "Full length bathing tub",
@@ -247,7 +237,7 @@ class CadBlockLibrary {
       type: CadBlockType.showerArea,
       name: "Shower Enclosure",
       category: CadBlockCategory.toilet,
-      icon: "\\u{1F6BF}",
+      icon: "\u{1F6BF}",
       defaultWidthFt: 3.0,
       defaultHeightFt: 3.0,
       description: "Square glass shower cubicle",
@@ -258,7 +248,7 @@ class CadBlockLibrary {
       type: CadBlockType.sofa3,
       name: "Sofa (3-Seater)",
       category: CadBlockCategory.living,
-      icon: "\\u{1F6CB}\\u{FE0F}",
+      icon: "\u{1F6CB}\u{FE0F}",
       defaultWidthFt: 6.5,
       defaultHeightFt: 2.8,
       description: "3-Seater cushioned living room sofa",
@@ -267,7 +257,7 @@ class CadBlockLibrary {
       type: CadBlockType.sofa2,
       name: "Sofa (2-Seater / Loveseat)",
       category: CadBlockCategory.living,
-      icon: "\\u{1F6CB}\\u{FE0F}",
+      icon: "\u{1F6CB}\u{FE0F}",
       defaultWidthFt: 4.8,
       defaultHeightFt: 2.8,
       description: "2-Seater compact sofa",
@@ -276,7 +266,7 @@ class CadBlockLibrary {
       type: CadBlockType.sofaSingle,
       name: "Armchair (1-Seater)",
       category: CadBlockCategory.living,
-      icon: "\\u{1FA91}",
+      icon: "\u{1FA91}",
       defaultWidthFt: 2.8,
       defaultHeightFt: 2.8,
       description: "Single lounge armchair",
@@ -285,7 +275,7 @@ class CadBlockLibrary {
       type: CadBlockType.sofaL,
       name: "L-Shape Sectional Sofa",
       category: CadBlockCategory.living,
-      icon: "\\u{1F6CB}\\u{FE0F}",
+      icon: "\u{1F6CB}\u{FE0F}",
       defaultWidthFt: 8.0,
       defaultHeightFt: 6.0,
       description: "Corner L-sectional living sofa",
@@ -294,7 +284,7 @@ class CadBlockLibrary {
       type: CadBlockType.coffeeTable,
       name: "Center / Coffee Table",
       category: CadBlockCategory.living,
-      icon: "\\u{2615}",
+      icon: "\u{2615}",
       defaultWidthFt: 3.5,
       defaultHeightFt: 2.0,
       description: "Living room coffee table",
@@ -303,7 +293,7 @@ class CadBlockLibrary {
       type: CadBlockType.tvUnit,
       name: "TV Console / Unit",
       category: CadBlockCategory.living,
-      icon: "\\u{1F4FA}",
+      icon: "\u{1F4FA}",
       defaultWidthFt: 5.0,
       defaultHeightFt: 1.5,
       description: "Wall entertainment console",
@@ -314,7 +304,7 @@ class CadBlockLibrary {
       type: CadBlockType.stairsDogLeg,
       name: "Dog-Legged Staircase",
       category: CadBlockCategory.stairs,
-      icon: "\\u{1FA9C}",
+      icon: "\u{1FA9C}",
       defaultWidthFt: 6.0,
       defaultHeightFt: 10.0,
       description: "Dog-legged stairs with landing and UP arrow",
@@ -323,7 +313,7 @@ class CadBlockLibrary {
       type: CadBlockType.stairsStraight,
       name: "Straight Flight Stairs",
       category: CadBlockCategory.stairs,
-      icon: "\\u{1FA9C}",
+      icon: "\u{1FA9C}",
       defaultWidthFt: 3.0,
       defaultHeightFt: 10.0,
       description: "Straight one-way stair flight",
@@ -334,7 +324,7 @@ class CadBlockLibrary {
       type: CadBlockType.column9x9,
       name: "Column 9x9 inch (RCC)",
       category: CadBlockCategory.structural,
-      icon: "\\u{1F3DB}\\u{FE0F}",
+      icon: "\u{1F3DB}\u{FE0F}",
       defaultWidthFt: 0.75,
       defaultHeightFt: 0.75,
       description: "9x9 inch red reinforced concrete column",
@@ -343,7 +333,7 @@ class CadBlockLibrary {
       type: CadBlockType.column9x12,
       name: "Column 9x12 inch (RCC)",
       category: CadBlockCategory.structural,
-      icon: "\\u{1F3DB}\\u{FE0F}",
+      icon: "\u{1F3DB}\u{FE0F}",
       defaultWidthFt: 0.75,
       defaultHeightFt: 1.0,
       description: "9x12 inch load-bearing concrete column",
@@ -442,9 +432,3 @@ class CadEntity {
     return Rect.fromPoints(points[0], points[1]);
   }
 }
-'''
-
-with open("cad_models.dart", "w", encoding="utf-8") as f:
-    f.write(CAD_MODELS_DART)
-
-print("✓ Generated cad_models.dart")
