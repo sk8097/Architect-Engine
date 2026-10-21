@@ -19,57 +19,77 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Hero Banner
+          // Professional Architectural Hero Banner with Background Image
           Container(
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Theme.of(context).cardColor,
-                  Theme.of(context).scaffoldBackgroundColor,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
               borderRadius: BorderRadius.circular(20),
               border: Border.all(color: AppColors.darkBorder),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.35),
+                  blurRadius: 14,
+                  offset: const Offset(0, 5),
+                ),
+              ],
+              image: DecorationImage(
+                image: const NetworkImage(
+                  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+                ),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(
+                  Colors.black.withOpacity(0.72),
+                  BlendMode.darken,
+                ),
+              ),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.darkPrimary.withOpacity(0.15),
+                    color: AppColors.darkPrimary.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: AppColors.darkPrimary.withOpacity(0.6)),
                   ),
                   child: const Text(
                     'ARCHITECTURAL WORKSPACE',
                     style: TextStyle(
                       fontSize: 9,
                       fontWeight: FontWeight.bold,
-                      letterSpacing: 1,
+                      letterSpacing: 1.2,
                       color: AppColors.darkPrimary,
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 14),
                 const Text(
                   'Turn your ideas into\nprofessional drawings.',
-                  style: TextStyle(fontSize: 21, fontWeight: FontWeight.bold, height: 1.2),
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    height: 1.2,
+                    color: Colors.white,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 const Text(
-                  'Start your next architectural project today with automated spatial planning and Vastu rules.',
-                  style: TextStyle(fontSize: 12, color: Colors.grey, height: 1.4),
+                  'Automated spatial planning, 2D CAD drafting & Vastu orientation.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white70,
+                    height: 1.4,
+                  ),
                 ),
                 const SizedBox(height: 18),
                 ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.darkPrimary,
                     foregroundColor: const Color(0xFF0A1128),
-                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 3,
                   ),
                   onPressed: () {
                     showDialog(
@@ -115,7 +135,7 @@ class HomeScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  const Text('📁', style: TextStyle(fontSize: 44)),
+                  const Text('📑', style: TextStyle(fontSize: 44)),
                   const SizedBox(height: 10),
                   const Text(
                     'No Projects Yet',
@@ -249,7 +269,7 @@ class HomeScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
-          // Design Studio Modules Shortcut
+          // Design Studio Modules Shortcut with Visual Architectural Photos
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -270,12 +290,40 @@ class HomeScreen extends StatelessWidget {
             physics: const NeverScrollableScrollPhysics(),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: 1.35,
+            childAspectRatio: 1.25,
             children: [
-              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', tabIndex: 2),
-              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', tabIndex: 2),
-              _buildShortcutCard(context, icon: '🏠', title: 'Elevation', sub: 'Exterior views', tabIndex: 2),
-              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', tabIndex: 2),
+              _buildShortcutCard(
+                context,
+                imageUrl: 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80',
+                icon: '📐',
+                title: 'Floor Plan',
+                sub: 'Detailed layouts',
+                tabIndex: 2,
+              ),
+              _buildShortcutCard(
+                context,
+                imageUrl: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80',
+                icon: '🏞️',
+                title: 'Site Plan',
+                sub: 'Plot & orientation',
+                tabIndex: 2,
+              ),
+              _buildShortcutCard(
+                context,
+                imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80',
+                icon: '🏠',
+                title: 'Elevation',
+                sub: 'Exterior views',
+                tabIndex: 2,
+              ),
+              _buildShortcutCard(
+                context,
+                imageUrl: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80',
+                icon: '📦',
+                title: '3D View',
+                sub: 'Spatial model',
+                tabIndex: 2,
+              ),
             ],
           ),
 
@@ -316,25 +364,66 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required int tabIndex}) {
+  Widget _buildShortcutCard(
+    BuildContext context, {
+    required String imageUrl,
+    required String icon,
+    required String title,
+    required String sub,
+    required int tabIndex,
+  }) {
     return InkWell(
       onTap: () => onNavigateTab(tabIndex),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.darkBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          image: DecorationImage(
+            image: NetworkImage(imageUrl),
+            fit: BoxFit.cover,
+            colorFilter: ColorFilter.mode(
+              Colors.black.withOpacity(0.65),
+              BlendMode.darken,
+            ),
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(icon, style: const TextStyle(fontSize: 26)),
-            const SizedBox(height: 8),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-            Text(sub, style: const TextStyle(fontSize: 10, color: Colors.grey)),
+            Row(
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 22)),
+                const Spacer(),
+                const Icon(Icons.arrow_forward_ios, size: 12, color: Colors.white70),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  sub,
+                  style: const TextStyle(fontSize: 10, color: Colors.white70),
+                ),
+              ],
+            ),
           ],
         ),
       ),

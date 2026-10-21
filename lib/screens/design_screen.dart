@@ -6,6 +6,20 @@ import '../models/module_models.dart';
 class DesignScreen extends StatelessWidget {
   const DesignScreen({super.key});
 
+  static const Map<int, String> moduleImages = {
+    1: 'https://images.unsplash.com/photo-1600585152220-90363fe7e115?auto=format&fit=crop&w=600&q=80',
+    2: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80',
+    3: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=600&q=80',
+    4: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=600&q=80',
+    5: 'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?auto=format&fit=crop&w=600&q=80',
+    6: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=600&q=80',
+    7: 'https://images.unsplash.com/photo-1558904541-efa8c4a08931?auto=format&fit=crop&w=600&q=80',
+    8: 'https://images.unsplash.com/photo-1541888946425-d0fbb18086f6?auto=format&fit=crop&w=600&q=80',
+    9: 'https://images.unsplash.com/photo-1509718443690-d8e2fb3474b7?auto=format&fit=crop&w=600&q=80',
+    10: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&w=600&q=80',
+    11: 'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=600&q=80',
+  };
+
   void _showModuleDetails(BuildContext context, DesignModule module) {
     final details = DesignData.moduleDetails[module.id] ?? {
       'name': 'Design Module',
@@ -102,15 +116,21 @@ class DesignScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Hero
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Theme.of(context).cardColor, Theme.of(context).scaffoldBackgroundColor],
-                ),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.darkBorder),
+                image: DecorationImage(
+                  image: const NetworkImage(
+                    'https://images.unsplash.com/photo-1503387762-592deb58ef4e?auto=format&fit=crop&w=1200&q=80',
+                  ),
+                  fit: BoxFit.cover,
+                  colorFilter: ColorFilter.mode(
+                    Colors.black.withOpacity(0.75),
+                    BlendMode.darken,
+                  ),
+                ),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,9 +144,9 @@ class DesignScreen extends StatelessWidget {
                     child: const Text('DESIGN STUDIO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.darkPrimary)),
                   ),
                   const SizedBox(height: 10),
-                  const Text('Turn concepts into coordinated designs.', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold)),
+                  const Text('Turn concepts into coordinated designs.', style: TextStyle(fontSize: 19, fontWeight: FontWeight.bold, color: Colors.white)),
                   const SizedBox(height: 6),
-                  const Text('Start a design, review floor plans, or inspect building module specifications.', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  const Text('Start a design, review floor plans, or inspect building module specifications.', style: TextStyle(fontSize: 12, color: Colors.white70)),
                 ],
               ),
             ),
@@ -154,6 +174,7 @@ class DesignScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final module = DesignData.modules[index];
                 final details = DesignData.moduleDetails[module.id] ?? {'name': 'Module', 'desc': ''};
+                final imgUrl = moduleImages[module.id] ?? 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=600&q=80';
 
                 return InkWell(
                   onTap: () => _showModuleDetails(context, module),
@@ -161,9 +182,16 @@ class DesignScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
-                      color: Theme.of(context).cardColor,
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: AppColors.darkBorder),
+                      image: DecorationImage(
+                        image: NetworkImage(imgUrl),
+                        fit: BoxFit.cover,
+                        colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(0.70),
+                          BlendMode.darken,
+                        ),
+                      ),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,7 +203,7 @@ class DesignScreen extends StatelessWidget {
                               width: 36,
                               height: 36,
                               decoration: BoxDecoration(
-                                color: AppColors.darkIconBg,
+                                color: AppColors.darkIconBg.withOpacity(0.8),
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               alignment: Alignment.center,
@@ -203,9 +231,17 @@ class DesignScreen extends StatelessWidget {
                           ],
                         ),
                         const Spacer(),
-                        Text(details['name']!, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        Text(
+                          details['name']!,
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.white),
+                        ),
                         const SizedBox(height: 2),
-                        Text(details['desc']!, style: const TextStyle(fontSize: 10, color: Colors.grey), maxLines: 2, overflow: TextOverflow.ellipsis),
+                        Text(
+                          details['desc']!,
+                          style: const TextStyle(fontSize: 10, color: Colors.white70),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ],
                     ),
                   ),
