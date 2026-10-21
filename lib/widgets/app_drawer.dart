@@ -1,3 +1,4 @@
+import '../screens/cad_editor_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
@@ -97,6 +98,12 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.architecture,
                     title: 'Design Studio',
                     onTap: () => _nav(context, const DesignScreen()),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.architecture,
+                    title: 'AutoCAD 2D Studio',
+                    onTap: () => _nav(context, const CadEditorScreen()),
                   ),
                   _buildMenuItem(
                     context,
