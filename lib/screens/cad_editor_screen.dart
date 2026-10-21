@@ -273,7 +273,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             Wrap(
               spacing: 8,
               children: [
-                'LIVING 15'×12'',
+                "LIVING 15x12 ft",
                 "BEDROOM 12x14 ft",
                 "KITCHEN 10x8 ft",
                 "TOILET 6x8 ft",
