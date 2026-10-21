@@ -225,7 +225,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       color: const Color(0xFF22C55E),
     ));
 
-    // Corner Red Columns (as seen in user Image 1)
+    // Corner Red Columns
     final colOffsets = [
       origin,
       Offset(origin.dx + wid, origin.dy),
@@ -356,7 +356,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     _saveUndoState();
     final clone = _selectedEntity!.clone();
     final newId = "dup_${DateTime.now().millisecondsSinceEpoch}";
-    final offset = const Offset(20, 20);
+    const offset = Offset(20, 20);
     final newPoints = clone.points.map((p) => p + offset).toList();
 
     final duplicated = CadEntity(
@@ -591,7 +591,6 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     final snapped = _snapPoint(scenePos);
 
     if (_activeTool == CadTool.select) {
-      // Check hit entity
       CadEntity? hitEntity;
       for (final e in _entities.reversed) {
         final bounds = e.getBounds().inflate(18.0);
@@ -835,7 +834,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
           children: [
             Text(titleText, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
             Text(
-              "${_entities.length} entities \u2022 Layer: ${_layers.firstWhere((l) => l.id == _activeLayerId).name}",
+              "${_entities.length} entities • Layer: ${_layers.firstWhere((l) => l.id == _activeLayerId).name}",
               style: const TextStyle(fontSize: 10, color: Colors.grey),
             ),
           ],
@@ -911,7 +910,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             child: _buildToolBar(),
           ),
 
-          // Top Selection Action Bar (Images 3-6)
+          // Top Selection Action Bar
           if (_selectedEntity != null)
             Positioned(
               top: 12,
@@ -920,7 +919,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
               child: _buildSelectionActionBar(),
             ),
 
-          // Bottom Ready-Made Blocks Drawer (Image 2)
+          // Bottom Ready-Made Blocks Drawer
           if (_showBlocksBar)
             Positioned(
               left: 0,
@@ -1016,7 +1015,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     );
   }
 
-  // Selection Action Bar (Images 3, 4, 5, 6: Delete, Copy, Rotate CCW/CW, Nudge, Edit)
+  // Selection Action Bar (Delete, Copy, Rotate CCW/CW, Nudge, Edit)
   Widget _buildSelectionActionBar() {
     final e = _selectedEntity!;
     final name = e.text.isNotEmpty ? e.text : (e.blockType?.name ?? e.type.name.toUpperCase());
@@ -1107,7 +1106,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     );
   }
 
-  // Bottom Ready-Made Blocks Drawer (Image 2)
+  // Bottom Ready-Made Blocks Drawer
   Widget _buildBlocksBottomDrawer() {
     final filteredBlocks = CadBlockLibrary.blocks.where((b) => b.category == _selectedBlockCategory).toList();
 
@@ -1380,7 +1379,6 @@ class CadCanvasPainter extends CustomPainter {
       case CadTool.wall:
         if (entity.points.length >= 2) {
           if (entity.type == CadTool.wall) {
-            // Draw thick wall line
             canvas.drawLine(entity.points[0], entity.points[1], paint..strokeWidth = 6.0);
           } else {
             canvas.drawLine(entity.points[0], entity.points[1], paint);
@@ -1417,7 +1415,6 @@ class CadCanvasPainter extends CustomPainter {
         break;
 
       case CadTool.column:
-        // Structural RCC Column (Red fill + Cross hatch)
         final center = entity.points[0];
         final sizePx = (entity.widthFt > 0 ? entity.widthFt : 0.75) * 15.0;
         final colRect = Rect.fromCenter(center: center, width: sizePx, height: sizePx);
@@ -1428,7 +1425,6 @@ class CadCanvasPainter extends CustomPainter {
         canvas.drawRect(colRect, colFill);
         canvas.drawRect(colRect, paint..color = const Color(0xFFEF4444)..strokeWidth = 2.0);
 
-        // Cross inside
         canvas.drawLine(colRect.topLeft, colRect.bottomRight, Paint()..color = const Color(0xFFEF4444)..strokeWidth = 1.0);
         canvas.drawLine(colRect.topRight, colRect.bottomLeft, Paint()..color = const Color(0xFFEF4444)..strokeWidth = 1.0);
         break;
@@ -1503,7 +1499,7 @@ class CadCanvasPainter extends CustomPainter {
     }
   }
 
-  // Realistic 2D Vector Architectural Block Renderer (matching Image 2)
+  // Realistic 2D Vector Architectural Block Renderer
   void _drawVectorBlock(Canvas canvas, CadEntity entity, Paint basePaint) {
     final center = entity.points[0];
     final w = (entity.widthFt > 0 ? entity.widthFt : 4.0) * 15.0;
@@ -1522,15 +1518,12 @@ class CadCanvasPainter extends CustomPainter {
     switch (entity.blockType) {
       // 1. Bed (Headboard + Pillows + Blanket)
       case CadBlockType.bedDouble:
-        // Headboard bar
         canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w, h * 0.15), Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        // 2 Pillows
         final pW = w * 0.38;
         final pH = h * 0.22;
         final pPaint = Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill;
         canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-w / 2 + 6, -h / 2 + h * 0.18, pW, pH), const Radius.circular(4)), pPaint);
         canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w / 2 - pW - 6, -h / 2 + h * 0.18, pW, pH), const Radius.circular(4)), pPaint);
-        // Blanket division line
         canvas.drawLine(Offset(-w / 2, h * 0.15), Offset(w / 2, h * 0.15), basePaint);
         break;
 
@@ -1573,9 +1566,7 @@ class CadCanvasPainter extends CustomPainter {
 
       // 4. Toilet Western (Cistern + Oval Bowl)
       case CadBlockType.toiletWestern:
-        // Cistern tank
         canvas.drawRect(Rect.fromLTWH(-w * 0.45, -h / 2, w * 0.9, h * 0.3), basePaint);
-        // Oval bowl
         final bowlRect = Rect.fromLTWH(-w * 0.38, -h / 2 + h * 0.25, w * 0.76, h * 0.7);
         canvas.drawOval(bowlRect, basePaint);
         canvas.drawOval(Rect.fromCenter(center: Offset(0, h * 0.2), width: w * 0.4, height: h * 0.45), Paint()..color = basePaint.color.withOpacity(0.3)..style = PaintingStyle.fill);
@@ -1583,9 +1574,7 @@ class CadCanvasPainter extends CustomPainter {
 
       // 5. Toilet Indian (Squatting Pan + Footrests)
       case CadBlockType.toiletIndian:
-        // Center pan hole
         canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: w * 0.35, height: h * 0.65), basePaint);
-        // Footrests left & right
         final fW = w * 0.22;
         final fH = h * 0.55;
         canvas.drawRect(Rect.fromCenter(center: Offset(-w * 0.35, 0), width: fW, height: fH), basePaint);
@@ -1603,18 +1592,15 @@ class CadCanvasPainter extends CustomPainter {
       case CadBlockType.sofa3:
       case CadBlockType.sofa2:
       case CadBlockType.sofaSingle:
-        // Backrest bar
         canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w, h * 0.25), Paint()..color = basePaint.color.withOpacity(0.3)..style = PaintingStyle.fill);
-        // Armrests
         canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w * 0.12, h), Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill);
         canvas.drawRect(Rect.fromLTWH(w / 2 - w * 0.12, -h / 2, w * 0.12, h), Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill);
         break;
 
       // 8. Stairs Dog-Legged
       case CadBlockType.stairsDogLeg:
-        final treadCount = 8;
+        const treadCount = 8;
         final treadH = (h * 0.8) / treadCount;
-        final halfW = w / 2 - 2;
         for (int i = 0; i < treadCount; i++) {
           final y = -h / 2 + i * treadH;
           canvas.drawLine(Offset(-w / 2, y), Offset(-2, y), basePaint);
@@ -1629,11 +1615,9 @@ class CadCanvasPainter extends CustomPainter {
 
     canvas.restore();
 
-    // Draw entity name on canvas if enabled
     if (entity.showName && entity.text.isNotEmpty) {
       _drawCenteredText(canvas, Offset(center.dx, center.dy - h / 2 - 10), entity.text, basePaint.color, fontSize: 10);
     }
-    // Draw dimensions on canvas if enabled
     if (entity.showDimensions && entity.widthFt > 0) {
       _drawCenteredText(
         canvas,
