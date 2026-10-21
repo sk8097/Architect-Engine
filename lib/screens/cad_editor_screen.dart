@@ -274,9 +274,9 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
               spacing: 8,
               children: [
                 'LIVING 15'×12'',
-                'BEDROOM 12'×14'',
-                'KITCHEN 10'×8'',
-                'TOILET 6'×8'',
+                "BEDROOM 12x14 ft",
+                "KITCHEN 10x8 ft",
+                "TOILET 6x8 ft",
               ].map((sample) => ActionChip(label: Text(sample, style: const TextStyle(fontSize: 10)), onPressed: () => controller.text = sample)).toList(),
             ),
           ],
