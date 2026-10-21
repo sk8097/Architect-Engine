@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
+import '../screens/projects_screen.dart';
+import '../screens/professional_screen.dart';
+import '../screens/design_screen.dart';
+import '../screens/tools_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/unit_converter_screen.dart';
@@ -10,9 +14,6 @@ import '../screens/tutorials_screen.dart';
 import '../screens/faq_screen.dart';
 import '../screens/cloud_sync_screen.dart';
 import '../screens/export_screen.dart';
-import '../screens/share_screen.dart';
-import '../screens/about_screen.dart';
-import '../screens/privacy_policy_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   final Function(int)? onSelectTab;
@@ -28,7 +29,6 @@ class AppDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
-            // Drawer Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -44,7 +44,7 @@ class AppDrawer extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: const Text('👤', style: TextStyle(fontSize: 24)),
+                    child: const Text('👷', style: TextStyle(fontSize: 24)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -66,48 +66,40 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
-
-            // Scrollable Menu Items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 children: [
-                  _buildSectionTitle('NAVIGATION'),
+                  _buildSectionTitle('MAIN NAVIGATION'),
                   _buildMenuItem(
                     context,
                     icon: Icons.home_outlined,
                     title: 'Home',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelectTab?.call(0);
-                    },
+                    onTap: () => Navigator.pop(context),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.folder_outlined,
-                    title: 'Projects',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelectTab?.call(1);
-                    },
+                    title: 'My Projects',
+                    onTap: () => _nav(context, const ProjectsScreen()),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.architecture,
+                    title: 'Professional CAD',
+                    onTap: () => _nav(context, const ProfessionalScreen()),
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.design_services_outlined,
                     title: 'Design Studio',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelectTab?.call(2);
-                    },
+                    onTap: () => _nav(context, const DesignScreen()),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.handyman_outlined,
                     title: 'Tools & Utilities',
-                    onTap: () {
-                      Navigator.pop(context);
-                      onSelectTab?.call(3);
-                    },
+                    onTap: () => _nav(context, const ToolsScreen()),
                   ),
 
                   const Divider(),
@@ -144,7 +136,7 @@ class AppDrawer extends StatelessWidget {
                       underline: const SizedBox(),
                       items: const [
                         DropdownMenuItem(value: 'en', child: Text('English')),
-                        DropdownMenuItem(value: 'hi', child: Text('हिंदी')),
+                        DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
                         DropdownMenuItem(value: 'mr', child: Text('मराठी')),
                         DropdownMenuItem(value: 'gu', child: Text('ગુજરાતી')),
                         DropdownMenuItem(value: 'ta', child: Text('தமிழ்')),

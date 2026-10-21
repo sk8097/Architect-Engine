@@ -5,11 +5,13 @@ import '../constants/app_colors.dart';
 import '../providers/project_provider.dart';
 import '../providers/app_state_provider.dart';
 import 'project_form_dialog.dart';
+import 'projects_screen.dart';
+import 'professional_screen.dart';
+import 'design_screen.dart';
+import 'tools_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  final Function(int) onNavigateTab;
-
-  const HomeScreen({super.key, required this.onNavigateTab});
+  const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -21,11 +23,11 @@ class HomeScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Professional Architectural Hero Banner
+          // 1. Architectural Hero Banner
           _buildHeroBanner(context, isDark),
           const SizedBox(height: 24),
 
-          // Section Header: My Projects
+          // 2. Section: My Projects
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -34,31 +36,46 @@ class HomeScreen extends StatelessWidget {
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () => onNavigateTab(1),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProjectsScreen()),
+                  );
+                },
                 child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
           ),
           const SizedBox(height: 10),
 
-          // Projects List or Empty State
           if (!projectProvider.hasProjects)
             _buildEmptyProjectsCard(context, isDark)
           else
-            _buildProjectsList(context, projectProvider),
+            _buildProjectsList(context, projectProvider, isDark),
 
           const SizedBox(height: 24),
 
-          // Design Studio Modules Shortcut
+          // 3. Section: Professional Studio (Added)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Design Modules',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              Row(
+                children: const [
+                  Text(
+                    'Professional Studio',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 6),
+                  Text('📐', style: TextStyle(fontSize: 16)),
+                ],
               ),
               TextButton(
-                onPressed: () => onNavigateTab(2),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ProfessionalScreen()),
+                  );
+                },
                 child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
@@ -72,17 +89,96 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 1.15,
             children: [
-              _buildDesignModuleCard(
+              _buildFeatureCard(
+                context,
+                isDark: isDark,
+                title: 'CAD Drafting',
+                subtitle: '2D Vector Canvas & Snap',
+                badge: 'PRECISION',
+                badgeColor: const Color(0xFF60A5FA),
+                icon: Icons.architecture,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen())),
+              ),
+              _buildFeatureCard(
+                context,
+                isDark: isDark,
+                title: 'Drawing Tools',
+                subtitle: 'Shapes, Offset & Trim',
+                badge: 'DRAFTING',
+                badgeColor: const Color(0xFFF472B6),
+                icon: Icons.draw_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen())),
+              ),
+              _buildFeatureCard(
+                context,
+                isDark: isDark,
+                title: 'Layers Manager',
+                subtitle: 'Arch, MEP & Structural',
+                badge: 'LAYERS',
+                badgeColor: const Color(0xFF34D399),
+                icon: Icons.layers_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen())),
+              ),
+              _buildFeatureCard(
+                context,
+                isDark: isDark,
+                title: 'Dimensions',
+                subtitle: 'Linear, Angular & Scale',
+                badge: 'STANDARDS',
+                badgeColor: const Color(0xFFFBBF24),
+                icon: Icons.straighten_outlined,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen())),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // 4. Section: Design Modules
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: const [
+                  Text(
+                    'Design Modules',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 6),
+                  Text('🏢', style: TextStyle(fontSize: 16)),
+                ],
+              ),
+              TextButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const DesignScreen()),
+                  );
+                },
+                child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.15,
+            children: [
+              _buildFeatureCard(
                 context,
                 isDark: isDark,
                 title: 'Floor Plan',
-                subtitle: '2D CAD Layouts',
+                subtitle: '2D CAD Spatial Layouts',
                 badge: 'ARCHITECTURE',
                 badgeColor: const Color(0xFF38BDF8),
                 icon: Icons.grid_view_rounded,
-                tabIndex: 2,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignScreen())),
               ),
-              _buildDesignModuleCard(
+              _buildFeatureCard(
                 context,
                 isDark: isDark,
                 title: 'Site Plan',
@@ -90,43 +186,54 @@ class HomeScreen extends StatelessWidget {
                 badge: 'ORIENTATION',
                 badgeColor: const Color(0xFF34D399),
                 icon: Icons.explore_outlined,
-                tabIndex: 2,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignScreen())),
               ),
-              _buildDesignModuleCard(
+              _buildFeatureCard(
                 context,
                 isDark: isDark,
                 title: 'Elevation',
-                subtitle: 'Facade & Heights',
+                subtitle: 'Facade & Height Levels',
                 badge: 'EXTERIOR',
                 badgeColor: const Color(0xFFFBBF24),
                 icon: Icons.domain_rounded,
-                tabIndex: 2,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignScreen())),
               ),
-              _buildDesignModuleCard(
+              _buildFeatureCard(
                 context,
                 isDark: isDark,
                 title: '3D View',
-                subtitle: 'Spatial 3D Model',
+                subtitle: 'Spatial 3D Massing Model',
                 badge: 'VISUALIZER',
                 badgeColor: const Color(0xFFA78BFA),
                 icon: Icons.view_in_ar_rounded,
-                tabIndex: 2,
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DesignScreen())),
               ),
             ],
           ),
 
           const SizedBox(height: 24),
 
-          // Engineering & Tools Shortcut
+          // 5. Section: Engineering & Tools Shortcut
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Engineering & Tools',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              Row(
+                children: const [
+                  Text(
+                    'Engineering & Tools',
+                    style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(width: 6),
+                  Text('⚡', style: TextStyle(fontSize: 16)),
+                ],
               ),
               TextButton(
-                onPressed: () => onNavigateTab(3),
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ToolsScreen()),
+                  );
+                },
                 child: const Text('168 Tools', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
@@ -140,10 +247,30 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 2.2,
             children: [
-              _buildCompactToolCategory(context, icon: '📐', title: 'Measurement', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '🪙', title: 'Cost & BOQ', tabIndex: 3),
+              _buildCompactToolCategory(
+                context,
+                icon: '📐',
+                title: 'Measurement',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure'))),
+              ),
+              _buildCompactToolCategory(
+                context,
+                icon: '👷',
+                title: 'Construction',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const'))),
+              ),
+              _buildCompactToolCategory(
+                context,
+                icon: '🧱',
+                title: 'Materials & Steel',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat'))),
+              ),
+              _buildCompactToolCategory(
+                context,
+                icon: '🪙',
+                title: 'Cost & BOQ',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost'))),
+              ),
             ],
           ),
           const SizedBox(height: 24),
@@ -180,13 +307,11 @@ class HomeScreen extends StatelessWidget {
         borderRadius: BorderRadius.circular(19),
         child: Stack(
           children: [
-            // Architectural CAD Blueprint Background
             Positioned.fill(
               child: CustomPaint(
                 painter: ArchitecturalBlueprintPainter(isDarkMode: isDark),
               ),
             ),
-            // Text & Action Content
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
               child: Column(
@@ -262,7 +387,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDesignModuleCard(
+  Widget _buildFeatureCard(
     BuildContext context, {
     required bool isDark,
     required String title,
@@ -270,10 +395,10 @@ class HomeScreen extends StatelessWidget {
     required String badge,
     required Color badgeColor,
     required IconData icon,
-    required int tabIndex,
+    required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: () => onNavigateTab(tabIndex),
+      onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -333,7 +458,9 @@ class HomeScreen extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -352,7 +479,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildEmptyProjectsCard(BuildContext context, bool isDark) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
       decoration: BoxDecoration(
         color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(16),
@@ -403,7 +530,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildProjectsList(BuildContext context, ProjectProvider projectProvider) {
+  Widget _buildProjectsList(BuildContext context, ProjectProvider projectProvider, bool isDark) {
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -416,7 +543,7 @@ class HomeScreen extends StatelessWidget {
           decoration: BoxDecoration(
             color: Theme.of(context).cardColor,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.darkBorder),
+            border: Border.all(color: isDark ? const Color(0x25FFFFFF) : const Color(0xFFE2E8F0)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,7 +603,7 @@ class HomeScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.darkIconBg,
+                      color: isDark ? AppColors.darkIconBg : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -488,7 +615,7 @@ class HomeScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.darkIconBg,
+                      color: isDark ? AppColors.darkIconBg : const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -505,16 +632,17 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required int tabIndex}) {
+  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required VoidCallback onTap}) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return InkWell(
-      onTap: () => onNavigateTab(tabIndex),
+      onTap: onTap,
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.darkBorder),
+          border: Border.all(color: isDark ? const Color(0x25FFFFFF) : const Color(0xFFE2E8F0)),
         ),
         child: Row(
           children: [
@@ -544,7 +672,6 @@ class ArchitecturalBlueprintPainter extends CustomPainter {
       ..color = (isDarkMode ? Colors.cyanAccent : Colors.lightBlueAccent).withOpacity(0.09)
       ..strokeWidth = 1.0;
 
-    // Draw millimeter drafting grid
     const double step = 20.0;
     for (double x = 0; x < size.width; x += step) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
@@ -565,7 +692,6 @@ class ArchitecturalBlueprintPainter extends CustomPainter {
     final w = size.width;
     final h = size.height;
 
-    // Modern Villa Architectural Outline
     final path = Path();
     path.moveTo(w * 0.62, h * 0.88);
     path.lineTo(w * 0.62, h * 0.38);
@@ -577,11 +703,8 @@ class ArchitecturalBlueprintPainter extends CustomPainter {
 
     canvas.drawPath(path, fillPaint);
     canvas.drawPath(path, linePaint);
-
-    // Floor Level Line
     canvas.drawLine(Offset(w * 0.62, h * 0.62), Offset(w * 0.96, h * 0.62), linePaint);
 
-    // Windows & Door wireframe
     final windowPaint = Paint()
       ..color = Colors.white.withOpacity(0.35)
       ..strokeWidth = 1.0
@@ -592,7 +715,6 @@ class ArchitecturalBlueprintPainter extends CustomPainter {
     canvas.drawRect(Rect.fromLTWH(w * 0.68, h * 0.68, w * 0.07, h * 0.20), windowPaint);
     canvas.drawRect(Rect.fromLTWH(w * 0.80, h * 0.68, w * 0.10, h * 0.14), windowPaint);
 
-    // Dimension Markings
     final dimPaint = Paint()
       ..color = const Color(0xFFE5B05C).withOpacity(0.3)
       ..strokeWidth = 1.0;
@@ -601,7 +723,6 @@ class ArchitecturalBlueprintPainter extends CustomPainter {
     canvas.drawLine(Offset(w * 0.56, h * 0.38), Offset(w * 0.60, h * 0.38), dimPaint);
     canvas.drawLine(Offset(w * 0.56, h * 0.88), Offset(w * 0.60, h * 0.88), dimPaint);
 
-    // North Compass
     final compassCenter = Offset(w * 0.88, h * 0.18);
     final compassPaint = Paint()
       ..color = const Color(0xFFE5B05C).withOpacity(0.4)
