@@ -71,7 +71,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
           floors: _floors,
           facing: _facing,
         );
-        notifProvider.addNotification('success', 'New Project Created', '$name ($bhk, ${length * width} sqft) was created.');
+        notifProvider.addNotification('success', 'New Project Created', '$name ($_bhk, ${length * width} sqft) was created.');
       }
 
       Navigator.pop(context);
@@ -99,7 +99,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       isEditing ? 'Edit Project' : 'Create New Project',

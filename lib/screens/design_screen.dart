@@ -133,7 +133,7 @@ class DesignScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Design Modules', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Text('${DesignData.modules.length} modules', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -169,7 +169,7 @@ class DesignScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
                               width: 36,

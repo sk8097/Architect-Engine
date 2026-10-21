@@ -158,7 +158,7 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
             const SizedBox(height: 18),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Professional Tools', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Text('${filtered.length} modules', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -192,7 +192,7 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
                               width: 36,

@@ -60,7 +60,7 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
   }) async {
-    final index = _projects.findIndex((p) => p.id == id);
+    final index = _projects.indexWhere((p) => p.id == id);
     if (index != -1) {
       _projects[index].name = name;
       _projects[index].length = length;

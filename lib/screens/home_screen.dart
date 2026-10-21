@@ -90,7 +90,7 @@ class HomeScreen extends StatelessWidget {
 
           // Section Header: My Projects
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'My Projects',
@@ -251,7 +251,7 @@ class HomeScreen extends StatelessWidget {
 
           // Design Studio Modules Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Design Modules',
@@ -283,7 +283,7 @@ class HomeScreen extends StatelessWidget {
 
           // Tools & Utilities Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Engineering & Tools',
