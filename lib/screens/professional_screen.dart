@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../data/professional_data.dart';
 import '../models/module_models.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/app_drawer.dart';
 
 class ProfessionalScreen extends StatefulWidget {
   const ProfessionalScreen({super.key});
@@ -50,7 +52,10 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(m.key.toUpperCase(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                            Text(m.status == 'progress' ? 'In Development' : 'Planned Specification', style: const TextStyle(fontSize: 11, color: Colors.grey)),
+                            Text(
+                              m.status == 'progress' ? 'In Development' : 'Planned Specification',
+                              style: const TextStyle(fontSize: 11, color: Colors.grey),
+                            ),
                           ],
                         ),
                       ),
@@ -59,7 +64,6 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Overview
                   const Text('📌 Architectural Overview', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.darkPrimary)),
                   const SizedBox(height: 6),
                   Container(
@@ -72,22 +76,20 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Uses
                   const Text('🎯 Specific Professional Capabilities', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.darkPrimary)),
                   const SizedBox(height: 6),
                   ...m.uses.map((u) => Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('✓ ', style: TextStyle(color: AppColors.darkPrimary, fontWeight: FontWeight.bold)),
-                        Expanded(child: Text(u, style: const TextStyle(fontSize: 12, color: Colors.grey))),
-                      ],
-                    ),
-                  )),
+                        padding: const EdgeInsets.only(bottom: 6),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('✓ ', style: TextStyle(color: AppColors.darkPrimary, fontWeight: FontWeight.bold)),
+                            Expanded(child: Text(u, style: const TextStyle(fontSize: 12, color: Colors.grey))),
+                          ],
+                        ),
+                      )),
                   const SizedBox(height: 16),
 
-                  // Screen Design
                   const Text('🖥️ Interface & Canvas Specs', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.darkPrimary)),
                   const SizedBox(height: 6),
                   Container(
@@ -116,12 +118,13 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
     }).toList();
 
     return Scaffold(
+      appBar: const CommonAppBar(title: 'PROFESSIONAL CAD STUDIO', icon: '🖊️'),
+      drawer: const AppDrawer(),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Header Hero
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -131,9 +134,9 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: AppColors.darkBorder),
               ),
-              child: Column(
+              child: const Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
+                children: [
                   Text('PROFESSIONAL CAD STUDIO', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.darkPrimary)),
                   SizedBox(height: 10),
                   Text('Precision • Control • Documentation', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -144,7 +147,6 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
             ),
             const SizedBox(height: 16),
 
-            // Search Bar
             TextField(
               decoration: InputDecoration(
                 hintText: 'Search professional CAD modules...',

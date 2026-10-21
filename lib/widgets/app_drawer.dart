@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
 import '../providers/app_state_provider.dart';
+import '../screens/home_screen.dart';
 import '../screens/projects_screen.dart';
-import '../screens/professional_screen.dart';
 import '../screens/design_screen.dart';
 import '../screens/tools_screen.dart';
+import '../screens/professional_screen.dart';
 import '../screens/profile_screen.dart';
 import '../screens/notifications_screen.dart';
 import '../screens/unit_converter_screen.dart';
@@ -16,9 +17,7 @@ import '../screens/cloud_sync_screen.dart';
 import '../screens/export_screen.dart';
 
 class AppDrawer extends StatelessWidget {
-  final Function(int)? onSelectTab;
-
-  const AppDrawer({super.key, this.onSelectTab});
+  const AppDrawer({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +28,7 @@ class AppDrawer extends StatelessWidget {
       child: SafeArea(
         child: Column(
           children: [
+            // Drawer Header
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -44,7 +44,7 @@ class AppDrawer extends StatelessWidget {
                       shape: BoxShape.circle,
                     ),
                     alignment: Alignment.center,
-                    child: const Text('👷', style: TextStyle(fontSize: 24)),
+                    child: const Text('📐', style: TextStyle(fontSize: 24)),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -66,32 +66,35 @@ class AppDrawer extends StatelessWidget {
                 ],
               ),
             ),
+
+            // Scrollable Menu Items
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                 children: [
-                  _buildSectionTitle('MAIN NAVIGATION'),
+                  _buildSectionTitle('MAIN SECTIONS'),
                   _buildMenuItem(
                     context,
                     icon: Icons.home_outlined,
                     title: 'Home',
-                    onTap: () => Navigator.pop(context),
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const HomeScreen()),
+                        (route) => false,
+                      );
+                    },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.folder_outlined,
-                    title: 'My Projects',
+                    title: 'Projects',
                     onTap: () => _nav(context, const ProjectsScreen()),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.architecture,
-                    title: 'Professional CAD',
-                    onTap: () => _nav(context, const ProfessionalScreen()),
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.design_services_outlined,
                     title: 'Design Studio',
                     onTap: () => _nav(context, const DesignScreen()),
                   ),
@@ -101,9 +104,15 @@ class AppDrawer extends StatelessWidget {
                     title: 'Tools & Utilities',
                     onTap: () => _nav(context, const ToolsScreen()),
                   ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.draw_outlined,
+                    title: 'Professional CAD',
+                    onTap: () => _nav(context, const ProfessionalScreen()),
+                  ),
 
                   const Divider(),
-                  _buildSectionTitle('ACCOUNT'),
+                  _buildSectionTitle('ACCOUNT & BACKUP'),
                   _buildMenuItem(
                     context,
                     icon: Icons.person_outline,
@@ -127,24 +136,6 @@ class AppDrawer extends StatelessWidget {
                       style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.darkPrimary),
                     ),
                     onTap: () => appState.toggleTheme(),
-                  ),
-                  ListTile(
-                    leading: const Icon(Icons.language_outlined, size: 22),
-                    title: const Text('Language', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    trailing: DropdownButton<String>(
-                      value: appState.currentLanguage,
-                      underline: const SizedBox(),
-                      items: const [
-                        DropdownMenuItem(value: 'en', child: Text('English')),
-                        DropdownMenuItem(value: 'hi', child: Text('हिन्दी')),
-                        DropdownMenuItem(value: 'mr', child: Text('मराठी')),
-                        DropdownMenuItem(value: 'gu', child: Text('ગુજરાતી')),
-                        DropdownMenuItem(value: 'ta', child: Text('தமிழ்')),
-                      ],
-                      onChanged: (val) {
-                        if (val != null) appState.setLanguage(val);
-                      },
-                    ),
                   ),
 
                   const Divider(),
@@ -202,12 +193,6 @@ class AppDrawer extends StatelessWidget {
                     icon: Icons.info_outline,
                     title: 'About Us',
                     onTap: () => _nav(context, const AboutScreen()),
-                  ),
-                  _buildMenuItem(
-                    context,
-                    icon: Icons.policy_outlined,
-                    title: 'Privacy Policy',
-                    onTap: () => _nav(context, const PrivacyPolicyScreen()),
                   ),
                 ],
               ),

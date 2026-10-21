@@ -4,7 +4,7 @@ import 'constants/app_themes.dart';
 import 'providers/app_state_provider.dart';
 import 'providers/project_provider.dart';
 import 'providers/notification_provider.dart';
-import 'screens/main_scaffold.dart';
+import 'screens/home_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +33,7 @@ class ArchitectEngineApp extends StatelessWidget {
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
       themeMode: appState.themeMode,
-      home: const MainScaffold(),
+      home: const HomeScreen(),
     );
   }
 }

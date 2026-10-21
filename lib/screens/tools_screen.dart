@@ -4,6 +4,8 @@ import '../constants/app_colors.dart';
 import '../data/tools_data.dart';
 import '../models/tool_model.dart';
 import '../providers/app_state_provider.dart';
+import '../widgets/common_app_bar.dart';
+import '../widgets/app_drawer.dart';
 import 'calculator_dialog.dart';
 
 class ToolsScreen extends StatefulWidget {
@@ -32,7 +34,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
   Widget build(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context);
 
-    // Filter tools
     List<ToolModel> list = ToolsData.allTools;
     if (_selectedCat == 'fav') {
       list = list.where((t) => appState.isFavorite(t.id)).toList();
@@ -48,6 +49,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
     final visibleTools = list.take(_renderLimit).toList();
 
     return Scaffold(
+      appBar: const CommonAppBar(title: 'TOOLS & UTILITIES', icon: '🧰'),
+      drawer: const AppDrawer(),
       body: CustomScrollView(
         slivers: [
           SliverToBoxAdapter(
@@ -56,14 +59,8 @@ class _ToolsScreenState extends State<ToolsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    '168 Professional Tools',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                  ),
-                  const Text(
-                    'Civil engineering, BOQ takeoffs, structural, and architectural calculators',
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
-                  ),
+                  const Text('168 Professional Tools', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const Text('Civil engineering, BOQ takeoffs, structural, and architectural calculators', style: TextStyle(fontSize: 12, color: Colors.grey)),
                   const SizedBox(height: 14),
 
                   // Search Box
@@ -144,10 +141,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
 
                     return InkWell(
                       onTap: () {
-                        showDialog(
-                          context: context,
-                          builder: (_) => CalculatorDialog(tool: tool),
-                        );
+                        showDialog(context: context, builder: (_) => CalculatorDialog(tool: tool));
                       },
                       borderRadius: BorderRadius.circular(16),
                       child: Container(
@@ -209,7 +203,6 @@ class _ToolsScreenState extends State<ToolsScreen> {
               ),
             ),
 
-          // Load More button
           if (list.length > _renderLimit)
             SliverToBoxAdapter(
               child: Padding(
