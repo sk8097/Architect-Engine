@@ -1,5 +1,3 @@
-import 'cad_editor_screen.dart';
-import 'tools_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
@@ -155,23 +153,7 @@ class HomeScreen extends StatelessWidget {
               itemCount: projectProvider.projects.take(3).length,
               itemBuilder: (context, index) {
                 final project = projectProvider.projects[index];
-                return InkWell(
-                  borderRadius: BorderRadius.circular(16),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => CadEditorScreen(
-                          projectName: project.name,
-                          plotLength: project.length,
-                          plotWidth: project.width,
-                          bhk: project.bhk,
-                          facing: project.facing,
-                        ),
-                      ),
-                    );
-                  },
-                  child: Container(
+                return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -290,10 +272,10 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 1.35,
             children: [
-              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'Floor Plan')))),
-              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'Site Plan')))),
+              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', tabIndex: 2),
+              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', tabIndex: 2),
               _buildShortcutCard(context, icon: '🏠', title: 'Elevation', sub: 'Exterior views', tabIndex: 2),
-              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: '3D View')))),
+              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', tabIndex: 2),
             ],
           ),
 
@@ -322,10 +304,10 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 2.2,
             children: [
-              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')))),
-              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')))),
-              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')))),
-              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')))),
+              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', tabIndex: 3),
             ],
           ),
           const SizedBox(height: 20),
@@ -334,23 +316,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required VoidCallback action}) {
+  Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required int tabIndex}) {
     return InkWell(
-      onTap: () {
-        if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => CadEditorScreen(projectName: title)));
-        } else if (title == 'Measurement') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')));
-        } else if (title == 'Construction') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')));
-        } else if (title == 'Materials & Steel') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')));
-        } else if (title == 'Cost & BOQ') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')));
-        } else {
-          onNavigateTab?.call(tabIndex);
-        }
-      },
+      onTap: () => onNavigateTab?.call(tabIndex),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -373,23 +341,9 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required VoidCallback action}) {
+  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required int tabIndex}) {
     return InkWell(
-      onTap: () {
-        if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => CadEditorScreen(projectName: title)));
-        } else if (title == 'Measurement') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')));
-        } else if (title == 'Construction') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')));
-        } else if (title == 'Materials & Steel') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')));
-        } else if (title == 'Cost & BOQ') {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')));
-        } else {
-          onNavigateTab?.call(tabIndex);
-        }
-      },
+      onTap: () => onNavigateTab?.call(tabIndex),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),

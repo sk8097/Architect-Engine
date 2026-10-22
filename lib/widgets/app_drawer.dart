@@ -18,7 +18,8 @@ import '../screens/cloud_sync_screen.dart';
 import '../screens/export_screen.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  final Function(int)? onSelectTab;
+  const AppDrawer({super.key, this.onSelectTab});
 
   @override
   Widget build(BuildContext context) {
