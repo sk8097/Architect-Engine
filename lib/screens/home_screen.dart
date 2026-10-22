@@ -6,9 +6,9 @@ import '../providers/app_state_provider.dart';
 import 'project_form_dialog.dart';
 
 class HomeScreen extends StatelessWidget {
-  final Function(int) onNavigateTab;
+  final Function(int)? onNavigateTab;
 
-  const HomeScreen({super.key, required this.onNavigateTab});
+  const HomeScreen({super.key, this.onNavigateTab});
 
   @override
   Widget build(BuildContext context) {
@@ -90,14 +90,14 @@ class HomeScreen extends StatelessWidget {
 
           // Section Header: My Projects
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'My Projects',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () => onNavigateTab(1),
+                onPressed: () => onNavigateTab?.call(1),
                 child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
@@ -251,14 +251,14 @@ class HomeScreen extends StatelessWidget {
 
           // Design Studio Modules Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Design Modules',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () => onNavigateTab(2),
+                onPressed: () => onNavigateTab?.call(2),
                 child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
@@ -283,14 +283,14 @@ class HomeScreen extends StatelessWidget {
 
           // Tools & Utilities Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Engineering & Tools',
                 style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
               ),
               TextButton(
-                onPressed: () => onNavigateTab(3),
+                onPressed: () => onNavigateTab?.call(3),
                 child: const Text('168 Tools', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
               ),
             ],
@@ -318,7 +318,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required int tabIndex}) {
     return InkWell(
-      onTap: () => onNavigateTab(tabIndex),
+      onTap: () => onNavigateTab?.call(tabIndex),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -343,7 +343,7 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required int tabIndex}) {
     return InkWell(
-      onTap: () => onNavigateTab(tabIndex),
+      onTap: () => onNavigateTab?.call(tabIndex),
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),
