@@ -290,10 +290,10 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 1.35,
             children: [
-              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', tabIndex: 2),
-              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', tabIndex: 2),
+              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'Floor Plan')))),
+              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'Site Plan')))),
               _buildShortcutCard(context, icon: '🏠', title: 'Elevation', sub: 'Exterior views', tabIndex: 2),
-              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', tabIndex: 2),
+              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: '3D View')))),
             ],
           ),
 
@@ -322,10 +322,10 @@ class HomeScreen extends StatelessWidget {
             mainAxisSpacing: 12,
             childAspectRatio: 2.2,
             children: [
-              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')))),
+              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')))),
+              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')))),
+              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')))),
             ],
           ),
           const SizedBox(height: 20),
@@ -334,7 +334,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required int tabIndex}) {
+  Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required VoidCallback action}) {
     return InkWell(
       onTap: () {
         if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
@@ -373,7 +373,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required int tabIndex}) {
+  Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required VoidCallback action}) {
     return InkWell(
       onTap: () {
         if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
