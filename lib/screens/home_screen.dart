@@ -249,6 +249,139 @@ class HomeScreen extends StatelessWidget {
 
           const SizedBox(height: 24),
 
+
+          // Section Header: Professional Studio
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Professional Studio',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () {
+                  if (onNavigateTab != null) {
+                    onNavigateTab!(1);
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen()));
+                  }
+                },
+                child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // AutoCAD 2D Studio Hero Launch Card
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF1E2433), Color(0xFF131C35)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.darkPrimary.withOpacity(0.4)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: AppColors.darkPrimary.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Text(
+                        'ACTIVE 2D VECTOR CAD',
+                        style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.darkPrimary, letterSpacing: 0.5),
+                      ),
+                    ),
+                    const Text('📐 26 Ready Blocks', style: TextStyle(fontSize: 11, color: Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'AutoCAD 2D Studio',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Interactive drafting canvas: walls, rooms, columns, dimensions, dual themes & 26 vector blocks.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey, height: 1.4),
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.darkPrimary,
+                      foregroundColor: const Color(0xFF0A1128),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen()));
+                    },
+                    icon: const Icon(Icons.architecture, size: 18),
+                    label: const Text('OPEN CAD STUDIO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, letterSpacing: 0.5)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // 2x2 Grid of Professional Modules
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.35,
+            children: [
+              _buildShortcutCard(
+                context,
+                icon: '📐',
+                title: 'CAD Workspace',
+                sub: 'Grid & Snap drafting',
+                action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'CAD Workspace'))),
+              ),
+              _buildShortcutCard(
+                context,
+                icon: '🛋️',
+                title: '2D Ready Blocks',
+                sub: 'Beds, sofas, chulha, WC',
+                action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'CAD Blocks Studio'))),
+              ),
+              _buildShortcutCard(
+                context,
+                icon: '📑',
+                title: 'Layer Manager',
+                sub: 'Discipline isolation',
+                action: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen(projectName: 'CAD Layers'))),
+              ),
+              _buildShortcutCard(
+                context,
+                icon: '⚖️',
+                title: 'Standards & Codes',
+                sub: 'NBC / AIA specifications',
+                action: () {
+                  if (onNavigateTab != null) {
+                    onNavigateTab!(1);
+                  } else {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const ProfessionalScreen()));
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
           // Design Studio Modules Shortcut
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -50,10 +50,17 @@ class _MainScaffoldState extends State<MainScaffold> {
         },
       ),
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.menu),
-          onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-        ),
+        leading: _currentIndex != 0
+            ? IconButton(
+                icon: const Icon(Icons.arrow_back),
+                tooltip: 'Back to Home',
+                onPressed: () => setState(() => _currentIndex = 0),
+              )
+            : IconButton(
+                icon: const Icon(Icons.menu),
+                tooltip: 'Menu',
+                onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+              ),
         title: Row(
           children: [
             const Text("📐", style: TextStyle(fontSize: 20)),
@@ -105,44 +112,6 @@ class _MainScaffoldState extends State<MainScaffold> {
       body: IndexedStack(
         index: _currentIndex,
         children: screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        backgroundColor: Theme.of(context).cardColor,
-        indicatorColor: AppColors.darkPrimary.withOpacity(0.2),
-        onDestinationSelected: (idx) {
-          if (idx == 4) {
-            _scaffoldKey.currentState?.openDrawer();
-          } else {
-            setState(() => _currentIndex = idx);
-          }
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: "Home",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.architecture_outlined),
-            selectedIcon: Icon(Icons.architecture),
-            label: "Professional",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.palette_outlined),
-            selectedIcon: Icon(Icons.palette),
-            label: "Design",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.handyman_outlined),
-            selectedIcon: Icon(Icons.handyman),
-            label: "Tools",
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.menu),
-            label: "More",
-          ),
-        ],
       ),
     );
   }
