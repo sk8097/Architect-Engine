@@ -1,3 +1,5 @@
+import 'cad_editor_screen.dart';
+import 'tools_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
@@ -153,7 +155,23 @@ class HomeScreen extends StatelessWidget {
               itemCount: projectProvider.projects.take(3).length,
               itemBuilder: (context, index) {
                 final project = projectProvider.projects[index];
-                return Container(
+                return InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => CadEditorScreen(
+                          projectName: project.name,
+                          plotLength: project.length,
+                          plotWidth: project.width,
+                          bhk: project.bhk,
+                          facing: project.facing,
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -318,7 +336,21 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildShortcutCard(BuildContext context, {required String icon, required String title, required String sub, required int tabIndex}) {
     return InkWell(
-      onTap: () => onNavigateTab?.call(tabIndex),
+      onTap: () {
+        if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => CadEditorScreen(projectName: title)));
+        } else if (title == 'Measurement') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')));
+        } else if (title == 'Construction') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')));
+        } else if (title == 'Materials & Steel') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')));
+        } else if (title == 'Cost & BOQ') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')));
+        } else {
+          onNavigateTab?.call(tabIndex);
+        }
+      },
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -343,7 +375,21 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildCompactToolCategory(BuildContext context, {required String icon, required String title, required int tabIndex}) {
     return InkWell(
-      onTap: () => onNavigateTab?.call(tabIndex),
+      onTap: () {
+        if (title == 'Floor Plan' || title == 'Site Plan' || title == 'Elevation' || title == '3D View') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => CadEditorScreen(projectName: title)));
+        } else if (title == 'Measurement') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'measure')));
+        } else if (title == 'Construction') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'const')));
+        } else if (title == 'Materials & Steel') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'mat')));
+        } else if (title == 'Cost & BOQ') {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsScreen(initialCategory: 'cost')));
+        } else {
+          onNavigateTab?.call(tabIndex);
+        }
+      },
       borderRadius: BorderRadius.circular(14),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14),

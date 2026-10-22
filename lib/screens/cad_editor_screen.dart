@@ -131,7 +131,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       type: CadTool.rectangle,
       layerId: "walls",
       points: [origin, Offset(origin.dx + wid, origin.dy + len)],
-      text: "${widget.projectName ?? 'House Plot'} (${widget.plotWidth?.toStringAsFixed(0)}x${widget.plotLength?.toStringAsFixed(0)} ft)",
+      text: "${widget.projectName ?? 'House Plot'} (${(widget.plotWidth ?? 30.0).toStringAsFixed(0)}x${(widget.plotLength ?? 40.0).toStringAsFixed(0)} ft)",
       strokeWidth: 6.0,
       color: _isDarkCanvas ? Colors.white : Colors.black87,
       widthFt: widget.plotWidth ?? 30.0,
@@ -144,7 +144,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       type: CadTool.dimension,
       layerId: "dimensions",
       points: [Offset(origin.dx, origin.dy - 35), Offset(origin.dx + wid, origin.dy - 35)],
-      text: "${widget.plotWidth?.toStringAsFixed(1)} ft",
+      text: "${(widget.plotWidth ?? 30.0).toStringAsFixed(1)} ft",
       strokeWidth: 1.5,
       color: const Color(0xFFF59E0B),
     ));
@@ -154,7 +154,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       type: CadTool.dimension,
       layerId: "dimensions",
       points: [Offset(origin.dx - 35, origin.dy), Offset(origin.dx - 35, origin.dy + len)],
-      text: "${widget.plotLength?.toStringAsFixed(1)} ft",
+      text: "${(widget.plotLength ?? 40.0).toStringAsFixed(1)} ft",
       strokeWidth: 1.5,
       color: const Color(0xFFF59E0B),
     ));
@@ -925,15 +925,71 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
               left: 0,
               right: 0,
               bottom: 44,
-              child: _buildBlocksBottomDrawer(),
+              child: SafeArea(top: false, child: _buildBlocksBottomDrawer()),
             ),
 
+          // Floating Zoom Controls (+, -, Fit, Blocks)
+          Positioned(
+            right: 14,
+            bottom: _showBlocksBar ? 190 : 54,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'btn_zoom_in',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: const Color(0xFFE5B05C),
+                  tooltip: 'Zoom In (+)',
+                  onPressed: () {
+                    final matrix = _transformationController.value.clone();
+                    matrix.scale(1.25, 1.25);
+                    _transformationController.value = matrix;
+                  },
+                  child: const Icon(Icons.add, size: 20),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_zoom_out',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: const Color(0xFFE5B05C),
+                  tooltip: 'Zoom Out (-)',
+                  onPressed: () {
+                    final matrix = _transformationController.value.clone();
+                    matrix.scale(0.8, 0.8);
+                    _transformationController.value = matrix;
+                  },
+                  child: const Icon(Icons.remove, size: 20),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_fit_view',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: Colors.white,
+                  tooltip: 'Fit View',
+                  onPressed: () {
+                    _transformationController.value = Matrix4.identity();
+                  },
+                  child: const Icon(Icons.center_focus_strong, size: 18),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_blocks_toggle',
+                  backgroundColor: _showBlocksBar ? const Color(0xFFE5B05C) : const Color(0xFF1E2433),
+                  foregroundColor: _showBlocksBar ? const Color(0xFF0A1128) : const Color(0xFFE5B05C),
+                  tooltip: '2D Blocks Library',
+                  onPressed: () {
+                  },
+                  child: const Icon(Icons.chair_outlined, size: 18),
+                ),
+              ],
+            ),
+          ),
           // Bottom Status Bar
           Positioned(
             left: 0,
             right: 0,
             bottom: 0,
-            child: _buildCadStatusBar(),
+            child: SafeArea(top: false, child: _buildCadStatusBar()),
           ),
         ],
       ),
@@ -1225,7 +1281,63 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     );
   }
 
-  // Bottom Status Bar
+  // Floating Zoom Controls (+, -, Fit, Blocks)
+          Positioned(
+            right: 14,
+            bottom: _showBlocksBar ? 190 : 54,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                FloatingActionButton.small(
+                  heroTag: 'btn_zoom_in',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: const Color(0xFFE5B05C),
+                  tooltip: 'Zoom In (+)',
+                  onPressed: () {
+                    final matrix = _transformationController.value.clone();
+                    matrix.scale(1.25, 1.25);
+                    _transformationController.value = matrix;
+                  },
+                  child: const Icon(Icons.add, size: 20),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_zoom_out',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: const Color(0xFFE5B05C),
+                  tooltip: 'Zoom Out (-)',
+                  onPressed: () {
+                    final matrix = _transformationController.value.clone();
+                    matrix.scale(0.8, 0.8);
+                    _transformationController.value = matrix;
+                  },
+                  child: const Icon(Icons.remove, size: 20),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_fit_view',
+                  backgroundColor: const Color(0xFF1E2433),
+                  foregroundColor: Colors.white,
+                  tooltip: 'Fit View',
+                  onPressed: () {
+                    _transformationController.value = Matrix4.identity();
+                  },
+                  child: const Icon(Icons.center_focus_strong, size: 18),
+                ),
+                const SizedBox(height: 6),
+                FloatingActionButton.small(
+                  heroTag: 'btn_blocks_toggle',
+                  backgroundColor: _showBlocksBar ? const Color(0xFFE5B05C) : const Color(0xFF1E2433),
+                  foregroundColor: _showBlocksBar ? const Color(0xFF0A1128) : const Color(0xFFE5B05C),
+                  tooltip: '2D Blocks Library',
+                  onPressed: () {
+                  },
+                  child: const Icon(Icons.chair_outlined, size: 18),
+                ),
+              ],
+            ),
+          ),
+          // Bottom Status Bar
   Widget _buildCadStatusBar() {
     final x = _cursorScenePos?.dx.toStringAsFixed(1) ?? "0.0";
     final y = _cursorScenePos?.dy.toStringAsFixed(1) ?? "0.0";
