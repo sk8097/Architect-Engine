@@ -1,4 +1,3 @@
-import 'screens/main_scaffold.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'constants/app_themes.dart';
@@ -34,7 +33,7 @@ class ArchitectEngineApp extends StatelessWidget {
       theme: AppThemes.lightTheme,
       darkTheme: AppThemes.darkTheme,
       themeMode: appState.themeMode,
-      home: const MainScaffold(),
+      home: const HomeScreen(),
     );
   }
 }

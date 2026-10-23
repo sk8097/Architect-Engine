@@ -1,26 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
 import '../models/cad_models.dart';
 
 class CadEditorScreen extends StatefulWidget {
-  final String? projectName;
-  final double? plotLength;
-  final double? plotWidth;
-  final String? bhk;
-  final String? facing;
-  final List<String>? selectedRooms;
+  final String? projectTitle;
 
-  const CadEditorScreen({
-    super.key,
-    this.projectName,
-    this.plotLength,
-    this.plotWidth,
-    this.bhk,
-    this.facing,
-    this.selectedRooms,
-  });
+  const CadEditorScreen({super.key, this.projectTitle});
 
   @override
   State<CadEditorScreen> createState() => _CadEditorScreenState();
@@ -29,108 +15,39 @@ class CadEditorScreen extends StatefulWidget {
 class _CadEditorScreenState extends State<CadEditorScreen> {
   final TransformationController _transformationController = TransformationController();
 
-  final GlobalKey _canvasViewportKey = GlobalKey();
-
-  double get _currentZoom => _transformationController.value.getMaxScaleOnAxis();
-
-  void _zoomBy(double factor) {
-    final renderObject = _canvasViewportKey.currentContext?.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.hasSize) return;
-
-    final viewport = renderObject.size;
-    final current = _transformationController.value;
-    final currentScale = current.getMaxScaleOnAxis();
-    final nextScale = (currentScale * factor).clamp(0.15, 6.0).toDouble();
-    final ratio = nextScale / currentScale;
-    final center = Offset(viewport.width / 2, viewport.height / 2);
-    final tx = current.storage[12];
-    final ty = current.storage[13];
-    final nextTx = center.dx - (center.dx - tx) * ratio;
-    final nextTy = center.dy - (center.dy - ty) * ratio;
-
-    _transformationController.value = Matrix4.identity()
-      ..translate(nextTx, nextTy)
-      ..scale(nextScale);
-  }
-
-  void _fitToDrawing() {
-    final renderObject = _canvasViewportKey.currentContext?.findRenderObject();
-    if (renderObject is! RenderBox || !renderObject.hasSize || _entities.isEmpty) {
-      _transformationController.value = Matrix4.identity();
-      return;
-    }
-
-    Rect? bounds;
-    for (final entity in _entities) {
-      if (entity.points.isEmpty) continue;
-      final entityBounds = entity.getBounds();
-      bounds = bounds == null ? entityBounds : bounds.expandToInclude(entityBounds);
-    }
-
-    if (bounds == null || bounds.width <= 0 || bounds.height <= 0) {
-      _transformationController.value = Matrix4.identity();
-      return;
-    }
-
-    final viewport = renderObject.size;
-    const padding = 64.0;
-    final availableWidth = math.max(1.0, viewport.width - padding * 2);
-    final availableHeight = math.max(1.0, viewport.height - padding * 2);
-    final scale = math.min(
-      availableWidth / bounds.width,
-      availableHeight / bounds.height,
-    ).clamp(0.15, 6.0).toDouble();
-
-    _transformationController.value = Matrix4.identity()
-      ..translate(
-        viewport.width / 2 - bounds.center.dx * scale,
-        viewport.height / 2 - bounds.center.dy * scale,
-      )
-      ..scale(scale);
-  }
-
-
-  CadTool _activeTool = CadTool.select;
-  String _activeLayerId = "walls";
+  CadTool _activeTool = CadTool.wall;
   bool _orthoMode = false;
-  bool _snapMode = true;
-  bool _gridVisible = true;
-  bool _isDarkCanvas = true; // Dual Theme: Dark CAD (0xFF10141D) <-> White Paper (0xFFFFFFFF)
+  bool _snapToGrid = true;
+  bool _showGrid = true;
+  bool _isPanMode = false;
   final double _gridSize = 20.0;
 
-  Offset? _cursorScenePos;
-  Offset? _dragStart;
-  Offset? _currentDrag;
-  CadEntity? _selectedEntity;
-  Offset? _entityMoveStartPoint;
-  bool _isMovingEntity = false;
-
-  CadBlockCategory _selectedBlockCategory = CadBlockCategory.bedroom;
-  bool _showBlocksBar = false;
-
-  final List<CadEntity> _entities = [];
-  final List<List<CadEntity>> _undoStack = [];
-  final List<List<CadEntity>> _redoStack = [];
-
+  late String _activeLayerId;
   final List<CadLayer> _layers = [
-    CadLayer(id: "walls", name: "Walls (9\"/4.5\")", color: const Color(0xFFFFFFFF), strokeWidth: 5.0),
-    CadLayer(id: "rooms", name: "Rooms & Spaces", color: const Color(0xFFE5B05C), strokeWidth: 2.0),
-    CadLayer(id: "furniture", name: "Furniture & Blocks", color: const Color(0xFF38BDF8), strokeWidth: 1.8),
-    CadLayer(id: "doors", name: "Doors & Swings", color: const Color(0xFF22C55E), strokeWidth: 2.0),
-    CadLayer(id: "windows", name: "Windows & Glass", color: const Color(0xFF60A5FA), strokeWidth: 2.0),
-    CadLayer(id: "columns", name: "RCC Columns", color: const Color(0xFFEF4444), strokeWidth: 2.5),
-    CadLayer(id: "dimensions", name: "Dimensions", color: const Color(0xFFF59E0B), strokeWidth: 1.5),
-    CadLayer(id: "text", name: "Labels & Notes", color: const Color(0xFFE2E8F0), strokeWidth: 1.5),
+    CadLayer(id: '0_WALLS', name: '0 - WALLS', color: const Color(0xFFF1C40F), strokeWidth: 3.5),
+    CadLayer(id: 'A_DOORS', name: 'A - DOORS', color: const Color(0xFF00E5FF), strokeWidth: 2.0),
+    CadLayer(id: 'A_WINDOWS', name: 'A - WINDOWS', color: const Color(0xFF38BDF8), strokeWidth: 2.0),
+    CadLayer(id: 'A_DIMS', name: 'A - DIMS', color: const Color(0xFF4ADE80), strokeWidth: 1.5),
+    CadLayer(id: 'A_TEXT', name: 'A - TEXT', color: const Color(0xFFFFFFFF), strokeWidth: 1.5),
+    CadLayer(id: 'S_COLUMNS', name: 'S - COLUMNS', color: const Color(0xFFEF4444), strokeWidth: 2.5),
   ];
+
+  List<CadElement> _elements = [];
+  final List<List<CadElement>> _undoStack = [];
+  final List<List<CadElement>> _redoStack = [];
+
+  Offset? _dragStart;
+  Offset? _currentCursor;
+  SnapPoint? _currentSnap;
+  CadElement? _selectedElement;
+  Offset? _elementDragOffset;
+  String _commandPrompt = 'Command: WALL - Tap or drag to draw architectural wall';
 
   @override
   void initState() {
     super.initState();
-    if (widget.plotLength != null && widget.plotWidth != null && widget.plotLength! > 0 && widget.plotWidth! > 0) {
-      _initProjectPlot();
-    } else {
-      _loadSampleBlueprint();
-    }
+    _activeLayerId = _layers.first.id;
+    _loadSampleBlueprint();
   }
 
   @override
@@ -139,744 +56,381 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     super.dispose();
   }
 
-  void _saveUndoState() {
-    _undoStack.add(_entities.map((e) => e.clone()).toList());
-    if (_undoStack.length > 30) _undoStack.removeAt(0);
+  void _saveStateForUndo() {
+    _undoStack.add(List<CadElement>.from(_elements.map((e) => e.copyWith())));
     _redoStack.clear();
+    if (_undoStack.length > 30) _undoStack.removeAt(0);
   }
 
   void _undo() {
     if (_undoStack.isNotEmpty) {
-      _redoStack.add(_entities.map((e) => e.clone()).toList());
+      _redoStack.add(List<CadElement>.from(_elements.map((e) => e.copyWith())));
       setState(() {
-        _entities.clear();
-        _entities.addAll(_undoStack.removeLast());
-        _selectedEntity = null;
+        _elements = _undoStack.removeLast();
+        _selectedElement = null;
+        _commandPrompt = 'Command: UNDO applied';
       });
     }
   }
 
   void _redo() {
     if (_redoStack.isNotEmpty) {
-      _undoStack.add(_entities.map((e) => e.clone()).toList());
+      _undoStack.add(List<CadElement>.from(_elements.map((e) => e.copyWith())));
       setState(() {
-        _entities.clear();
-        _entities.addAll(_redoStack.removeLast());
-        _selectedEntity = null;
+        _elements = _redoStack.removeLast();
+        _selectedElement = null;
+        _commandPrompt = 'Command: REDO applied';
       });
     }
   }
 
-  Offset _snapPoint(Offset point) {
-    if (!_snapMode) return point;
-    for (final entity in _entities) {
-      for (final p in entity.points) {
-        if ((p - point).distance < 14.0) {
-          return p;
-        }
+  Offset _applySnapping(Offset rawPoint) {
+    const double snapThreshold = 18.0;
+    SnapPoint? foundSnap;
+
+    for (final el in _elements) {
+      if ((el.start - rawPoint).distance < snapThreshold) {
+        foundSnap = SnapPoint(point: el.start, label: 'ENDPOINT', color: const Color(0xFF22C55E));
+        break;
+      }
+      if ((el.end - rawPoint).distance < snapThreshold) {
+        foundSnap = SnapPoint(point: el.end, label: 'ENDPOINT', color: const Color(0xFF22C55E));
+        break;
+      }
+      final mid = Offset((el.start.dx + el.end.dx) / 2, (el.start.dy + el.end.dy) / 2);
+      if ((mid - rawPoint).distance < snapThreshold) {
+        foundSnap = SnapPoint(point: mid, label: 'MIDPOINT', color: const Color(0xFF3B82F6));
+        break;
       }
     }
-    final snappedX = (point.dx / _gridSize).round() * _gridSize;
-    final snappedY = (point.dy / _gridSize).round() * _gridSize;
-    return Offset(snappedX, snappedY);
-  }
 
-  void _initProjectPlot() {
-    _entities.clear();
-    final len = (widget.plotLength ?? 40.0) * 15.0;
-    final wid = (widget.plotWidth ?? 30.0) * 15.0;
-    const origin = Offset(200, 200);
-
-    // Plot Boundary
-    _entities.add(CadEntity(
-      id: "plot_boundary",
-      type: CadTool.rectangle,
-      layerId: "walls",
-      points: [origin, Offset(origin.dx + wid, origin.dy + len)],
-      text: "${widget.projectName ?? 'House Plot'} (${(widget.plotWidth ?? 30.0).toStringAsFixed(0)}x${(widget.plotLength ?? 40.0).toStringAsFixed(0)} ft)",
-      strokeWidth: 6.0,
-      color: _isDarkCanvas ? Colors.white : Colors.black87,
-      widthFt: widget.plotWidth ?? 30.0,
-      heightFt: widget.plotLength ?? 40.0,
-    ));
-
-    // Dimensions
-    _entities.add(CadEntity(
-      id: "dim_w",
-      type: CadTool.dimension,
-      layerId: "dimensions",
-      points: [Offset(origin.dx, origin.dy - 35), Offset(origin.dx + wid, origin.dy - 35)],
-      text: "${widget.plotWidth?.toStringAsFixed(1)} ft",
-      strokeWidth: 1.5,
-      color: const Color(0xFFF59E0B),
-    ));
-
-    _entities.add(CadEntity(
-      id: "dim_l",
-      type: CadTool.dimension,
-      layerId: "dimensions",
-      points: [Offset(origin.dx - 35, origin.dy), Offset(origin.dx - 35, origin.dy + len)],
-      text: "${widget.plotLength?.toStringAsFixed(1)} ft",
-      strokeWidth: 1.5,
-      color: const Color(0xFFF59E0B),
-    ));
-
-    final halfW = wid / 2;
-    final thirdL = len / 3;
-
-    // Living Room
-    _entities.add(CadEntity(
-      id: "room_living",
-      type: CadTool.rectangle,
-      layerId: "rooms",
-      points: [origin, Offset(origin.dx + wid, origin.dy + thirdL * 1.3)],
-      text: "LIVING / DRAWING HALL",
-      strokeWidth: 4.0,
-      color: const Color(0xFFE5B05C),
-      widthFt: (wid / 15.0),
-      heightFt: (thirdL * 1.3 / 15.0),
-    ));
-
-    // Master Bedroom (SW)
-    _entities.add(CadEntity(
-      id: "room_bed1",
-      type: CadTool.rectangle,
-      layerId: "rooms",
-      points: [Offset(origin.dx, origin.dy + thirdL * 1.3), Offset(origin.dx + halfW, origin.dy + len)],
-      text: "MASTER BEDROOM (SW)",
-      strokeWidth: 4.0,
-      color: const Color(0xFFE5B05C),
-      widthFt: (halfW / 15.0),
-      heightFt: ((len - thirdL * 1.3) / 15.0),
-    ));
-
-    // Kitchen (SE)
-    _entities.add(CadEntity(
-      id: "room_kit",
-      type: CadTool.rectangle,
-      layerId: "rooms",
-      points: [Offset(origin.dx + halfW, origin.dy + thirdL * 1.3), Offset(origin.dx + wid, origin.dy + thirdL * 2.2)],
-      text: "KITCHEN (SE)",
-      strokeWidth: 4.0,
-      color: const Color(0xFFE5B05C),
-      widthFt: (halfW / 15.0),
-      heightFt: (thirdL * 0.9 / 15.0),
-    ));
-
-    // Toilet (West)
-    _entities.add(CadEntity(
-      id: "room_bath",
-      type: CadTool.rectangle,
-      layerId: "rooms",
-      points: [Offset(origin.dx + halfW, origin.dy + thirdL * 2.2), Offset(origin.dx + wid, origin.dy + len)],
-      text: "TOILET & BATH",
-      strokeWidth: 4.0,
-      color: const Color(0xFFE5B05C),
-      widthFt: (halfW / 15.0),
-      heightFt: ((len - thirdL * 2.2) / 15.0),
-    ));
-
-    // Main Entrance Door
-    _entities.add(CadEntity(
-      id: "main_door",
-      type: CadTool.door,
-      layerId: "doors",
-      points: [Offset(origin.dx + wid * 0.35, origin.dy), Offset(origin.dx + wid * 0.35 + 45, origin.dy)],
-      text: "Main Door (3'x7')",
-      strokeWidth: 2.0,
-      color: const Color(0xFF22C55E),
-    ));
-
-    // Corner Red Columns
-    final colOffsets = [
-      origin,
-      Offset(origin.dx + wid, origin.dy),
-      Offset(origin.dx, origin.dy + len),
-      Offset(origin.dx + wid, origin.dy + len),
-      Offset(origin.dx + halfW, origin.dy + thirdL * 1.3),
-    ];
-    for (int i = 0; i < colOffsets.length; i++) {
-      _entities.add(CadEntity(
-        id: "col_$i",
-        type: CadTool.column,
-        layerId: "columns",
-        points: [colOffsets[i]],
-        text: "C$i (9x9)",
-        widthFt: 0.75,
-        heightFt: 0.75,
-        strokeWidth: 2.0,
-        color: const Color(0xFFEF4444),
-        fillColor: const Color(0xFFD32F2F),
-      ));
+    if (foundSnap != null) {
+      _currentSnap = foundSnap;
+      return foundSnap.point;
     }
 
-    // Add Furniture Blocks inside rooms
-    _entities.add(CadEntity(
-      id: "blk_king_bed",
-      type: CadTool.block,
-      blockType: CadBlockType.bedDouble,
-      layerId: "furniture",
-      points: [Offset(origin.dx + halfW * 0.5, origin.dy + thirdL * 1.3 + 60)],
-      text: "Master King Bed",
-      widthFt: 6.0,
-      heightFt: 6.5,
-      rotationDeg: 0.0,
-      color: const Color(0xFF38BDF8),
-    ));
-
-    _entities.add(CadEntity(
-      id: "blk_gas_chulha",
-      type: CadTool.block,
-      blockType: CadBlockType.chulha3,
-      layerId: "furniture",
-      points: [Offset(origin.dx + halfW + 40, origin.dy + thirdL * 1.3 + 30)],
-      text: "Gas Chulha (3-Burner)",
-      widthFt: 2.6,
-      heightFt: 1.8,
-      rotationDeg: 0.0,
-      color: const Color(0xFFF59E0B),
-    ));
-
-    _entities.add(CadEntity(
-      id: "blk_wc",
-      type: CadTool.block,
-      blockType: CadBlockType.toiletWestern,
-      layerId: "furniture",
-      points: [Offset(origin.dx + halfW + 40, origin.dy + thirdL * 2.2 + 35)],
-      text: "WC Commode",
-      widthFt: 1.6,
-      heightFt: 2.3,
-      rotationDeg: 0.0,
-      color: const Color(0xFF22C55E),
-    ));
-
-    _entities.add(CadEntity(
-      id: "blk_sofa3",
-      type: CadTool.block,
-      blockType: CadBlockType.sofa3,
-      layerId: "furniture",
-      points: [Offset(origin.dx + 80, origin.dy + 80)],
-      text: "Living Sofa (3-Seater)",
-      widthFt: 6.5,
-      heightFt: 2.8,
-      rotationDeg: 0.0,
-      color: const Color(0xFF38BDF8),
-    ));
+    _currentSnap = null;
+    if (_snapToGrid) {
+      final snappedX = (rawPoint.dx / _gridSize).round() * _gridSize;
+      final snappedY = (rawPoint.dy / _gridSize).round() * _gridSize;
+      return Offset(snappedX, snappedY);
+    }
+    return rawPoint;
   }
 
-  void _loadSampleBlueprint() {
-    _initProjectPlot();
+  Offset _applyOrtho(Offset start, Offset current) {
+    if (!_orthoMode) return current;
+    final dx = (current.dx - start.dx).abs();
+    final dy = (current.dy - start.dy).abs();
+    return dx > dy ? Offset(current.dx, start.dy) : Offset(start.dx, current.dy);
   }
 
-  void _addBlockToCanvas(CadBlockDefinition blockDef) {
-    _saveUndoState();
-    final centerScene = _transformationController.toScene(
-      Offset(MediaQuery.of(context).size.width / 2, MediaQuery.of(context).size.height / 2),
-    );
-    final snapped = _snapPoint(centerScene);
-
-    final newEntity = CadEntity(
-      id: "blk_${DateTime.now().millisecondsSinceEpoch}",
-      type: blockDef.category == CadBlockCategory.structural ? CadTool.column : CadTool.block,
-      blockType: blockDef.type,
-      layerId: blockDef.category == CadBlockCategory.structural ? "columns" : "furniture",
-      points: [snapped],
-      text: blockDef.name,
-      widthFt: blockDef.defaultWidthFt,
-      heightFt: blockDef.defaultHeightFt,
-      rotationDeg: 0.0,
-      color: blockDef.category == CadBlockCategory.structural ? const Color(0xFFEF4444) : const Color(0xFF38BDF8),
-      fillColor: blockDef.category == CadBlockCategory.structural ? const Color(0xFFD32F2F) : null,
-      showName: true,
-      showDimensions: true,
-    );
-
-    setState(() {
-      _entities.add(newEntity);
-      _selectedEntity = newEntity;
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Added ${blockDef.name} (${blockDef.defaultWidthFt} x ${blockDef.defaultHeightFt} ft) to canvas"),
-        duration: const Duration(seconds: 2),
-      ),
-    );
+  Offset _screenToWorld(Offset screenPos) {
+    return _transformationController.toScene(screenPos);
   }
 
-  void _deleteSelected() {
-    if (_selectedEntity == null) return;
-    _saveUndoState();
-    setState(() {
-      _entities.removeWhere((e) => e.id == _selectedEntity!.id);
-      _selectedEntity = null;
-    });
-  }
-
-  void _duplicateSelected() {
-    if (_selectedEntity == null) return;
-    _saveUndoState();
-    final clone = _selectedEntity!.clone();
-    final newId = "dup_${DateTime.now().millisecondsSinceEpoch}";
-    const offset = Offset(20, 20);
-    final newPoints = clone.points.map((p) => p + offset).toList();
-
-    final duplicated = CadEntity(
-      id: newId,
-      type: clone.type,
-      layerId: clone.layerId,
-      points: newPoints,
-      text: "${clone.text} (Copy)",
-      radius: clone.radius,
-      color: clone.color,
-      fillColor: clone.fillColor,
-      strokeWidth: clone.strokeWidth,
-      blockType: clone.blockType,
-      widthFt: clone.widthFt,
-      heightFt: clone.heightFt,
-      rotationDeg: clone.rotationDeg,
-      showName: clone.showName,
-      showDimensions: clone.showDimensions,
-    );
-
-    setState(() {
-      _entities.add(duplicated);
-      _selectedEntity = duplicated;
-    });
-  }
-
-  void _rotateSelected(double deltaDeg) {
-    if (_selectedEntity == null) return;
-    _saveUndoState();
-    setState(() {
-      _selectedEntity!.rotationDeg = (_selectedEntity!.rotationDeg + deltaDeg) % 360.0;
-      if (_selectedEntity!.rotationDeg < 0) _selectedEntity!.rotationDeg += 360.0;
-    });
-  }
-
-  void _nudgeSelected(double dxFt, double dyFt) {
-    if (_selectedEntity == null) return;
-    _saveUndoState();
-    final offset = Offset(dxFt * 15.0, dyFt * 15.0);
-    setState(() {
-      _selectedEntity!.points = _selectedEntity!.points.map((p) => p + offset).toList();
-    });
-  }
-
-  void _showEditEntityDialog() {
-    if (_selectedEntity == null) return;
-    final entity = _selectedEntity!;
-    final nameController = TextEditingController(text: entity.text);
-    final widthController = TextEditingController(text: entity.widthFt > 0 ? entity.widthFt.toStringAsFixed(1) : "3.0");
-    final heightController = TextEditingController(text: entity.heightFt > 0 ? entity.heightFt.toStringAsFixed(1) : "3.0");
-    double currentRot = entity.rotationDeg;
-    Color currentColor = entity.color ?? const Color(0xFFE5B05C);
-    bool showNameVal = entity.showName;
-    bool showDimVal = entity.showDimensions;
-
-    final paletteColors = [
-      const Color(0xFFE5B05C), // Gold
-      const Color(0xFFFFFFFF), // White
-      const Color(0xFFEF4444), // Red
-      const Color(0xFF38BDF8), // Light Blue
-      const Color(0xFF22C55E), // Green
-      const Color(0xFFF59E0B), // Amber
-      const Color(0xFF8B5CF6), // Violet
-      const Color(0xFFEC4899), // Pink
-    ];
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setDlgState) => AlertDialog(
-          backgroundColor: const Color(0xFF1E2433),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                "Edit ${entity.text.isNotEmpty ? entity.text : 'Properties'}",
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              IconButton(
-                icon: const Icon(Icons.close, color: Colors.white70, size: 20),
-                onPressed: () => Navigator.pop(ctx),
-              ),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: nameController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    labelText: "Entity Name / Label",
-                    labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                    enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: widthController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: const InputDecoration(
-                          labelText: "Width (ft)",
-                          labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: TextField(
-                        controller: heightController,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(color: Colors.white, fontSize: 13),
-                        decoration: const InputDecoration(
-                          labelText: "Height / Length (ft)",
-                          labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text("Rotation (°)", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                    Text("${currentRot.round()}°", style: const TextStyle(color: Color(0xFFE5B05C), fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                Slider(
-                  value: currentRot,
-                  min: 0,
-                  max: 360,
-                  divisions: 72,
-                  activeColor: const Color(0xFFE5B05C),
-                  onChanged: (val) => setDlgState(() => currentRot = val),
-                ),
-                Wrap(
-                  spacing: 6,
-                  children: [0.0, 90.0, 180.0, 270.0].map((deg) {
-                    return ActionChip(
-                      label: Text("${deg.round()}°", style: const TextStyle(fontSize: 10, color: Colors.white)),
-                      backgroundColor: currentRot == deg ? const Color(0xFFE5B05C).withOpacity(0.3) : Colors.white10,
-                      onPressed: () => setDlgState(() => currentRot = deg),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-                const Text("Shape & Line Color", style: TextStyle(color: Colors.grey, fontSize: 12)),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: paletteColors.map((col) {
-                    final isSel = currentColor.value == col.value;
-                    return InkWell(
-                      onTap: () => setDlgState(() => currentColor = col),
-                      child: Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: col,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: isSel ? Colors.white : Colors.transparent, width: 2.5),
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-                const SizedBox(height: 14),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text("Show name on canvas", style: TextStyle(fontSize: 12, color: Colors.white)),
-                  value: showNameVal,
-                  activeColor: const Color(0xFFE5B05C),
-                  onChanged: (v) => setDlgState(() => showNameVal = v),
-                ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                  title: const Text("Show dimensions on canvas", style: TextStyle(fontSize: 12, color: Colors.white)),
-                  value: showDimVal,
-                  activeColor: const Color(0xFFE5B05C),
-                  onChanged: (v) => setDlgState(() => showDimVal = v),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text("Cancel", style: TextStyle(color: Colors.grey)),
-            ),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFE5B05C),
-                foregroundColor: const Color(0xFF0A1128),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-              onPressed: () {
-                _saveUndoState();
-                setState(() {
-                  entity.text = nameController.text.trim();
-                  entity.widthFt = double.tryParse(widthController.text) ?? entity.widthFt;
-                  entity.heightFt = double.tryParse(heightController.text) ?? entity.heightFt;
-                  entity.rotationDeg = currentRot;
-                  entity.color = currentColor;
-                  entity.showName = showNameVal;
-                  entity.showDimensions = showDimVal;
-                });
-                Navigator.pop(ctx);
-              },
-              child: const Text("APPLY CHANGES", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _onPanStart(DragStartDetails details) {
-    if (_activeTool == CadTool.pan) return;
-    final scenePos = _transformationController.toScene(details.localPosition);
-    final snapped = _snapPoint(scenePos);
+  void _onPointerDown(PointerDownEvent details) {
+    if (_isPanMode) return;
+    final worldPos = _screenToWorld(details.localPosition);
+    final snapped = _applySnapping(worldPos);
 
     if (_activeTool == CadTool.select) {
-      CadEntity? hitEntity;
-      for (final e in _entities.reversed) {
-        final bounds = e.getBounds().inflate(18.0);
-        if (bounds.contains(scenePos)) {
-          hitEntity = e;
+      CadElement? hit;
+      for (final el in _elements.reversed) {
+        if (el.boundingBox.inflate(15).contains(snapped)) {
+          hit = el;
           break;
         }
       }
-
       setState(() {
-        _selectedEntity = hitEntity;
-        if (hitEntity != null) {
-          _isMovingEntity = true;
-          _entityMoveStartPoint = scenePos;
+        _selectedElement = hit;
+        if (hit != null) {
+          _elementDragOffset = snapped - hit.start;
+          _commandPrompt = 'Selected: ${hit.type.name.toUpperCase()} (Layer: ${hit.layerId})';
+        } else {
+          _commandPrompt = 'Command: SELECT - Tap an object to select';
         }
       });
       return;
     }
 
-    if (_activeTool == CadTool.erase) {
-      _saveUndoState();
-      setState(() {
-        _entities.removeWhere((e) => e.getBounds().inflate(18.0).contains(scenePos));
-      });
-      return;
-    }
-
-    if (_activeTool == CadTool.text) {
-      _showTextDialog(snapped);
-      return;
-    }
-
-    _dragStart = snapped;
-    _currentDrag = snapped;
-    setState(() {});
-  }
-
-  void _onPanUpdate(DragUpdateDetails details) {
-    if (_activeTool == CadTool.pan) return;
-    final scenePos = _transformationController.toScene(details.localPosition);
-    var snapped = _snapPoint(scenePos);
-
-    if (_isMovingEntity && _selectedEntity != null && _entityMoveStartPoint != null) {
-      final delta = scenePos - _entityMoveStartPoint!;
-      _entityMoveStartPoint = scenePos;
-      setState(() {
-        _selectedEntity!.points = _selectedEntity!.points.map((p) => p + delta).toList();
-      });
-      return;
-    }
-
-    if (_orthoMode && _dragStart != null) {
-      final dx = (snapped.dx - _dragStart!.dx).abs();
-      final dy = (snapped.dy - _dragStart!.dy).abs();
-      if (dx > dy) {
-        snapped = Offset(snapped.dx, _dragStart!.dy);
-      } else {
-        snapped = Offset(_dragStart!.dx, snapped.dy);
+    if (_activeTool == CadTool.eraser) {
+      for (int i = _elements.length - 1; i >= 0; i--) {
+        if (_elements[i].boundingBox.inflate(15).contains(snapped)) {
+          _saveStateForUndo();
+          setState(() {
+            final removed = _elements.removeAt(i);
+            _commandPrompt = 'Erased: ${removed.type.name.toUpperCase()}';
+          });
+          break;
+        }
       }
+      return;
     }
 
     setState(() {
-      _cursorScenePos = scenePos;
-      _currentDrag = snapped;
+      _dragStart = snapped;
+      _currentCursor = snapped;
+      _commandPrompt = 'Specify next point or angle...';
     });
   }
 
-  void _onPanEnd(DragEndDetails details) {
-    if (_isMovingEntity) {
-      _isMovingEntity = false;
-      _entityMoveStartPoint = null;
-      _saveUndoState();
-      return;
-    }
+  void _onPointerMove(PointerMoveEvent details) {
+    final worldPos = _screenToWorld(details.localPosition);
+    var snapped = _applySnapping(worldPos);
 
-    if (_activeTool == CadTool.pan || _dragStart == null || _currentDrag == null) {
-      _dragStart = null;
-      _currentDrag = null;
-      return;
-    }
-
-    if ((_dragStart! - _currentDrag!).distance > 6.0) {
-      _saveUndoState();
-      final activeLayer = _layers.firstWhere((l) => l.id == _activeLayerId, orElse: () => _layers.first);
-      final id = "e_${DateTime.now().millisecondsSinceEpoch}";
-
-      String textLabel = "";
-      double wFt = (_dragStart! - _currentDrag!).dx.abs() / 15.0;
-      double hFt = (_dragStart! - _currentDrag!).dy.abs() / 15.0;
-
-      if (_activeTool == CadTool.dimension) {
-        final distFt = (_dragStart! - _currentDrag!).distance / 15.0;
-        textLabel = "${distFt.toStringAsFixed(1)} ft";
-      }
-
-      final entity = CadEntity(
-        id: id,
-        type: _activeTool,
-        layerId: _activeLayerId,
-        points: [_dragStart!, _currentDrag!],
-        text: textLabel,
-        radius: (_dragStart! - _currentDrag!).distance,
-        strokeWidth: activeLayer.strokeWidth,
-        color: activeLayer.color,
-        widthFt: wFt,
-        heightFt: hFt,
-      );
-
-      _entities.add(entity);
-      _selectedEntity = entity;
+    if (_dragStart != null && _orthoMode) {
+      snapped = _applyOrtho(_dragStart!, snapped);
     }
 
     setState(() {
-      _dragStart = null;
-      _currentDrag = null;
+      _currentCursor = snapped;
+      if (_selectedElement != null && _elementDragOffset != null && _activeTool == CadTool.select) {
+        final delta = snapped - _dragStart!;
+        _selectedElement!.start += delta;
+        _selectedElement!.end += delta;
+        _dragStart = snapped;
+      }
     });
   }
 
-  void _showTextDialog(Offset position) {
-    final controller = TextEditingController();
+  void _onPointerUp(PointerUpEvent details) {
+    if (_isPanMode) return;
+    if (_dragStart != null && _currentCursor != null) {
+      final start = _dragStart!;
+      var end = _currentCursor!;
+      if (_orthoMode) end = _applyOrtho(start, end);
+
+      if ((start - end).distance > 8 || _activeTool == CadTool.column || _activeTool == CadTool.text) {
+        _saveStateForUndo();
+        _createElement(start, end);
+      }
+      setState(() {
+        _dragStart = null;
+        _commandPrompt = 'Command: ${_activeTool.name.toUpperCase()} completed.';
+      });
+    }
+  }
+
+  void _createElement(Offset start, Offset end) {
+    final id = 'el_${DateTime.now().millisecondsSinceEpoch}';
+    switch (_activeTool) {
+      case CadTool.wall:
+        _elements.add(CadElement(id: id, type: CadElementType.wall, layerId: '0_WALLS', start: start, end: end));
+        break;
+      case CadTool.line:
+        _elements.add(CadElement(id: id, type: CadElementType.line, layerId: _activeLayerId, start: start, end: end));
+        break;
+      case CadTool.rectangle:
+        _elements.add(CadElement(id: id, type: CadElementType.rectangle, layerId: '0_WALLS', start: start, end: end));
+        break;
+      case CadTool.circle:
+        _elements.add(CadElement(id: id, type: CadElementType.circle, layerId: _activeLayerId, start: start, end: end, radius: (end - start).distance));
+        break;
+      case CadTool.door:
+        _elements.add(CadElement(id: id, type: CadElementType.door, layerId: 'A_DOORS', start: start, end: end));
+        break;
+      case CadTool.window:
+        _elements.add(CadElement(id: id, type: CadElementType.window, layerId: 'A_WINDOWS', start: start, end: end));
+        break;
+      case CadTool.dimension:
+        final distM = (end - start).distance / 20.0;
+        final feet = (distM * 3.28084);
+        final feetInt = feet.floor();
+        final inches = ((feet - feetInt) * 12).round();
+        _elements.add(CadElement(
+          id: id,
+          type: CadElementType.dimension,
+          layerId: 'A_DIMS',
+          start: start,
+          end: end,
+          text: "$feetInt'-$inches\" (${distM.toStringAsFixed(2)}m)",
+        ));
+        break;
+      case CadTool.column:
+        _elements.add(CadElement(id: id, type: CadElementType.column, layerId: 'S_COLUMNS', start: start - const Offset(12, 12), end: start + const Offset(12, 12)));
+        break;
+      case CadTool.text:
+        _showTextInputDialog(start);
+        break;
+      default:
+        break;
+    }
+  }
+
+  void _showTextInputDialog(Offset position) {
+    final controller = TextEditingController(text: 'LIVING ROOM');
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E2433),
-        title: const Text("Add CAD Annotation", style: TextStyle(color: Colors.white, fontSize: 16)),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: "Enter room name, note, or dimension",
-            hintStyle: TextStyle(color: Colors.grey),
-          ),
+        backgroundColor: Theme.of(context).cardColor,
+        title: const Text('Add CAD Room / Label', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: controller, decoration: const InputDecoration(labelText: 'Room Name')),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              children: [
+                "LIVING 15x12 ft",
+                "BEDROOM 12x14 ft",
+                "KITCHEN 10x8 ft",
+                "TOILET 6x8 ft",
+              ].map((sample) => ActionChip(label: Text(sample, style: const TextStyle(fontSize: 10)), onPressed: () => controller.text = sample)).toList(),
+            ),
+          ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Cancel")),
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE5B05C)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.darkPrimary, foregroundColor: Colors.black),
             onPressed: () {
               if (controller.text.trim().isNotEmpty) {
-                _saveUndoState();
+                _saveStateForUndo();
                 setState(() {
-                  _entities.add(CadEntity(
-                    id: "text_${DateTime.now().millisecondsSinceEpoch}",
-                    type: CadTool.text,
-                    layerId: "text",
-                    points: [position],
+                  _elements.add(CadElement(
+                    id: 'text_${DateTime.now().millisecondsSinceEpoch}',
+                    type: CadElementType.text,
+                    layerId: 'A_TEXT',
+                    start: position,
+                    end: position + const Offset(120, 24),
                     text: controller.text.trim(),
-                    color: Colors.white,
-                    strokeWidth: 1.5,
                   ));
                 });
               }
               Navigator.pop(ctx);
             },
-            child: const Text("Add", style: TextStyle(color: Color(0xFF0A1128), fontWeight: FontWeight.bold)),
+            child: const Text('Place Text'),
           ),
         ],
       ),
     );
   }
 
+  void _loadSampleBlueprint() {
+    _elements = [
+      CadElement(id: 'w1', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(100, 100), end: const Offset(500, 100)),
+      CadElement(id: 'w2', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(500, 100), end: const Offset(500, 400)),
+      CadElement(id: 'w3', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(500, 400), end: const Offset(100, 400)),
+      CadElement(id: 'w4', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(100, 400), end: const Offset(100, 100)),
+      CadElement(id: 'w5', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(320, 100), end: const Offset(320, 400)),
+      CadElement(id: 'w6', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(100, 260), end: const Offset(320, 260)),
+      CadElement(id: 'w7', type: CadElementType.wall, layerId: '0_WALLS', start: const Offset(320, 250), end: const Offset(500, 250)),
+      CadElement(id: 'd1', type: CadElementType.door, layerId: 'A_DOORS', start: const Offset(100, 320), end: const Offset(100, 360)),
+      CadElement(id: 'd2', type: CadElementType.door, layerId: 'A_DOORS', start: const Offset(320, 280), end: const Offset(320, 315)),
+      CadElement(id: 'd3', type: CadElementType.door, layerId: 'A_DOORS', start: const Offset(320, 180), end: const Offset(320, 215)),
+      CadElement(id: 'win1', type: CadElementType.window, layerId: 'A_WINDOWS', start: const Offset(160, 100), end: const Offset(260, 100)),
+      CadElement(id: 'win2', type: CadElementType.window, layerId: 'A_WINDOWS', start: const Offset(500, 140), end: const Offset(500, 200)),
+      CadElement(id: 'win3', type: CadElementType.window, layerId: 'A_WINDOWS', start: const Offset(380, 400), end: const Offset(460, 400)),
+      CadElement(id: 'col1', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(88, 88), end: const Offset(112, 112)),
+      CadElement(id: 'col2', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(308, 88), end: const Offset(332, 112)),
+      CadElement(id: 'col3', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(488, 88), end: const Offset(512, 112)),
+      CadElement(id: 'col4', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(88, 388), end: const Offset(112, 412)),
+      CadElement(id: 'col5', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(308, 388), end: const Offset(332, 412)),
+      CadElement(id: 'col6', type: CadElementType.column, layerId: 'S_COLUMNS', start: const Offset(488, 388), end: const Offset(512, 412)),
+      CadElement(id: 't1', type: CadElementType.text, layerId: 'A_TEXT', start: const Offset(160, 180), end: const Offset(260, 200), text: 'LIVING ROOM\n15\'0" × 12\'0"'),
+      CadElement(id: 't2', type: CadElementType.text, layerId: 'A_TEXT', start: const Offset(360, 160), end: const Offset(460, 180), text: 'KITCHEN\n10\'0" × 8\'0"'),
+      CadElement(id: 't3', type: CadElementType.text, layerId: 'A_TEXT', start: const Offset(360, 310), end: const Offset(460, 330), text: 'BEDROOM\n10\'0" × 12\'0"'),
+      CadElement(id: 't4', type: CadElementType.text, layerId: 'A_TEXT', start: const Offset(150, 310), end: const Offset(250, 330), text: 'TOILET & BATH\n6\'0" × 8\'0"'),
+      CadElement(id: 'dim1', type: CadElementType.dimension, layerId: 'A_DIMS', start: const Offset(100, 70), end: const Offset(500, 70), text: '40\'-0" (12.20 m)'),
+      CadElement(id: 'dim2', type: CadElementType.dimension, layerId: 'A_DIMS', start: const Offset(530, 100), end: const Offset(530, 400), text: '30\'-0" (9.14 m)'),
+    ];
+  }
+
   void _showLayersSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E2433),
+      backgroundColor: const Color(0xFF131C35),
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setSheetState) => Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text("CAD Layer Manager", style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.white)),
-                  IconButton(icon: const Icon(Icons.close, color: Colors.white70), onPressed: () => Navigator.pop(ctx)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('📑 CAD LAYER MANAGER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.white)),
+                      IconButton(icon: const Icon(Icons.close, color: Colors.grey), onPressed: () => Navigator.pop(ctx)),
+                    ],
+                  ),
+                  const Divider(color: Colors.white24),
+                  Expanded(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _layers.length,
+                      itemBuilder: (context, index) {
+                        final layer = _layers[index];
+                        final isSelected = layer.id == _activeLayerId;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: isSelected ? AppColors.darkPrimary.withOpacity(0.15) : const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: isSelected ? AppColors.darkPrimary : Colors.transparent),
+                          ),
+                          child: ListTile(
+                            leading: Container(width: 24, height: 24, decoration: BoxDecoration(color: layer.color, shape: BoxShape.circle)),
+                            title: Text(layer.name, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? AppColors.darkPrimary : Colors.white)),
+                            trailing: IconButton(
+                              icon: Icon(layer.isVisible ? Icons.visibility : Icons.visibility_off, color: layer.isVisible ? Colors.greenAccent : Colors.grey, size: 20),
+                              onPressed: () {
+                                setSheetState(() => layer.isVisible = !layer.isVisible);
+                                setState(() {});
+                              },
+                            ),
+                            onTap: () {
+                              setState(() => _activeLayerId = layer.id);
+                              Navigator.pop(ctx);
+                            },
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                 ],
               ),
-              const Divider(color: Colors.white24),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: _layers.length,
-                  itemBuilder: (ctx, idx) {
-                    final layer = _layers[idx];
-                    final isActive = layer.id == _activeLayerId;
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(backgroundColor: layer.color, radius: 10),
-                      title: Text(layer.name, style: TextStyle(color: Colors.white, fontWeight: isActive ? FontWeight.bold : FontWeight.normal)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(layer.isVisible ? Icons.visibility : Icons.visibility_off, color: Colors.white70, size: 20),
-                            onPressed: () {
-                              setSheetState(() => layer.isVisible = !layer.isVisible);
-                              setState(() {});
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(layer.isLocked ? Icons.lock : Icons.lock_open, color: Colors.white70, size: 20),
-                            onPressed: () {
-                              setSheetState(() => layer.isLocked = !layer.isLocked);
-                              setState(() {});
-                            },
-                          ),
-                        ],
-                      ),
-                      selected: isActive,
-                      selectedTileColor: const Color(0xFFE5B05C).withOpacity(0.15),
-                      onTap: () {
-                        setState(() => _activeLayerId = layer.id);
-                        Navigator.pop(ctx);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showExportDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131C35),
+        title: const Text('Export AutoCAD Drawing', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Text('📐', style: TextStyle(fontSize: 24)),
+              title: const Text('AutoCAD DXF / DWG', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Compatible with AutoCAD, Revit & SketchUp', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Drawing exported as Drawing_R01.dxf')));
+              },
+            ),
+            const Divider(color: Colors.white12),
+            ListTile(
+              leading: const Text('📄', style: TextStyle(fontSize: 24)),
+              title: const Text('Architectural Blueprint PDF', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              subtitle: const Text('Vector print with scale & title block', style: TextStyle(fontSize: 11, color: Colors.grey)),
+              onTap: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('✓ Exported Blueprint PDF successfully!')));
+              },
+            ),
+          ],
         ),
       ),
     );
@@ -884,497 +438,198 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titleText = widget.projectName ?? "AutoCAD 2D Studio";
+    final activeLayer = _layers.firstWhere((l) => l.id == _activeLayerId);
 
     return Scaffold(
-      backgroundColor: _isDarkCanvas ? const Color(0xFF10141D) : const Color(0xFFFFFFFF),
+      backgroundColor: const Color(0xFF0A0F1D),
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E2433),
-        elevation: 0,
+        backgroundColor: const Color(0xFF0F172A),
+        elevation: 2,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'Exit CAD',
+        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(titleText, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(color: AppColors.darkPrimary, borderRadius: BorderRadius.circular(4)),
+                  child: const Text('AUTOCAD', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 9)),
+                ),
+                const SizedBox(width: 8),
+                Text(widget.projectTitle ?? 'Drawing1.dwg', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+              ],
+            ),
             Text(
-              "${_entities.length} entities • Layer: ${_layers.firstWhere((l) => l.id == _activeLayerId).name}",
-              style: const TextStyle(fontSize: 10, color: Colors.grey),
+              _currentCursor != null ? 'X: ${(_currentCursor!.dx / 20).toStringAsFixed(2)}m | Y: ${(_currentCursor!.dy / 20).toStringAsFixed(2)}m' : 'X: 0.00m | Y: 0.00m',
+              style: const TextStyle(fontSize: 10, color: AppColors.darkPrimary, fontFamily: 'monospace'),
             ),
           ],
         ),
         actions: [
-          IconButton(
-            icon: Icon(_isDarkCanvas ? Icons.dark_mode : Icons.light_mode, size: 20, color: const Color(0xFFE5B05C)),
-            tooltip: _isDarkCanvas ? "Switch to White Paper View" : "Switch to Dark CAD View",
-            onPressed: () => setState(() => _isDarkCanvas = !_isDarkCanvas),
+          IconButton(icon: const Icon(Icons.undo, size: 20), onPressed: _undoStack.isEmpty ? null : _undo, tooltip: 'Undo'),
+          IconButton(icon: const Icon(Icons.redo, size: 20), onPressed: _redoStack.isEmpty ? null : _redo, tooltip: 'Redo'),
+          InkWell(
+            onTap: _showLayersSheet,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(8), border: Border.all(color: activeLayer.color)),
+              child: Row(
+                children: [
+                  Container(width: 10, height: 10, decoration: BoxDecoration(color: activeLayer.color, shape: BoxShape.circle)),
+                  const SizedBox(width: 6),
+                  Text(activeLayer.name.split(' - ').last, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.arrow_drop_down, size: 16),
+                ],
+              ),
+            ),
           ),
-          IconButton(
-            icon: const Icon(Icons.undo, size: 20),
-            tooltip: "Undo",
-            onPressed: _undoStack.isNotEmpty ? _undo : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.redo, size: 20),
-            tooltip: "Redo",
-            onPressed: _redoStack.isNotEmpty ? _redo : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.layers_outlined, size: 20),
-            tooltip: "Layers",
-            onPressed: _showLayersSheet,
-          ),
-          IconButton(
-            icon: const Icon(Icons.file_download_outlined, size: 20),
-            tooltip: "Export CAD Blueprint",
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("CAD Drawing exported successfully (DXF / PDF / PNG ready)")),
-              );
-            },
-          ),
+          IconButton(icon: const Icon(Icons.save_alt, color: AppColors.darkPrimary), tooltip: 'Export', onPressed: _showExportDialog),
         ],
       ),
       body: Stack(
         children: [
-          // Main Interactive CAD Canvas
           InteractiveViewer(
-            key: _canvasViewportKey,
             transformationController: _transformationController,
-            boundaryMargin: const EdgeInsets.all(1600),
-            minScale: 0.15,
+            boundaryMargin: const EdgeInsets.all(2000),
+            minScale: 0.2,
             maxScale: 6.0,
-            panEnabled: _activeTool == CadTool.pan,
-            child: GestureDetector(
-              onPanStart: _onPanStart,
-              onPanUpdate: _onPanUpdate,
-              onPanEnd: _onPanEnd,
+            panEnabled: _isPanMode,
+            scaleEnabled: true,
+            child: Listener(
+              onPointerDown: _onPointerDown,
+              onPointerMove: _onPointerMove,
+              onPointerUp: _onPointerUp,
               child: CustomPaint(
-                size: const Size(2600, 2600),
-                painter: CadCanvasPainter(
-                  entities: _entities,
+                size: const Size(3000, 3000),
+                painter: _CadCanvasPainter(
+                  elements: _elements,
                   layers: _layers,
-                  gridVisible: _gridVisible,
+                  showGrid: _showGrid,
                   gridSize: _gridSize,
-                  isDarkCanvas: _isDarkCanvas,
                   dragStart: _dragStart,
-                  currentDrag: _currentDrag,
+                  currentCursor: _currentCursor,
                   activeTool: _activeTool,
-                  activeColor: _layers.firstWhere((l) => l.id == _activeLayerId).color,
-                  selectedEntity: _selectedEntity,
-                  facing: widget.facing ?? "North",
+                  activeLayer: activeLayer,
+                  selectedElement: _selectedElement,
+                  currentSnap: _currentSnap,
+                  orthoMode: _orthoMode,
                 ),
               ),
             ),
           ),
 
-          // Zoom controls stay outside the drawing gesture area.
+          // Left AutoCAD Toolbar
           Positioned(
-            right: 12,
-            bottom: 54,
+            left: 10,
+            top: 10,
+            bottom: 70,
             child: Container(
+              width: 52,
+              padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2433).withOpacity(0.96),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white24),
+                color: const Color(0xFF0F172A).withOpacity(0.92),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: Colors.white12),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    tooltip: "Zoom in",
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.add, color: Color(0xFFE5B05C)),
-                    onPressed: () => _zoomBy(1.25),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: Text(
-                      "${(_currentZoom * 100).round()}%",
-                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _buildToolIcon(CadTool.select, Icons.near_me, 'Select (S)'),
+                    _buildToolIcon(CadTool.wall, Icons.border_all, 'Wall (W)'),
+                    _buildToolIcon(CadTool.line, Icons.horizontal_rule, 'Line (L)'),
+                    _buildToolIcon(CadTool.rectangle, Icons.crop_square, 'Room (REC)'),
+                    _buildToolIcon(CadTool.door, Icons.meeting_room_outlined, 'Door (D)'),
+                    _buildToolIcon(CadTool.window, Icons.window, 'Window (WIN)'),
+                    _buildToolIcon(CadTool.circle, Icons.radio_button_unchecked, 'Circle (C)'),
+                    _buildToolIcon(CadTool.column, Icons.grid_view_sharp, 'Column (COL)'),
+                    _buildToolIcon(CadTool.dimension, Icons.straighten, 'Dimension (DIM)'),
+                    _buildToolIcon(CadTool.text, Icons.title, 'Text (T)'),
+                    _buildToolIcon(CadTool.eraser, Icons.auto_fix_normal, 'Eraser (E)'),
+                    const Divider(color: Colors.white24, height: 16),
+                    IconButton(
+                      icon: Icon(_isPanMode ? Icons.pan_tool : Icons.pan_tool_outlined),
+                      color: _isPanMode ? AppColors.darkPrimary : Colors.white70,
+                      onPressed: () => setState(() => _isPanMode = !_isPanMode),
                     ),
-                  ),
-                  IconButton(
-                    tooltip: "Zoom out",
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.remove, color: Color(0xFFE5B05C)),
-                    onPressed: () => _zoomBy(0.8),
-                  ),
-                  IconButton(
-                    tooltip: "Fit drawing to screen",
-                    visualDensity: VisualDensity.compact,
-                    icon: const Icon(Icons.fit_screen, color: Color(0xFFE5B05C), size: 20),
-                    onPressed: _fitToDrawing,
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
 
-          // Left ToolBar (Vertical)
+          // Top Right Toggles
           Positioned(
-            left: 12,
             top: 12,
-            child: _buildToolBar(),
-          ),
-
-          // Top Selection Action Bar
-          if (_selectedEntity != null)
-            Positioned(
-              top: 12,
-              left: 70,
-              right: 12,
-              child: _buildSelectionActionBar(),
-            ),
-
-          // Bottom Ready-Made Blocks Drawer
-          if (_showBlocksBar)
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 44,
-              child: _buildBlocksBottomDrawer(),
-            ),
-
-
-          Positioned(
-            right: 14,
-            bottom: 54,
+            right: 12,
             child: Container(
               padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
-                color: const Color(0xFF1E2433).withOpacity(0.92),
+                color: const Color(0xFF0F172A).withOpacity(0.9),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.darkBorder),
+                border: Border.all(color: Colors.white12),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+              child: Row(
                 children: [
+                  _buildToggleBtn(label: 'ORTHO', icon: Icons.alt_route, isActive: _orthoMode, onTap: () => setState(() => _orthoMode = !_orthoMode)),
+                  const SizedBox(width: 4),
+                  _buildToggleBtn(label: 'SNAP', icon: Icons.crop_free, isActive: _snapToGrid, onTap: () => setState(() => _snapToGrid = !_snapToGrid)),
+                  const SizedBox(width: 4),
+                  _buildToggleBtn(label: 'GRID', icon: Icons.grid_on, isActive: _showGrid, onTap: () => setState(() => _showGrid = !_showGrid)),
+                  const SizedBox(width: 4),
                   IconButton(
-                    icon: const Icon(Icons.add, color: Colors.white, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: () {
-                      final m = _transformationController.value.clone();
-                      m.scale(1.25);
-                      _transformationController.value = m;
-                    },
-                  ),
-                  const Divider(height: 6, color: Colors.white24),
-                  IconButton(
-                    icon: const Icon(Icons.remove, color: Colors.white, size: 20),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                    onPressed: () {
-                      final m = _transformationController.value.clone();
-                      m.scale(0.8);
-                      _transformationController.value = m;
-                    },
-                  ),
-                  const Divider(height: 6, color: Colors.white24),
-                  InkWell(
-                    onTap: () => _transformationController.value = Matrix4.identity(),
-                    child: const Padding(
-                      padding: EdgeInsets.all(4),
-                      child: Text('FIT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkPrimary)),
-                    ),
+                    icon: const Icon(Icons.filter_center_focus, size: 18, color: Colors.white70),
+                    tooltip: 'Reset View',
+                    onPressed: () => _transformationController.value = Matrix4.identity(),
                   ),
                 ],
               ),
             ),
           ),
 
-          // Bottom Status Bar
+          // Bottom Command Bar
           Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: SafeArea(
-              top: false,
-              child: _buildCadStatusBar(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Vertical Left Toolbar (Select, Pan, Walls, Rooms, Lines, Openings, Blocks)
-  Widget _buildToolBar() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E2433).withOpacity(0.94),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.darkBorder),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _toolBtn(CadTool.select, Icons.near_me, "Select (S)"),
-          _toolBtn(CadTool.pan, Icons.pan_tool, "Pan / Zoom (P)"),
-          const Divider(height: 10, color: Colors.white24),
-          _toolBtn(CadTool.wall, Icons.border_all, "Wall 9 inch / 4.5 inch (W)"),
-          _toolBtn(CadTool.rectangle, Icons.crop_square, "Room Rectangle (R)"),
-          _toolBtn(CadTool.column, Icons.view_column, "RCC Pillar / Column (Col)"),
-          _toolBtn(CadTool.line, Icons.horizontal_rule, "Line (L)"),
-          _toolBtn(CadTool.door, Icons.sensor_door_outlined, "Door & Swing (D)"),
-          _toolBtn(CadTool.window, Icons.window_outlined, "Window (Win)"),
-          _toolBtn(CadTool.dimension, Icons.straighten, "Dimension (Dim)"),
-          _toolBtn(CadTool.text, Icons.text_fields, "Text Label (T)"),
-          const Divider(height: 10, color: Colors.white24),
-          // Ready-made Blocks / Furniture Toggle
-          Tooltip(
-            message: "Ready-Made 2D Blocks Library",
-            child: InkWell(
-              onTap: () => setState(() => _showBlocksBar = !_showBlocksBar),
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                margin: const EdgeInsets.symmetric(vertical: 2),
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: _showBlocksBar ? const Color(0xFFE5B05C) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.chair_outlined,
-                  size: 20,
-                  color: _showBlocksBar ? const Color(0xFF0A1128) : const Color(0xFFE5B05C),
-                ),
-              ),
-            ),
-          ),
-          _toolBtn(CadTool.erase, Icons.delete_outline, "Erase (Del)"),
-        ],
-      ),
-    );
-  }
-
-  Widget _toolBtn(CadTool tool, IconData icon, String tooltip) {
-    final isSelected = _activeTool == tool;
-    return Tooltip(
-      message: tooltip,
-      child: InkWell(
-        onTap: () => setState(() => _activeTool = tool),
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 2),
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFFE5B05C) : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            size: 20,
-            color: isSelected ? const Color(0xFF0A1128) : Colors.white70,
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Selection Action Bar (Delete, Copy, Rotate CCW/CW, Nudge, Edit)
-  Widget _buildSelectionActionBar() {
-    final e = _selectedEntity!;
-    final name = e.text.isNotEmpty ? e.text : (e.blockType?.name ?? e.type.name.toUpperCase());
-    final sizeStr = e.widthFt > 0 ? " — ${e.widthFt.toStringAsFixed(1)} x ${e.heightFt.toStringAsFixed(1)} ft" : "";
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E2433).withOpacity(0.96),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5B05C), width: 1.5),
-        boxShadow: const [
-          BoxShadow(color: Colors.black45, blurRadius: 10, offset: Offset(0, 4)),
-        ],
-      ),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Name badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            left: 12,
+            right: 12,
+            bottom: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
-                color: const Color(0xFFE5B05C).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(6),
+                color: const Color(0xFF0F172A).withOpacity(0.96),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
               ),
-              child: Text(
-                "$name$sizeStr",
-                style: const TextStyle(color: Color(0xFFE5B05C), fontWeight: FontWeight.bold, fontSize: 12),
-              ),
-            ),
-            const SizedBox(width: 8),
-            // Edit / Properties
-            IconButton(
-              icon: const Icon(Icons.tune, color: Colors.white, size: 19),
-              tooltip: "Edit Size / Rotation / Name",
-              onPressed: _showEditEntityDialog,
-            ),
-            // Rotate 90 CCW
-            IconButton(
-              icon: const Icon(Icons.rotate_left, color: Colors.white, size: 20),
-              tooltip: "Rotate -90°",
-              onPressed: () => _rotateSelected(-90),
-            ),
-            // Rotate 90 CW
-            IconButton(
-              icon: const Icon(Icons.rotate_right, color: Colors.white, size: 20),
-              tooltip: "Rotate +90°",
-              onPressed: () => _rotateSelected(90),
-            ),
-            // Duplicate
-            IconButton(
-              icon: const Icon(Icons.copy_rounded, color: Colors.white, size: 19),
-              tooltip: "Duplicate",
-              onPressed: _duplicateSelected,
-            ),
-            // Nudge arrows
-            IconButton(
-              icon: const Icon(Icons.arrow_left, color: Colors.white70, size: 20),
-              tooltip: "Nudge Left (0.5 ft)",
-              onPressed: () => _nudgeSelected(-0.5, 0),
-            ),
-            IconButton(
-              icon: const Icon(Icons.arrow_right, color: Colors.white70, size: 20),
-              tooltip: "Nudge Right (0.5 ft)",
-              onPressed: () => _nudgeSelected(0.5, 0),
-            ),
-            IconButton(
-              icon: const Icon(Icons.arrow_drop_up, color: Colors.white70, size: 22),
-              tooltip: "Nudge Up (0.5 ft)",
-              onPressed: () => _nudgeSelected(0, -0.5),
-            ),
-            IconButton(
-              icon: const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 22),
-              tooltip: "Nudge Down (0.5 ft)",
-              onPressed: () => _nudgeSelected(0, 0.5),
-            ),
-            // Delete
-            IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
-              tooltip: "Delete Entity",
-              onPressed: _deleteSelected,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Bottom Ready-Made Blocks Drawer
-  Widget _buildBlocksBottomDrawer() {
-    final filteredBlocks = CadBlockLibrary.blocks.where((b) => b.category == _selectedBlockCategory).toList();
-
-    return Container(
-      height: 145,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF161B26).withOpacity(0.97),
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-        border: Border.all(color: const Color(0xFFE5B05C).withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Category Selector Tabs
-          Row(
-            children: [
-              const Text("2D Ready Blocks:", style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: CadBlockCategory.values.map((cat) {
-                      final isSel = cat == _selectedBlockCategory;
-                      final label = cat.name.toUpperCase();
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: InkWell(
-                          onTap: () => setState(() => _selectedBlockCategory = cat),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFFE5B05C) : Colors.white10,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                                color: isSel ? const Color(0xFF0A1128) : Colors.white70,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
+              child: Row(
+                children: [
+                  const Text('CAD >', style: TextStyle(color: AppColors.darkPrimary, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(_commandPrompt, style: const TextStyle(fontSize: 12, color: Colors.white, fontFamily: 'monospace'), overflow: TextOverflow.ellipsis),
                   ),
-                ),
-              ),
-              IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-                onPressed: () => setState(() => _showBlocksBar = false),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          // Horizontal Blocks List
-          Expanded(
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: filteredBlocks.length,
-              itemBuilder: (ctx, idx) {
-                final block = filteredBlocks[idx];
-                return Container(
-                  width: 140,
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E2433),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(block.icon, style: const TextStyle(fontSize: 18)),
-                          Text("${block.defaultWidthFt}x${block.defaultHeightFt} ft", style: const TextStyle(fontSize: 10, color: Color(0xFFE5B05C))),
-                        ],
-                      ),
-                      Text(
-                        block.name,
-                        style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 24,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFFE5B05C),
-                            foregroundColor: const Color(0xFF0A1128),
-                            padding: EdgeInsets.zero,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                          ),
-                          onPressed: () => _addBlockToCanvas(block),
-                          child: const Text("PLACE BLOCK", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold)),
-                        ),
-                      ),
+                  PopupMenuButton<String>(
+                    tooltip: 'Templates',
+                    icon: const Icon(Icons.dashboard_customize_outlined, color: AppColors.darkPrimary, size: 20),
+                    onSelected: (val) {
+                      _saveStateForUndo();
+                      if (val == '1bhk') {
+                        setState(() => _loadSampleBlueprint());
+                      } else if (val == 'clear') {
+                        setState(() => _elements.clear());
+                      }
+                    },
+                    itemBuilder: (ctx) => [
+                      const PopupMenuItem(value: '1bhk', child: Text('🏠 Load 1BHK Floor Plan')),
+                      const PopupMenuItem(value: 'clear', child: Text('🗑️ Clear Canvas', style: TextStyle(color: Colors.red))),
                     ],
                   ),
-                );
-              },
+                ],
+              ),
             ),
           ),
         ],
@@ -1382,440 +637,229 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     );
   }
 
-  // Bottom Status Bar
-  Widget _buildCadStatusBar() {
-    final x = _cursorScenePos?.dx.toStringAsFixed(1) ?? "0.0";
-    final y = _cursorScenePos?.dy.toStringAsFixed(1) ?? "0.0";
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      color: const Color(0xFF1E2433),
-      child: Row(
-        children: [
-          Text("X: $x   Y: $y", style: const TextStyle(fontSize: 11, fontFamily: "monospace", color: Colors.grey)),
-          const Spacer(),
-          _toggleChip("SNAP", _snapMode, () => setState(() => _snapMode = !_snapMode)),
-          const SizedBox(width: 6),
-          _toggleChip("ORTHO", _orthoMode, () => setState(() => _orthoMode = !_orthoMode)),
-          const SizedBox(width: 6),
-          _toggleChip("GRID", _gridVisible, () => setState(() => _gridVisible = !_gridVisible)),
-          const SizedBox(width: 10),
-          InkWell(
-            onTap: _fitToDrawing,
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-              child: Text("FIT", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFE5B05C))),
-            ),
-          ),
-        ],
+  Widget _buildToolIcon(CadTool tool, IconData icon, String tooltip) {
+    final isSelected = _activeTool == tool;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: IconButton(
+        icon: Icon(icon, size: 22),
+        color: isSelected ? AppColors.darkPrimary : Colors.white70,
+        tooltip: tooltip,
+        style: IconButton.styleFrom(
+          backgroundColor: isSelected ? AppColors.darkPrimary.withOpacity(0.2) : Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+        onPressed: () {
+          setState(() {
+            _activeTool = tool;
+            _isPanMode = false;
+            _selectedElement = null;
+            _commandPrompt = 'Command: ${tool.name.toUpperCase()}';
+          });
+        },
       ),
     );
   }
 
-  Widget _toggleChip(String label, bool active, VoidCallback onTap) {
+  Widget _buildToggleBtn({required String label, required IconData icon, required bool isActive, required VoidCallback onTap}) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
         decoration: BoxDecoration(
-          color: active ? const Color(0xFFE5B05C).withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: active ? const Color(0xFFE5B05C) : Colors.grey.withOpacity(0.3)),
+          color: isActive ? AppColors.darkPrimary.withOpacity(0.25) : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: isActive ? AppColors.darkPrimary : Colors.transparent),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: active ? const Color(0xFFE5B05C) : Colors.grey,
-          ),
+        child: Row(
+          children: [
+            Icon(icon, size: 14, color: isActive ? AppColors.darkPrimary : Colors.white60),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: isActive ? AppColors.darkPrimary : Colors.white60)),
+          ],
         ),
       ),
     );
   }
 }
 
-// ==============================================================
-// CadCanvasPainter with Vector 2D Architectural Block Rendering
-// ==============================================================
-class CadCanvasPainter extends CustomPainter {
-  final List<CadEntity> entities;
+class _CadCanvasPainter extends CustomPainter {
+  final List<CadElement> elements;
   final List<CadLayer> layers;
-  final bool gridVisible;
+  final bool showGrid;
   final double gridSize;
-  final bool isDarkCanvas;
   final Offset? dragStart;
-  final Offset? currentDrag;
+  final Offset? currentCursor;
   final CadTool activeTool;
-  final Color activeColor;
-  final CadEntity? selectedEntity;
-  final String facing;
+  final CadLayer activeLayer;
+  final CadElement? selectedElement;
+  final SnapPoint? currentSnap;
+  final bool orthoMode;
 
-  CadCanvasPainter({
-    required this.entities,
+  _CadCanvasPainter({
+    required this.elements,
     required this.layers,
-    required this.gridVisible,
+    required this.showGrid,
     required this.gridSize,
-    required this.isDarkCanvas,
     required this.dragStart,
-    required this.currentDrag,
+    required this.currentCursor,
     required this.activeTool,
-    required this.activeColor,
-    required this.selectedEntity,
-    required this.facing,
+    required this.activeLayer,
+    required this.selectedElement,
+    required this.currentSnap,
+    required this.orthoMode,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Canvas Background
-    canvas.drawColor(isDarkCanvas ? const Color(0xFF10141D) : const Color(0xFFFFFFFF), BlendMode.src);
+    if (showGrid) _drawGrid(canvas, size);
 
-    // 2. Grid lines (Adapt to dark/light theme)
-    if (gridVisible) {
-      final minorPaint = Paint()
-        ..color = isDarkCanvas ? const Color(0xFF1F2937).withOpacity(0.35) : const Color(0xFFCBD5E1).withOpacity(0.5)
-        ..strokeWidth = 0.5;
-      final majorPaint = Paint()
-        ..color = isDarkCanvas ? const Color(0xFF374151).withOpacity(0.55) : const Color(0xFF94A3B8).withOpacity(0.7)
-        ..strokeWidth = 1.0;
-
-      for (double x = 0; x <= size.width; x += gridSize) {
-        final isMajor = (x / (gridSize * 5)).round() * (gridSize * 5) == x;
-        canvas.drawLine(Offset(x, 0), Offset(x, size.height), isMajor ? majorPaint : minorPaint);
-      }
-      for (double y = 0; y <= size.height; y += gridSize) {
-        final isMajor = (y / (gridSize * 5)).round() * (gridSize * 5) == y;
-        canvas.drawLine(Offset(0, y), Offset(size.width, y), isMajor ? majorPaint : minorPaint);
-      }
-    }
-
-    // 3. North Compass Indicator
-    _drawNorthArrow(canvas, const Offset(700, 100));
-
-    // 4. Render CAD Entities
     final layerMap = {for (var l in layers) l.id: l};
-
-    for (final entity in entities) {
-      final layer = layerMap[entity.layerId];
+    for (final el in elements) {
+      final layer = layerMap[el.layerId];
       if (layer != null && !layer.isVisible) continue;
-
-      final isSel = entity == selectedEntity;
-      final baseColor = entity.color ?? layer?.color ?? (isDarkCanvas ? Colors.white : Colors.black87);
-      final strokePaint = Paint()
-        ..color = isSel ? Colors.amber : baseColor
-        ..strokeWidth = isSel ? (entity.strokeWidth + 1.5) : entity.strokeWidth
-        ..style = PaintingStyle.stroke;
-
-      _drawEntity(canvas, entity, strokePaint, isSel);
+      final color = el.customColor ?? layer?.color ?? Colors.white;
+      final stroke = el.customStrokeWidth ?? layer?.strokeWidth ?? 2.0;
+      final isSel = selectedElement?.id == el.id;
+      _drawCadElement(canvas, el, color, stroke, isSel);
     }
 
-    // 5. Active Tool Drawing Preview
-    if (dragStart != null && currentDrag != null) {
-      final previewPaint = Paint()
-        ..color = activeColor.withOpacity(0.8)
-        ..strokeWidth = 2.0
-        ..style = PaintingStyle.stroke;
+    if (dragStart != null && currentCursor != null) {
+      _drawPreviewElement(canvas, dragStart!, currentCursor!);
+    }
 
-      final previewEntity = CadEntity(
-        id: "preview",
-        type: activeTool,
-        layerId: "active",
-        points: [dragStart!, currentDrag!],
-        radius: (dragStart! - currentDrag!).distance,
-        strokeWidth: 2.0,
-      );
-      _drawEntity(canvas, previewEntity, previewPaint, false);
+    if (currentCursor != null) {
+      _drawCrosshair(canvas, currentCursor!, size);
     }
   }
 
-  void _drawEntity(Canvas canvas, CadEntity entity, Paint paint, bool isSel) {
-    if (entity.points.isEmpty) return;
+  void _drawGrid(Canvas canvas, Size size) {
+    final minorPaint = Paint()..color = const Color(0xFF1E293B).withOpacity(0.4)..strokeWidth = 0.5;
+    final majorPaint = Paint()..color = const Color(0xFF334155).withOpacity(0.6)..strokeWidth = 1.0;
 
-    switch (entity.type) {
-      case CadTool.line:
+    for (double x = 0; x < size.width; x += gridSize) {
+      final isMajor = (x / (gridSize * 5)).round() == (x / (gridSize * 5));
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), isMajor ? majorPaint : minorPaint);
+    }
+    for (double y = 0; y < size.height; y += gridSize) {
+      final isMajor = (y / (gridSize * 5)).round() == (y / (gridSize * 5));
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), isMajor ? majorPaint : minorPaint);
+    }
+  }
+
+  void _drawCadElement(Canvas canvas, CadElement el, Color color, double strokeWidth, bool isSelected) {
+    final paint = Paint()
+      ..color = isSelected ? const Color(0xFF38BDF8) : color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    switch (el.type) {
+      case CadElementType.line:
+        canvas.drawLine(el.start, el.end, paint);
+        break;
+      case CadElementType.wall:
+        final dir = el.end - el.start;
+        if (dir.distance > 0) {
+          final norm = Offset(-dir.dy, dir.dx) / dir.distance * 5.0;
+          canvas.drawLine(el.start + norm, el.end + norm, paint);
+          canvas.drawLine(el.start - norm, el.end - norm, paint);
+        }
+        break;
+      case CadElementType.rectangle:
+        canvas.drawRect(Rect.fromPoints(el.start, el.end), paint);
+        break;
+      case CadElementType.circle:
+        final r = el.radius ?? (el.end - el.start).distance;
+        canvas.drawCircle(el.start, r, paint);
+        break;
+      case CadElementType.door:
+        final doorWidth = (el.end - el.start).distance;
+        canvas.drawLine(el.start, el.end, paint);
+        canvas.drawArc(Rect.fromCircle(center: el.start, radius: doorWidth), 0, math.pi / 2, false, paint..strokeWidth = 1.2);
+        break;
+      case CadElementType.window:
+        final dir = el.end - el.start;
+        if (dir.distance > 0) {
+          final norm = Offset(-dir.dy, dir.dx) / dir.distance * 4.0;
+          canvas.drawLine(el.start + norm, el.end + norm, paint);
+          canvas.drawLine(el.start, el.end, paint..strokeWidth = 1.0);
+          canvas.drawLine(el.start - norm, el.end - norm, paint..strokeWidth = strokeWidth);
+        }
+        break;
+      case CadElementType.column:
+        final rect = Rect.fromPoints(el.start, el.end);
+        canvas.drawRect(rect, Paint()..color = (isSelected ? const Color(0xFF38BDF8) : color).withOpacity(0.3)..style = PaintingStyle.fill);
+        canvas.drawRect(rect, paint);
+        canvas.drawLine(rect.topLeft, rect.bottomRight, paint..strokeWidth = 1.0);
+        canvas.drawLine(rect.bottomLeft, rect.topRight, paint..strokeWidth = 1.0);
+        break;
+      case CadElementType.dimension:
+        canvas.drawLine(el.start, el.end, paint);
+        canvas.drawLine(el.start - const Offset(5, 5), el.start + const Offset(5, 5), paint);
+        canvas.drawLine(el.end - const Offset(5, 5), el.end + const Offset(5, 5), paint);
+        final mid = Offset((el.start.dx + el.end.dx) / 2, (el.start.dy + el.end.dy) / 2 - 12);
+        final tp = TextPainter(
+          text: TextSpan(text: el.text ?? '', style: const TextStyle(color: Color(0xFF4ADE80), fontSize: 10, fontWeight: FontWeight.bold, fontFamily: 'monospace')),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, mid - Offset(tp.width / 2, 0));
+        break;
+      case CadElementType.text:
+        final tp = TextPainter(
+          text: TextSpan(
+            text: el.text ?? 'TEXT',
+            style: TextStyle(color: isSelected ? const Color(0xFF38BDF8) : color, fontSize: 11, fontWeight: FontWeight.bold, fontFamily: 'monospace', backgroundColor: const Color(0xFF0A0F1D).withOpacity(0.8)),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+        tp.paint(canvas, el.start);
+        break;
+    }
+
+    if (isSelected) {
+      final grip = Paint()..color = const Color(0xFF38BDF8);
+      canvas.drawRect(Rect.fromCenter(center: el.start, width: 8, height: 8), grip);
+      canvas.drawRect(Rect.fromCenter(center: el.end, width: 8, height: 8), grip);
+    }
+  }
+
+  void _drawPreviewElement(Canvas canvas, Offset start, Offset end) {
+    final paint = Paint()..color = activeLayer.color.withOpacity(0.85)..strokeWidth = activeLayer.strokeWidth..style = PaintingStyle.stroke;
+    switch (activeTool) {
       case CadTool.wall:
-        if (entity.points.length >= 2) {
-          if (entity.type == CadTool.wall) {
-            canvas.drawLine(entity.points[0], entity.points[1], paint..strokeWidth = 6.0);
-          } else {
-            canvas.drawLine(entity.points[0], entity.points[1], paint);
-          }
-        }
+      case CadTool.line:
+        canvas.drawLine(start, end, paint);
         break;
-
       case CadTool.rectangle:
-        if (entity.points.length >= 2) {
-          final rect = Rect.fromPoints(entity.points[0], entity.points[1]);
-          final fillPaint = Paint()
-            ..color = paint.color.withOpacity(isDarkCanvas ? 0.08 : 0.04)
-            ..style = PaintingStyle.fill;
-          canvas.drawRect(rect, fillPaint);
-          canvas.drawRect(rect, paint);
-
-          if (entity.text.isNotEmpty && entity.showName) {
-            _drawCenteredText(canvas, rect.center, entity.text, paint.color, fontSize: 11);
-          }
-          if (entity.showDimensions && entity.widthFt > 0 && entity.heightFt > 0) {
-            _drawCenteredText(
-              canvas,
-              Offset(rect.center.dx, rect.center.dy + 14),
-              "${entity.widthFt.toStringAsFixed(1)} x ${entity.heightFt.toStringAsFixed(1)} ft",
-              paint.color.withOpacity(0.8),
-              fontSize: 9,
-            );
-          }
-        }
+        canvas.drawRect(Rect.fromPoints(start, end), paint);
         break;
-
       case CadTool.circle:
-        canvas.drawCircle(entity.points[0], entity.radius > 0 ? entity.radius : 40, paint);
+        canvas.drawCircle(start, (end - start).distance, paint);
         break;
-
-      case CadTool.column:
-        final center = entity.points[0];
-        final sizePx = (entity.widthFt > 0 ? entity.widthFt : 0.75) * 15.0;
-        final colRect = Rect.fromCenter(center: center, width: sizePx, height: sizePx);
-
-        final colFill = Paint()
-          ..color = const Color(0xFFD32F2F).withOpacity(0.4)
-          ..style = PaintingStyle.fill;
-        canvas.drawRect(colRect, colFill);
-        canvas.drawRect(colRect, paint..color = const Color(0xFFEF4444)..strokeWidth = 2.0);
-
-        canvas.drawLine(colRect.topLeft, colRect.bottomRight, Paint()..color = const Color(0xFFEF4444)..strokeWidth = 1.0);
-        canvas.drawLine(colRect.topRight, colRect.bottomLeft, Paint()..color = const Color(0xFFEF4444)..strokeWidth = 1.0);
-        break;
-
-      case CadTool.door:
-        if (entity.points.length >= 2) {
-          final p1 = entity.points[0];
-          final p2 = entity.points[1];
-          final r = (p2 - p1).distance;
-          canvas.drawLine(p1, p2, paint);
-          final arcRect = Rect.fromCircle(center: p1, radius: r);
-          final arcPaint = Paint()
-            ..color = paint.color
-            ..strokeWidth = 1.0
-            ..style = PaintingStyle.stroke;
-          canvas.drawArc(arcRect, 0, -math.pi / 2, false, arcPaint);
-        }
-        break;
-
-      case CadTool.window:
-        if (entity.points.length >= 2) {
-          final p1 = entity.points[0];
-          final p2 = entity.points[1];
-          canvas.drawLine(p1, p2, paint);
-          final glassPaint = Paint()
-            ..color = const Color(0xFF38BDF8)
-            ..strokeWidth = 1.0;
-          const offset = Offset(0, 3);
-          canvas.drawLine(p1 + offset, p2 + offset, glassPaint);
-          canvas.drawLine(p1 - offset, p2 - offset, glassPaint);
-        }
-        break;
-
-      case CadTool.dimension:
-        if (entity.points.length >= 2) {
-          final p1 = entity.points[0];
-          final p2 = entity.points[1];
-          canvas.drawLine(p1, p2, paint);
-          canvas.drawLine(Offset(p1.dx, p1.dy - 6), Offset(p1.dx, p1.dy + 6), paint);
-          canvas.drawLine(Offset(p2.dx, p2.dy - 6), Offset(p2.dx, p2.dy + 6), paint);
-          final center = Offset((p1.dx + p2.dx) / 2, (p1.dy + p2.dy) / 2 - 12);
-          _drawCenteredText(canvas, center, entity.text, paint.color, fontSize: 11);
-        }
-        break;
-
-      case CadTool.text:
-        _drawCenteredText(canvas, entity.points[0], entity.text, paint.color);
-        break;
-
-      case CadTool.block:
-        _drawVectorBlock(canvas, entity, paint);
-        break;
-
       default:
-        break;
+        canvas.drawLine(start, end, paint);
     }
 
-    // Selection Halo / Bounding box
-    if (isSel) {
-      final bounds = entity.getBounds().inflate(4.0);
-      final selPaint = Paint()
-        ..color = Colors.amber
-        ..strokeWidth = 1.5
-        ..style = PaintingStyle.stroke;
-      canvas.drawRect(bounds, selPaint);
-
-      // Corner anchor handles
-      final handlePaint = Paint()..color = Colors.amber..style = PaintingStyle.fill;
-      for (final corner in [bounds.topLeft, bounds.topRight, bounds.bottomLeft, bounds.bottomRight]) {
-        canvas.drawRect(Rect.fromCenter(center: corner, width: 6, height: 6), handlePaint);
-      }
-    }
-  }
-
-  // Realistic 2D Vector Architectural Block Renderer
-  void _drawVectorBlock(Canvas canvas, CadEntity entity, Paint basePaint) {
-    final center = entity.points[0];
-    final w = (entity.widthFt > 0 ? entity.widthFt : 4.0) * 15.0;
-    final h = (entity.heightFt > 0 ? entity.heightFt : 4.0) * 15.0;
-    final rotRad = entity.rotationDeg * math.pi / 180.0;
-
-    canvas.save();
-    canvas.translate(center.dx, center.dy);
-    canvas.rotate(rotRad);
-
-    final localRect = Rect.fromCenter(center: Offset.zero, width: w, height: h);
-    final fill = Paint()..color = basePaint.color.withOpacity(0.08)..style = PaintingStyle.fill;
-    canvas.drawRect(localRect, fill);
-    canvas.drawRect(localRect, basePaint);
-
-    switch (entity.blockType) {
-      // 1. Bed (Headboard + Pillows + Blanket)
-      case CadBlockType.bedDouble:
-        canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w, h * 0.15), Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        final pW = w * 0.38;
-        final pH = h * 0.22;
-        final pPaint = Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill;
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-w / 2 + 6, -h / 2 + h * 0.18, pW, pH), const Radius.circular(4)), pPaint);
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(w / 2 - pW - 6, -h / 2 + h * 0.18, pW, pH), const Radius.circular(4)), pPaint);
-        canvas.drawLine(Offset(-w / 2, h * 0.15), Offset(w / 2, h * 0.15), basePaint);
-        break;
-
-      case CadBlockType.bedSingle:
-        canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w, h * 0.15), Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        final pW = w * 0.65;
-        final pH = h * 0.22;
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(-pW / 2, -h / 2 + h * 0.18, pW, pH), const Radius.circular(4)), Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill);
-        canvas.drawLine(Offset(-w / 2, h * 0.15), Offset(w / 2, h * 0.15), basePaint);
-        break;
-
-      // 2. Gas Stove / Chulha (Burners + Knobs)
-      case CadBlockType.chulha2:
-      case CadBlockType.chulha3:
-      case CadBlockType.chulha4:
-        final burnerCount = entity.blockType == CadBlockType.chulha2 ? 2 : (entity.blockType == CadBlockType.chulha3 ? 3 : 4);
-        final step = w / (burnerCount + 1);
-        for (int i = 1; i <= burnerCount; i++) {
-          final bx = -w / 2 + step * i;
-          canvas.drawCircle(Offset(bx, 0), math.min(w, h) * 0.22, basePaint);
-          canvas.drawCircle(Offset(bx, 0), math.min(w, h) * 0.10, Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        }
-        break;
-
-      // 3. Kitchen Sink (Basin + Faucet)
-      case CadBlockType.sinkSingle:
-        final basinRect = Rect.fromCenter(center: Offset.zero, width: w * 0.8, height: h * 0.75);
-        canvas.drawRRect(RRect.fromRectAndRadius(basinRect, const Radius.circular(6)), basePaint);
-        canvas.drawCircle(Offset.zero, 4, Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        break;
-
-      case CadBlockType.sinkDouble:
-        final bW = w * 0.42;
-        final bH = h * 0.75;
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(-w * 0.24, 0), width: bW, height: bH), const Radius.circular(4)), basePaint);
-        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromCenter(center: Offset(w * 0.24, 0), width: bW, height: bH), const Radius.circular(4)), basePaint);
-        canvas.drawCircle(Offset(-w * 0.24, 0), 3.5, Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        canvas.drawCircle(Offset(w * 0.24, 0), 3.5, Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        break;
-
-      // 4. Toilet Western (Cistern + Oval Bowl)
-      case CadBlockType.toiletWestern:
-        canvas.drawRect(Rect.fromLTWH(-w * 0.45, -h / 2, w * 0.9, h * 0.3), basePaint);
-        final bowlRect = Rect.fromLTWH(-w * 0.38, -h / 2 + h * 0.25, w * 0.76, h * 0.7);
-        canvas.drawOval(bowlRect, basePaint);
-        canvas.drawOval(Rect.fromCenter(center: Offset(0, h * 0.2), width: w * 0.4, height: h * 0.45), Paint()..color = basePaint.color.withOpacity(0.3)..style = PaintingStyle.fill);
-        break;
-
-      // 5. Toilet Indian (Squatting Pan + Footrests)
-      case CadBlockType.toiletIndian:
-        canvas.drawOval(Rect.fromCenter(center: Offset.zero, width: w * 0.35, height: h * 0.65), basePaint);
-        final fW = w * 0.22;
-        final fH = h * 0.55;
-        canvas.drawRect(Rect.fromCenter(center: Offset(-w * 0.35, 0), width: fW, height: fH), basePaint);
-        canvas.drawRect(Rect.fromCenter(center: Offset(w * 0.35, 0), width: fW, height: fH), basePaint);
-        break;
-
-      // 6. Wash Basin
-      case CadBlockType.washBasin:
-        final basinRect = Rect.fromCenter(center: Offset.zero, width: w * 0.85, height: h * 0.8);
-        canvas.drawRRect(RRect.fromRectAndRadius(basinRect, const Radius.circular(8)), basePaint);
-        canvas.drawCircle(const Offset(0, 4), 3, Paint()..color = basePaint.color..style = PaintingStyle.fill);
-        break;
-
-      // 7. Sofa (Backrest + Cushions)
-      case CadBlockType.sofa3:
-      case CadBlockType.sofa2:
-      case CadBlockType.sofaSingle:
-        canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w, h * 0.25), Paint()..color = basePaint.color.withOpacity(0.3)..style = PaintingStyle.fill);
-        canvas.drawRect(Rect.fromLTWH(-w / 2, -h / 2, w * 0.12, h), Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill);
-        canvas.drawRect(Rect.fromLTWH(w / 2 - w * 0.12, -h / 2, w * 0.12, h), Paint()..color = basePaint.color.withOpacity(0.4)..style = PaintingStyle.fill);
-        break;
-
-      // 8. Stairs Dog-Legged
-      case CadBlockType.stairsDogLeg:
-        const treadCount = 8;
-        final treadH = (h * 0.8) / treadCount;
-        for (int i = 0; i < treadCount; i++) {
-          final y = -h / 2 + i * treadH;
-          canvas.drawLine(Offset(-w / 2, y), Offset(-2, y), basePaint);
-          canvas.drawLine(Offset(2, y), Offset(w / 2, y), basePaint);
-        }
-        canvas.drawLine(Offset(0, -h / 2), Offset(0, h / 2 - h * 0.2), basePaint);
-        break;
-
-      default:
-        break;
-    }
-
-    canvas.restore();
-
-    if (entity.showName && entity.text.isNotEmpty) {
-      _drawCenteredText(canvas, Offset(center.dx, center.dy - h / 2 - 10), entity.text, basePaint.color, fontSize: 10);
-    }
-    if (entity.showDimensions && entity.widthFt > 0) {
-      _drawCenteredText(
-        canvas,
-        Offset(center.dx, center.dy + h / 2 + 10),
-        "${entity.widthFt.toStringAsFixed(1)} x ${entity.heightFt.toStringAsFixed(1)} ft",
-        basePaint.color.withOpacity(0.8),
-        fontSize: 9,
-      );
-    }
-  }
-
-  void _drawCenteredText(Canvas canvas, Offset pos, String text, Color color, {double fontSize = 11}) {
+    final distM = (end - start).distance / 20.0;
+    final angle = (math.atan2(end.dy - start.dy, end.dx - start.dx) * 180 / math.pi).round();
     final tp = TextPainter(
-      text: TextSpan(
-        text: text,
-        style: TextStyle(
-          color: color,
-          fontSize: fontSize,
-          fontWeight: FontWeight.bold,
-          backgroundColor: isDarkCanvas ? const Color(0xFF10141D).withOpacity(0.85) : Colors.white.withOpacity(0.85),
-        ),
-      ),
+      text: TextSpan(text: '${distM.toStringAsFixed(2)}m  ∠ $angle°', style: const TextStyle(color: AppColors.darkPrimary, fontSize: 10, fontWeight: FontWeight.bold, backgroundColor: Colors.black87)),
       textDirection: TextDirection.ltr,
     )..layout();
-    tp.paint(canvas, Offset(pos.dx - tp.width / 2, pos.dy - tp.height / 2));
+    tp.paint(canvas, end + const Offset(14, -20));
   }
 
-  void _drawNorthArrow(Canvas canvas, Offset center) {
-    final p = Paint()
-      ..color = const Color(0xFFE5B05C)
-      ..strokeWidth = 2.0;
-    canvas.drawLine(Offset(center.dx, center.dy + 25), Offset(center.dx, center.dy - 25), p);
-    final arrowHead = Path()
-      ..moveTo(center.dx, center.dy - 35)
-      ..lineTo(center.dx - 8, center.dy - 20)
-      ..lineTo(center.dx + 8, center.dy - 20)
-      ..close();
-    canvas.drawPath(arrowHead, Paint()..color = const Color(0xFFE5B05C));
-    _drawCenteredText(canvas, Offset(center.dx, center.dy - 48), "N ($facing)", const Color(0xFFE5B05C), fontSize: 10);
+  void _drawCrosshair(Canvas canvas, Offset cursor, Size size) {
+    canvas.drawLine(Offset(0, cursor.dy), Offset(size.width, cursor.dy), Paint()..color = Colors.redAccent.withOpacity(0.7)..strokeWidth = 0.8);
+    canvas.drawLine(Offset(cursor.dx, 0), Offset(cursor.dx, size.height), Paint()..color = Colors.greenAccent.withOpacity(0.7)..strokeWidth = 0.8);
+    canvas.drawRect(Rect.fromCenter(center: cursor, width: 8, height: 8), Paint()..color = Colors.white..style = PaintingStyle.stroke..strokeWidth = 1.0);
+
+    if (currentSnap != null) {
+      canvas.drawRect(Rect.fromCenter(center: currentSnap!.point, width: 14, height: 14), Paint()..color = currentSnap!.color..style = PaintingStyle.stroke..strokeWidth = 2.0);
+    }
   }
 
   @override
-  bool shouldRepaint(covariant CadCanvasPainter oldDelegate) => true;
+  bool shouldRepaint(covariant _CadCanvasPainter oldDelegate) => true;
 }
