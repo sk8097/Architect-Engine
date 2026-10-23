@@ -72,6 +72,12 @@ class _MainScaffoldState extends State<MainScaffold> {
           ],
         ),
         actions: [
+          if (_currentIndex != 0)
+            IconButton(
+              icon: const Icon(Icons.home_outlined),
+              tooltip: 'Home',
+              onPressed: () => setState(() => _currentIndex = 0),
+            ),
           Stack(
             alignment: Alignment.center,
             children: [

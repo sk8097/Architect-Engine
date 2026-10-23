@@ -250,7 +250,70 @@ class HomeScreen extends StatelessWidget {
           const SizedBox(height: 24),
 
 
-          // Section Header: Professional Studio
+          // Design Studio Modules Shortcut
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Design Modules',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () => onNavigateTab?.call(2),
+                child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 1.35,
+            children: [
+              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', tabIndex: 2),
+              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', tabIndex: 2),
+              _buildShortcutCard(context, icon: '🏠', title: 'Elevation', sub: 'Exterior views', tabIndex: 2),
+              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', tabIndex: 2),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // Tools & Utilities Shortcut
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Engineering & Tools',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+              TextButton(
+                onPressed: () => onNavigateTab?.call(3),
+                child: const Text('168 Tools', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            childAspectRatio: 2.2,
+            children: [
+              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', tabIndex: 3),
+              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', tabIndex: 3),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+// Section Header: Professional Studio
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -382,68 +445,7 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 24),
-          // Design Studio Modules Shortcut
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Design Modules',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () => onNavigateTab?.call(2),
-                child: const Text('See All', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 1.35,
-            children: [
-              _buildShortcutCard(context, icon: '📐', title: 'Floor Plan', sub: 'Detailed layouts', tabIndex: 2),
-              _buildShortcutCard(context, icon: '🏞️', title: 'Site Plan', sub: 'Plot & orientation', tabIndex: 2),
-              _buildShortcutCard(context, icon: '🏠', title: 'Elevation', sub: 'Exterior views', tabIndex: 2),
-              _buildShortcutCard(context, icon: '📦', title: '3D View', sub: 'Spatial model', tabIndex: 2),
-            ],
-          ),
-
-          const SizedBox(height: 24),
-
-          // Tools & Utilities Shortcut
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Engineering & Tools',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
-              ),
-              TextButton(
-                onPressed: () => onNavigateTab?.call(3),
-                child: const Text('168 Tools', style: TextStyle(color: AppColors.darkPrimary, fontSize: 13)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-            childAspectRatio: 2.2,
-            children: [
-              _buildCompactToolCategory(context, icon: '📏', title: 'Measurement', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '👷', title: 'Construction', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '🧱', title: 'Materials & Steel', tabIndex: 3),
-              _buildCompactToolCategory(context, icon: '💰', title: 'Cost & BOQ', tabIndex: 3),
-            ],
-          ),
-          const SizedBox(height: 20),
+                    const SizedBox(height: 20),
         ],
       ),
     );

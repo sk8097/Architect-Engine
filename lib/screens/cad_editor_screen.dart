@@ -193,7 +193,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       type: CadTool.rectangle,
       layerId: "walls",
       points: [origin, Offset(origin.dx + wid, origin.dy + len)],
-      text: "${widget.projectName ?? 'House Plot'} (${widget.plotWidth?.toStringAsFixed(0)}x${widget.plotLength?.toStringAsFixed(0)} ft)",
+      text: "${widget.projectName ?? 'House Plot'} (${(widget.plotWidth ?? 30.0).toStringAsFixed(0)}x${(widget.plotLength ?? 40.0).toStringAsFixed(0)} ft)",
       strokeWidth: 6.0,
       color: _isDarkCanvas ? Colors.white : Colors.black87,
       widthFt: widget.plotWidth ?? 30.0,
@@ -1033,6 +1033,54 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
               bottom: 44,
               child: _buildBlocksBottomDrawer(),
             ),
+
+
+          Positioned(
+            right: 14,
+            bottom: 54,
+            child: Container(
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2433).withOpacity(0.92),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.darkBorder),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.white, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () {
+                      final m = _transformationController.value.clone();
+                      m.scale(1.25);
+                      _transformationController.value = m;
+                    },
+                  ),
+                  const Divider(height: 6, color: Colors.white24),
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: Colors.white, size: 20),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                    onPressed: () {
+                      final m = _transformationController.value.clone();
+                      m.scale(0.8);
+                      _transformationController.value = m;
+                    },
+                  ),
+                  const Divider(height: 6, color: Colors.white24),
+                  InkWell(
+                    onTap: () => _transformationController.value = Matrix4.identity(),
+                    child: const Padding(
+                      padding: EdgeInsets.all(4),
+                      child: Text('FIT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.darkPrimary)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
 
           // Bottom Status Bar
           Positioned(
