@@ -13,6 +13,7 @@ enum CadTool {
   text,
   column,
   eraser,
+  polyline,
 }
 
 enum CadElementType {
