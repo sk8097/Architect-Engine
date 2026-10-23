@@ -28,6 +28,68 @@ class CadEditorScreen extends StatefulWidget {
 
 class _CadEditorScreenState extends State<CadEditorScreen> {
   final TransformationController _transformationController = TransformationController();
+
+  final GlobalKey _canvasViewportKey = GlobalKey();
+
+  double get _currentZoom => _transformationController.value.getMaxScaleOnAxis();
+
+  void _zoomBy(double factor) {
+    final renderObject = _canvasViewportKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize) return;
+
+    final viewport = renderObject.size;
+    final current = _transformationController.value;
+    final currentScale = current.getMaxScaleOnAxis();
+    final nextScale = (currentScale * factor).clamp(0.15, 6.0).toDouble();
+    final ratio = nextScale / currentScale;
+    final center = Offset(viewport.width / 2, viewport.height / 2);
+    final tx = current.storage[12];
+    final ty = current.storage[13];
+    final nextTx = center.dx - (center.dx - tx) * ratio;
+    final nextTy = center.dy - (center.dy - ty) * ratio;
+
+    _transformationController.value = Matrix4.identity()
+      ..translate(nextTx, nextTy)
+      ..scale(nextScale);
+  }
+
+  void _fitToDrawing() {
+    final renderObject = _canvasViewportKey.currentContext?.findRenderObject();
+    if (renderObject is! RenderBox || !renderObject.hasSize || _entities.isEmpty) {
+      _transformationController.value = Matrix4.identity();
+      return;
+    }
+
+    Rect? bounds;
+    for (final entity in _entities) {
+      if (entity.points.isEmpty) continue;
+      final entityBounds = entity.getBounds();
+      bounds = bounds == null ? entityBounds : bounds.expandToInclude(entityBounds);
+    }
+
+    if (bounds == null || bounds.width <= 0 || bounds.height <= 0) {
+      _transformationController.value = Matrix4.identity();
+      return;
+    }
+
+    final viewport = renderObject.size;
+    const padding = 64.0;
+    final availableWidth = math.max(1.0, viewport.width - padding * 2);
+    final availableHeight = math.max(1.0, viewport.height - padding * 2);
+    final scale = math.min(
+      availableWidth / bounds.width,
+      availableHeight / bounds.height,
+    ).clamp(0.15, 6.0).toDouble();
+
+    _transformationController.value = Matrix4.identity()
+      ..translate(
+        viewport.width / 2 - bounds.center.dx * scale,
+        viewport.height / 2 - bounds.center.dy * scale,
+      )
+      ..scale(scale);
+  }
+
+
   CadTool _activeTool = CadTool.select;
   String _activeLayerId = "walls";
   bool _orthoMode = false;
@@ -875,6 +937,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         children: [
           // Main Interactive CAD Canvas
           InteractiveViewer(
+            key: _canvasViewportKey,
             transformationController: _transformationController,
             boundaryMargin: const EdgeInsets.all(1600),
             minScale: 0.15,
@@ -899,6 +962,49 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   selectedEntity: _selectedEntity,
                   facing: widget.facing ?? "North",
                 ),
+              ),
+            ),
+          ),
+
+          // Zoom controls stay outside the drawing gesture area.
+          Positioned(
+            right: 12,
+            bottom: 54,
+            child: Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E2433).withOpacity(0.96),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    tooltip: "Zoom in",
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.add, color: Color(0xFFE5B05C)),
+                    onPressed: () => _zoomBy(1.25),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    child: Text(
+                      "${(_currentZoom * 100).round()}%",
+                      style: const TextStyle(color: Colors.white70, fontSize: 10),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: "Zoom out",
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.remove, color: Color(0xFFE5B05C)),
+                    onPressed: () => _zoomBy(0.8),
+                  ),
+                  IconButton(
+                    tooltip: "Fit drawing to screen",
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.fit_screen, color: Color(0xFFE5B05C), size: 20),
+                    onPressed: _fitToDrawing,
+                  ),
+                ],
               ),
             ),
           ),
@@ -1248,7 +1354,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
           _toggleChip("GRID", _gridVisible, () => setState(() => _gridVisible = !_gridVisible)),
           const SizedBox(width: 10),
           InkWell(
-            onTap: () => _transformationController.value = Matrix4.identity(),
+            onTap: _fitToDrawing,
             child: const Padding(
               padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
               child: Text("FIT", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFFE5B05C))),
