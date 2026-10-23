@@ -1084,14 +1084,13 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
 
           // Bottom Status Bar
           Positioned(
-  													left: 0,
-  													right: 0,
- 													 bottom: 0,
-  													child: SafeArea( 
-																	top: false,
-    												child: _buildCadStatusBar(),
-  ),
-),
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: _buildCadStatusBar(),
+            ),
           ),
         ],
       ),
