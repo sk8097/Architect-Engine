@@ -76,6 +76,12 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
+      - name: Apply CAD and Script Updates
+        run: |
+          if [ -f "fix_and_update.py" ]; then
+            python3 fix_and_update.py
+          fi
+
       - name: Build Android Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation
 
