@@ -30,6 +30,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     CadLayer(id: 'A_DIMS', name: 'A - DIMS', color: const Color(0xFF4ADE80), strokeWidth: 1.5),
     CadLayer(id: 'A_TEXT', name: 'A - TEXT', color: const Color(0xFFFFFFFF), strokeWidth: 1.5),
     CadLayer(id: 'S_COLUMNS', name: 'S - COLUMNS', color: const Color(0xFFEF4444), strokeWidth: 2.5),
+    CadLayer(id: 'A_FURNITURE', name: 'A - FURNITURE', color: const Color(0xFFFB923C), strokeWidth: 2.0),
   ];
 
   List<CadElement> _elements = [];
@@ -48,6 +49,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   Offset? _moveLast;
   bool _moveUndoSaved = false;
   final List<Offset> _arcPts = [];
+  String? _pendingBlock;
 
   @override
   void initState() {
@@ -196,6 +198,11 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       return;
     }
 
+    if (_activeTool == CadTool.block) {
+      setState(() => _currentCursor = snapped);
+      return;
+    }
+
     if (_activeTool == CadTool.arc) {
       setState(() {
         _currentCursor = snapped;
@@ -251,6 +258,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     }
     if (_activeTool == CadTool.arc) {
       _arcAddPoint();
+      return;
+    }
+    if (_activeTool == CadTool.block) {
+      _placeBlock();
       return;
     }
     if (_activeTool == CadTool.hatch && _dragStart != null && _currentCursor != null) {
@@ -441,6 +452,17 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   void _rotateSelected(double deg) {
     final el = _selectedElement;
     if (el == null) return;
+    if (el.type == CadElementType.block) {
+      _saveStateForUndo();
+      final upd = el.copyWith(radius: ((el.radius ?? 0.0) + deg) % 360);
+      setState(() {
+        final i = _elements.indexWhere((e) => e.id == el.id);
+        if (i >= 0) _elements[i] = upd;
+        _selectedElement = upd;
+        _commandPrompt = 'ROTATE - block rotated';
+      });
+      return;
+    }
     if (el.type == CadElementType.circle || el.type == CadElementType.text) {
       setState(() => _commandPrompt = 'ROTATE - not applicable to this object');
       return;
@@ -559,6 +581,13 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   }
 
   bool _selectHit(CadElement el, Offset p) {
+    if (el.type == CadElementType.block) {
+      final rect = Rect.fromPoints(el.start, el.end);
+      final ang = -(el.radius ?? 0.0) * math.pi / 180;
+      final d = p - rect.center;
+      final q = Offset(d.dx * math.cos(ang) - d.dy * math.sin(ang), d.dx * math.sin(ang) + d.dy * math.cos(ang));
+      return Rect.fromCenter(center: Offset.zero, width: rect.width + 20, height: rect.height + 20).contains(q);
+    }
     if (el.type == CadElementType.arc) {
       final r = (el.end - el.start).distance;
       if (((p - el.start).distance - r).abs() > 15) return false;
@@ -835,6 +864,13 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       add('y', 'Center Y (m)', f(el.start.dy / 20));
       add('r', 'Radius (m)', f((el.end - el.start).distance / 20));
       add('sweep', 'Sweep (deg, + = clockwise)', f((el.radius ?? 0) * 180 / math.pi));
+    } else if (t == CadElementType.block) {
+      final r = Rect.fromPoints(el.start, el.end);
+      add('x', 'Center X (m)', f(r.center.dx / 20));
+      add('y', 'Center Y (m)', f(r.center.dy / 20));
+      add('w', 'Width (m)', f(r.width / 20));
+      add('h', 'Depth (m)', f(r.height / 20));
+      add('rot', 'Rotation (deg, + = clockwise)', f(el.radius ?? 0));
     } else if (t == CadElementType.text) {
       add('txt', 'Text', el.text ?? '');
     }
@@ -970,6 +1006,19 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         newEnd = newStart + Offset(math.cos(a0), math.sin(a0)) * (r * 20);
         newRadius = sw * math.pi / 180;
       }
+    } else if (t == CadElementType.block) {
+      final x = _num(v, 'x');
+      final y = _num(v, 'y');
+      final w = _num(v, 'w');
+      final h = _num(v, 'h');
+      final rot = _num(v, 'rot');
+      if (x == null || y == null || w == null || h == null || rot == null || w <= 0 || h <= 0) {
+        ok = false;
+      } else {
+        newStart = Offset((x - w / 2) * 20, (y - h / 2) * 20);
+        newEnd = Offset((x + w / 2) * 20, (y + h / 2) * 20);
+        newRadius = rot;
+      }
     } else if (t == CadElementType.text) {
       newText = v['txt'] ?? el.text;
     }
@@ -986,6 +1035,133 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       _selectedElement = updated;
       _commandPrompt = 'PROPERTIES - updated';
     });
+  }
+
+  // ---------- 2D BLOCK LIBRARY ----------
+  void _startBlockPlacement(String key) {
+    final def = _blockDefs[key];
+    if (def == null) return;
+    setState(() {
+      _activeTool = CadTool.block;
+      _pendingBlock = key;
+      _selectedElement = null;
+      _isPanMode = false;
+      _polyFirst = null;
+      _polyLast = null;
+      _polyCount = 0;
+      _dragStart = null;
+      _arcPts.clear();
+      _commandPrompt = 'BLOCK - ${def.name}: tap on the drawing to place it';
+    });
+  }
+
+  void _placeBlock() {
+    final key = _pendingBlock;
+    final c = _currentCursor;
+    if (key == null || c == null) return;
+    final def = _blockDefs[key];
+    if (def == null) return;
+    final half = Offset(def.w * 20 / 2, def.h * 20 / 2);
+    _saveStateForUndo();
+    final el = CadElement(
+      id: 'el_${DateTime.now().microsecondsSinceEpoch}',
+      type: CadElementType.block,
+      layerId: 'A_FURNITURE',
+      start: c - half,
+      end: c + half,
+      text: key,
+      radius: 0,
+    );
+    setState(() {
+      _elements.add(el);
+      _selectedElement = el;
+      _activeTool = CadTool.select;
+      _pendingBlock = null;
+      _commandPrompt = 'BLOCK - ${def.name} placed. Drag to move, or use Rotate / Props';
+    });
+  }
+
+  void _showBlockLibrary() {
+    var cat = 'All';
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0F172A),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(18))),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) {
+          final keys = _blockDefs.keys.where((k) => cat == 'All' || _blockDefs[k]!.category == cat).toList();
+          return SizedBox(
+            height: MediaQuery.of(ctx).size.height * 0.62,
+            child: Column(
+              children: [
+                const SizedBox(height: 12),
+                const Text('2D BLOCK LIBRARY', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1)),
+                const SizedBox(height: 8),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: [
+                      for (final c in ['All', 'Furniture', 'Kitchen', 'Bath', 'Misc'])
+                        Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ChoiceChip(
+                            label: Text(c),
+                            selected: cat == c,
+                            onSelected: (_) => setS(() => cat = c),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    padding: const EdgeInsets.all(12),
+                    mainAxisSpacing: 10,
+                    crossAxisSpacing: 10,
+                    childAspectRatio: 0.85,
+                    children: [
+                      for (final k in keys)
+                        InkWell(
+                          onTap: () {
+                            Navigator.pop(ctx);
+                            _startBlockPlacement(k);
+                          },
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF131C35),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: CustomPaint(painter: _BlockThumbPainter(k), child: const SizedBox.expand()),
+                                  ),
+                                ),
+                                Text(_blockDefs[k]!.name, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 6),
+                                  child: Text('${_blockDefs[k]!.w} x ${_blockDefs[k]!.h} m', style: const TextStyle(color: Colors.grey, fontSize: 9)),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showTextInputDialog(Offset position) {
@@ -1251,6 +1427,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   currentSnap: _currentSnap,
                   orthoMode: _orthoMode,
                   arcPoints: List<Offset>.from(_arcPts),
+                  pendingBlock: _pendingBlock,
                 ),
               ),
             ),
@@ -1280,6 +1457,19 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                     _buildToolIcon(CadTool.trim, Icons.content_cut, 'Trim (TR)'),
                     _buildToolIcon(CadTool.extend, Icons.open_in_full, 'Extend (EX)'),
                     _buildToolIcon(CadTool.hatch, Icons.texture, 'Hatch (H)'),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: IconButton(
+                        icon: const Icon(Icons.widgets_outlined, size: 22),
+                        color: _activeTool == CadTool.block ? AppColors.darkPrimary : Colors.white70,
+                        tooltip: 'Blocks (B)',
+                        style: IconButton.styleFrom(
+                          backgroundColor: _activeTool == CadTool.block ? AppColors.darkPrimary.withOpacity(0.2) : Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _showBlockLibrary,
+                      ),
+                    ),
                     _buildToolIcon(CadTool.rectangle, Icons.crop_square, 'Room (REC)'),
                     _buildToolIcon(CadTool.door, Icons.meeting_room_outlined, 'Door (D)'),
                     _buildToolIcon(CadTool.window, Icons.window, 'Window (WIN)'),
@@ -1340,6 +1530,26 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   _buildActionChip(Icons.check, 'Done', () => _polyFinish()),
                   const SizedBox(width: 8),
                   _buildActionChip(Icons.crop_square, 'Close', () => _polyFinish(close: true)),
+                ],
+              ),
+            ),
+          if (_activeTool == CadTool.block && _pendingBlock != null)
+            Positioned(
+              left: 70,
+              right: 12,
+              bottom: 64,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _buildActionChip(Icons.widgets_outlined, 'Library', _showBlockLibrary),
+                  const SizedBox(width: 8),
+                  _buildActionChip(Icons.close, 'Cancel', () {
+                    setState(() {
+                      _pendingBlock = null;
+                      _activeTool = CadTool.select;
+                      _commandPrompt = 'BLOCK - cancelled';
+                    });
+                  }),
                 ],
               ),
             ),
@@ -1449,6 +1659,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             _polyCount = 0;
             _dragStart = null;
             _arcPts.clear();
+            _pendingBlock = null;
             _commandPrompt = 'Command: ${tool.name.toUpperCase()}';
           });
         },
@@ -1492,6 +1703,7 @@ class _CadCanvasPainter extends CustomPainter {
   final SnapPoint? currentSnap;
   final bool orthoMode;
   final List<Offset> arcPoints;
+  final String? pendingBlock;
 
   _CadCanvasPainter({
     required this.elements,
@@ -1506,6 +1718,7 @@ class _CadCanvasPainter extends CustomPainter {
     required this.currentSnap,
     required this.orthoMode,
     required this.arcPoints,
+    required this.pendingBlock,
   });
 
   @override
@@ -1528,6 +1741,16 @@ class _CadCanvasPainter extends CustomPainter {
 
     if (activeTool == CadTool.arc && arcPoints.isNotEmpty && currentCursor != null) {
       _drawArcPreview(canvas);
+    }
+
+    if (activeTool == CadTool.block && pendingBlock != null && currentCursor != null) {
+      final def = _blockDefs[pendingBlock!];
+      if (def != null) {
+        canvas.save();
+        canvas.translate(currentCursor!.dx, currentCursor!.dy);
+        _paintBlockSymbol(canvas, pendingBlock!, Rect.fromCenter(center: Offset.zero, width: def.w * 20, height: def.h * 20), activeLayer.color.withOpacity(0.7), 1.5);
+        canvas.restore();
+      }
     }
 
     if (currentCursor != null) {
@@ -1580,6 +1803,17 @@ class _CadCanvasPainter extends CustomPainter {
     }
     canvas.restore();
     canvas.drawRect(rect, Paint()..color = c.withOpacity(0.6)..strokeWidth = 1.0..style = PaintingStyle.stroke);
+  }
+
+  void _drawBlock(Canvas canvas, CadElement el, Color color, double strokeWidth) {
+    final rect = Rect.fromPoints(el.start, el.end);
+    final c = rect.center;
+    final ang = (el.radius ?? 0.0) * math.pi / 180;
+    canvas.save();
+    canvas.translate(c.dx, c.dy);
+    canvas.rotate(ang);
+    _paintBlockSymbol(canvas, el.text ?? '', Rect.fromCenter(center: Offset.zero, width: rect.width, height: rect.height), color, strokeWidth);
+    canvas.restore();
   }
 
   void _drawGrid(Canvas canvas, Size size) {
@@ -1652,6 +1886,9 @@ class _CadCanvasPainter extends CustomPainter {
       case CadElementType.hatch:
         _drawHatch(canvas, el, color, isSelected);
         break;
+      case CadElementType.block:
+        _drawBlock(canvas, el, paint.color, strokeWidth);
+        break;
       case CadElementType.dimension:
         canvas.drawLine(el.start, el.end, paint);
         canvas.drawLine(el.start - const Offset(5, 5), el.start + const Offset(5, 5), paint);
@@ -1675,7 +1912,7 @@ class _CadCanvasPainter extends CustomPainter {
         break;
     }
 
-    if (isSelected) {
+    if (isSelected && el.type != CadElementType.block) {
       final grip = Paint()..color = const Color(0xFF38BDF8);
       canvas.drawRect(Rect.fromCenter(center: el.start, width: 8, height: 8), grip);
       canvas.drawRect(Rect.fromCenter(center: el.end, width: 8, height: 8), grip);
@@ -1748,4 +1985,193 @@ _ArcGeom? _arcGeometry(Offset a, Offset b, Offset c) {
   const full = 2 * math.pi;
   final sweep = cross > 0 ? (a1 - a0) % full : -((a0 - a1) % full);
   return _ArcGeom(center, r, a0, sweep);
+}
+
+class _BlockDef {
+  final String name;
+  final String category;
+  final double w;
+  final double h;
+  const _BlockDef(this.name, this.category, this.w, this.h);
+}
+
+const Map<String, _BlockDef> _blockDefs = {
+  'bed_double': _BlockDef('Bed - Double', 'Furniture', 1.8, 2.0),
+  'bed_single': _BlockDef('Bed - Single', 'Furniture', 0.9, 2.0),
+  'sofa_3': _BlockDef('Sofa - 3 Seater', 'Furniture', 2.1, 0.9),
+  'armchair': _BlockDef('Armchair', 'Furniture', 0.9, 0.9),
+  'dining_6': _BlockDef('Dining Table (6)', 'Furniture', 2.2, 1.6),
+  'round_table': _BlockDef('Round Table (4)', 'Furniture', 1.4, 1.4),
+  'chair': _BlockDef('Chair', 'Furniture', 0.5, 0.5),
+  'wardrobe': _BlockDef('Wardrobe', 'Furniture', 1.8, 0.6),
+  'tv_unit': _BlockDef('TV Unit', 'Furniture', 1.5, 0.45),
+  'kitchen_counter': _BlockDef('Kitchen Counter', 'Kitchen', 2.4, 0.6),
+  'sink': _BlockDef('Kitchen Sink', 'Kitchen', 0.9, 0.5),
+  'fridge': _BlockDef('Refrigerator', 'Kitchen', 0.7, 0.7),
+  'wc': _BlockDef('WC / Commode', 'Bath', 0.4, 0.7),
+  'wash_basin': _BlockDef('Wash Basin', 'Bath', 0.55, 0.45),
+  'bathtub': _BlockDef('Bathtub', 'Bath', 1.7, 0.75),
+  'shower': _BlockDef('Shower Tray', 'Bath', 0.9, 0.9),
+  'stairs': _BlockDef('Staircase', 'Misc', 1.0, 3.0),
+  'plant': _BlockDef('Plant', 'Misc', 0.5, 0.5),
+};
+
+void _paintBlockSymbol(Canvas canvas, String key, Rect r, Color color, double stroke) {
+  final p = Paint()
+    ..color = color
+    ..strokeWidth = stroke
+    ..style = PaintingStyle.stroke;
+  final t = Paint()
+    ..color = color
+    ..strokeWidth = stroke * 0.55
+    ..style = PaintingStyle.stroke;
+  final w = r.width;
+  final h = r.height;
+  final l = r.left;
+  final top = r.top;
+  final rt = r.right;
+  final bt = r.bottom;
+  switch (key) {
+    case 'bed_double':
+    case 'bed_single':
+      canvas.drawRect(r, p);
+      final pad = w * 0.06;
+      final pillowH = h * 0.14;
+      if (key == 'bed_double') {
+        final pw = (w - pad * 3) / 2;
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + pad, top + pad, pw, pillowH), const Radius.circular(3)), t);
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + pad * 2 + pw, top + pad, pw, pillowH), const Radius.circular(3)), t);
+      } else {
+        canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + pad, top + pad, w - pad * 2, pillowH), const Radius.circular(3)), t);
+      }
+      canvas.drawLine(Offset(l, top + h * 0.30), Offset(rt, top + h * 0.30), t);
+      break;
+    case 'sofa_3':
+    case 'armchair':
+      canvas.drawRect(r, p);
+      final back = h * 0.28;
+      final arm = w * (key == 'sofa_3' ? 0.09 : 0.18);
+      canvas.drawLine(Offset(l, top + back), Offset(rt, top + back), t);
+      canvas.drawLine(Offset(l + arm, top + back), Offset(l + arm, bt), t);
+      canvas.drawLine(Offset(rt - arm, top + back), Offset(rt - arm, bt), t);
+      if (key == 'sofa_3') {
+        final seatW = (w - arm * 2) / 3;
+        canvas.drawLine(Offset(l + arm + seatW, top + back), Offset(l + arm + seatW, bt), t);
+        canvas.drawLine(Offset(l + arm + seatW * 2, top + back), Offset(l + arm + seatW * 2, bt), t);
+      }
+      break;
+    case 'dining_6':
+      canvas.drawRect(Rect.fromLTRB(l + w * 0.06, top + h * 0.27, rt - w * 0.06, bt - h * 0.27), p);
+      for (final f in [0.25, 0.5, 0.75]) {
+        final cx = l + w * f;
+        canvas.drawRect(Rect.fromCenter(center: Offset(cx, top + h * 0.12), width: w * 0.16, height: h * 0.2), t);
+        canvas.drawRect(Rect.fromCenter(center: Offset(cx, bt - h * 0.12), width: w * 0.16, height: h * 0.2), t);
+      }
+      break;
+    case 'round_table':
+      canvas.drawCircle(r.center, w * 0.28, p);
+      final cs = w * 0.16;
+      canvas.drawRect(Rect.fromCenter(center: Offset(r.center.dx, top + cs * 0.6), width: cs, height: cs * 0.8), t);
+      canvas.drawRect(Rect.fromCenter(center: Offset(r.center.dx, bt - cs * 0.6), width: cs, height: cs * 0.8), t);
+      canvas.drawRect(Rect.fromCenter(center: Offset(l + cs * 0.6, r.center.dy), width: cs * 0.8, height: cs), t);
+      canvas.drawRect(Rect.fromCenter(center: Offset(rt - cs * 0.6, r.center.dy), width: cs * 0.8, height: cs), t);
+      break;
+    case 'chair':
+      canvas.drawRect(r, p);
+      canvas.drawLine(Offset(l, top + h * 0.22), Offset(rt, top + h * 0.22), t);
+      break;
+    case 'wardrobe':
+      canvas.drawRect(r, p);
+      canvas.drawLine(Offset(r.center.dx, top), Offset(r.center.dx, bt), t);
+      canvas.drawLine(Offset(l, top + h * 0.2), Offset(rt, top + h * 0.2), t);
+      break;
+    case 'tv_unit':
+      canvas.drawRect(r, p);
+      canvas.drawRect(Rect.fromLTWH(l + w * 0.2, top + h * 0.2, w * 0.6, h * 0.3), t);
+      break;
+    case 'kitchen_counter':
+      canvas.drawRect(r, p);
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + w * 0.08, top + h * 0.18, w * 0.22, h * 0.64), const Radius.circular(3)), t);
+      canvas.drawCircle(Offset(l + w * 0.19, top + h * 0.5), h * 0.07, t);
+      for (final cx in [0.66, 0.84]) {
+        for (final cy in [0.3, 0.7]) {
+          canvas.drawCircle(Offset(l + w * cx, top + h * cy), h * 0.12, t);
+        }
+      }
+      break;
+    case 'sink':
+      canvas.drawRect(r, p);
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + w * 0.08, top + h * 0.15, w * 0.38, h * 0.7), const Radius.circular(3)), t);
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTWH(l + w * 0.54, top + h * 0.15, w * 0.38, h * 0.7), const Radius.circular(3)), t);
+      break;
+    case 'fridge':
+      canvas.drawRect(r, p);
+      canvas.drawRect(Rect.fromLTRB(l + w * 0.12, top + h * 0.12, rt - w * 0.12, bt - h * 0.12), t);
+      canvas.drawLine(Offset(l + w * 0.12, top + h * 0.38), Offset(rt - w * 0.12, top + h * 0.38), t);
+      break;
+    case 'wc':
+      canvas.drawRect(Rect.fromLTWH(l + w * 0.1, top, w * 0.8, h * 0.25), p);
+      canvas.drawOval(Rect.fromLTWH(l, top + h * 0.22, w, h * 0.78), p);
+      canvas.drawOval(Rect.fromLTWH(l + w * 0.15, top + h * 0.34, w * 0.7, h * 0.54), t);
+      break;
+    case 'wash_basin':
+      canvas.drawRect(r, p);
+      canvas.drawOval(Rect.fromLTWH(l + w * 0.12, top + h * 0.18, w * 0.76, h * 0.64), t);
+      canvas.drawCircle(r.center, h * 0.06, t);
+      break;
+    case 'bathtub':
+      canvas.drawRRect(RRect.fromRectAndRadius(r, const Radius.circular(8)), p);
+      canvas.drawRRect(RRect.fromRectAndRadius(Rect.fromLTRB(l + w * 0.05, top + h * 0.12, rt - w * 0.05, bt - h * 0.12), const Radius.circular(8)), t);
+      canvas.drawCircle(Offset(l + w * 0.1, r.center.dy), h * 0.06, t);
+      break;
+    case 'shower':
+      canvas.drawRect(r, p);
+      canvas.drawLine(r.topLeft, r.bottomRight, t);
+      canvas.drawCircle(r.center, w * 0.07, t);
+      break;
+    case 'stairs':
+      canvas.drawRect(r, p);
+      for (int i = 1; i < 12; i++) {
+        final y = top + h * i / 12;
+        canvas.drawLine(Offset(l, y), Offset(rt, y), t);
+      }
+      final ax = r.center.dx;
+      canvas.drawLine(Offset(ax, bt - h * 0.06), Offset(ax, top + h * 0.08), p);
+      canvas.drawLine(Offset(ax, top + h * 0.08), Offset(ax - w * 0.14, top + h * 0.16), p);
+      canvas.drawLine(Offset(ax, top + h * 0.08), Offset(ax + w * 0.14, top + h * 0.16), p);
+      break;
+    case 'plant':
+      canvas.drawCircle(r.center, w * 0.5, p);
+      canvas.drawCircle(Offset(r.center.dx - w * 0.14, r.center.dy), w * 0.2, t);
+      canvas.drawCircle(Offset(r.center.dx + w * 0.14, r.center.dy), w * 0.2, t);
+      canvas.drawCircle(Offset(r.center.dx, r.center.dy - w * 0.14), w * 0.2, t);
+      break;
+    default:
+      canvas.drawRect(r, p);
+      canvas.drawLine(r.topLeft, r.bottomRight, t);
+      canvas.drawLine(r.bottomLeft, r.topRight, t);
+  }
+}
+
+class _BlockThumbPainter extends CustomPainter {
+  final String keyName;
+  _BlockThumbPainter(this.keyName);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final def = _blockDefs[keyName];
+    if (def == null) return;
+    final bw = def.w * 20;
+    final bh = def.h * 20;
+    final s = math.min((size.width - 8) / bw, (size.height - 8) / bh);
+    if (s <= 0) return;
+    canvas.save();
+    canvas.translate(size.width / 2, size.height / 2);
+    canvas.scale(s);
+    _paintBlockSymbol(canvas, keyName, Rect.fromCenter(center: Offset.zero, width: bw, height: bh), Colors.white70, 1.6 / s);
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

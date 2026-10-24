@@ -18,6 +18,7 @@ enum CadTool {
   trim,
   extend,
   hatch,
+  block,
 }
 
 enum CadElementType {
@@ -32,6 +33,7 @@ enum CadElementType {
   column,
   arc,
   hatch,
+  block,
 }
 
 class CadLayer {
