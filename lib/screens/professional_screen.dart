@@ -1,3 +1,4 @@
+import 'draw_tools_screen.dart';
 import 'cad_editor_screen.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
@@ -183,8 +184,10 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                 final m = filtered[index];
                 return InkWell(
                   onTap: () {
-                    if (m.key == 'cad' || m.key == 'draw_tools') {
+                    if (m.key == 'cad') {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const CadEditorScreen()));
+                    } else if (m.key == 'draw_tools') {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const DrawToolsScreen()));
                     } else {
                       _showModuleDetails(context, m);
                     }
