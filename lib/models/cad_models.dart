@@ -14,6 +14,10 @@ enum CadTool {
   column,
   eraser,
   polyline,
+  arc,
+  trim,
+  extend,
+  hatch,
 }
 
 enum CadElementType {
@@ -26,6 +30,8 @@ enum CadElementType {
   dimension,
   text,
   column,
+  arc,
+  hatch,
 }
 
 class CadLayer {
@@ -120,6 +126,8 @@ class CadElement {
       case CadElementType.circle:
         final r = radius ?? (end - start).distance;
         return Rect.fromCircle(center: start, radius: r);
+      case CadElementType.arc:
+        return Rect.fromCircle(center: start, radius: (end - start).distance);
       default:
         return Rect.fromPoints(start, end);
     }

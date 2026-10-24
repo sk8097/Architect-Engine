@@ -47,6 +47,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   int _polyCount = 0;
   Offset? _moveLast;
   bool _moveUndoSaved = false;
+  final List<Offset> _arcPts = [];
 
   @override
   void initState() {
@@ -142,9 +143,18 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     if (_activeTool == CadTool.select) {
       CadElement? hit;
       for (final el in _elements.reversed) {
-        if (el.boundingBox.inflate(15).contains(snapped)) {
+        if (el.type == CadElementType.hatch) continue;
+        if (_selectHit(el, snapped)) {
           hit = el;
           break;
+        }
+      }
+      if (hit == null) {
+        for (final el in _elements.reversed) {
+          if (el.type == CadElementType.hatch && el.boundingBox.contains(snapped)) {
+            hit = el;
+            break;
+          }
         }
       }
       setState(() {
@@ -164,7 +174,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
 
     if (_activeTool == CadTool.eraser) {
       for (int i = _elements.length - 1; i >= 0; i--) {
-        if (_elements[i].boundingBox.inflate(15).contains(snapped)) {
+        if (_selectHit(_elements[i], snapped)) {
           _saveStateForUndo();
           setState(() {
             final removed = _elements.removeAt(i);
@@ -173,6 +183,24 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
           break;
         }
       }
+      return;
+    }
+
+    if (_activeTool == CadTool.trim || _activeTool == CadTool.extend) {
+      setState(() => _currentCursor = snapped);
+      if (_activeTool == CadTool.trim) {
+        _trimAt(worldPos);
+      } else {
+        _extendAt(worldPos);
+      }
+      return;
+    }
+
+    if (_activeTool == CadTool.arc) {
+      setState(() {
+        _currentCursor = snapped;
+        _commandPrompt = 'ARC - point ${_arcPts.length + 1} of 3';
+      });
       return;
     }
 
@@ -195,7 +223,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     final worldPos = _screenToWorld(details.localPosition);
     var snapped = _applySnapping(worldPos);
 
-    if (_dragStart != null && _orthoMode) {
+    if (_dragStart != null && _orthoMode && _activeTool != CadTool.hatch) {
       snapped = _applyOrtho(_dragStart!, snapped);
     }
 
@@ -219,6 +247,14 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     _moveLast = null;
     if (_activeTool == CadTool.polyline) {
       _polyAddPoint();
+      return;
+    }
+    if (_activeTool == CadTool.arc) {
+      _arcAddPoint();
+      return;
+    }
+    if (_activeTool == CadTool.hatch && _dragStart != null && _currentCursor != null) {
+      _hatchFinish(_dragStart!, _currentCursor!);
       return;
     }
     if (_dragStart != null && _currentCursor != null) {
@@ -410,7 +446,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       return;
     }
     var angle = deg;
-    if (el.type == CadElementType.rectangle || el.type == CadElementType.column) {
+    if (el.type == CadElementType.rectangle || el.type == CadElementType.column || el.type == CadElementType.hatch) {
       angle = (deg / 90).round() * 90.0;
     }
     final rad = angle * math.pi / 180;
@@ -520,6 +556,436 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         ),
       ),
     );
+  }
+
+  bool _selectHit(CadElement el, Offset p) {
+    if (el.type == CadElementType.arc) {
+      final r = (el.end - el.start).distance;
+      if (((p - el.start).distance - r).abs() > 15) return false;
+      final a0 = math.atan2(el.end.dy - el.start.dy, el.end.dx - el.start.dx);
+      final ap = math.atan2(p.dy - el.start.dy, p.dx - el.start.dx);
+      final sw = el.radius ?? 0.0;
+      final rel = sw >= 0 ? (ap - a0) % (2 * math.pi) : -((a0 - ap) % (2 * math.pi));
+      return sw >= 0 ? rel <= sw + 0.15 : rel >= sw - 0.15;
+    }
+    return el.boundingBox.inflate(15).contains(p);
+  }
+
+  // ---------- ARC (3 points: start, through, end) ----------
+  void _arcAddPoint() {
+    final pt = _currentCursor;
+    if (pt == null) return;
+    if (_arcPts.isNotEmpty && (pt - _arcPts.last).distance < 4) return;
+    if (_arcPts.length < 2) {
+      setState(() {
+        _arcPts.add(pt);
+        _commandPrompt = _arcPts.length == 1 ? 'ARC - tap a point the arc passes through' : 'ARC - tap the end point';
+      });
+      return;
+    }
+    final g = _arcGeometry(_arcPts[0], _arcPts[1], pt);
+    if (g == null) {
+      setState(() => _commandPrompt = 'ARC - points are in a straight line, pick another end point');
+      return;
+    }
+    _saveStateForUndo();
+    final first = _arcPts[0];
+    setState(() {
+      _elements.add(CadElement(
+        id: 'el_${DateTime.now().microsecondsSinceEpoch}',
+        type: CadElementType.arc,
+        layerId: _activeLayerId,
+        start: g.center,
+        end: first,
+        radius: g.sweep,
+      ));
+      _arcPts.clear();
+      _commandPrompt = 'ARC - created. Tap 3 points for the next arc';
+    });
+  }
+
+  // ---------- TRIM / EXTEND ----------
+  double _distToSeg(Offset p, Offset a, Offset b) {
+    final ab = b - a;
+    final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (len2 == 0) return (p - a).distance;
+    final t = math.max(0.0, math.min(1.0, ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / len2));
+    return (p - (a + ab * t)).distance;
+  }
+
+  List<double>? _lineHit(Offset a, Offset b, Offset c, Offset d) {
+    final r = b - a;
+    final s = d - c;
+    final den = r.dx * s.dy - r.dy * s.dx;
+    if (den.abs() < 1e-9) return null;
+    final qp = c - a;
+    final t = (qp.dx * s.dy - qp.dy * s.dx) / den;
+    final u = (qp.dx * r.dy - qp.dy * r.dx) / den;
+    return [t, u];
+  }
+
+  List<List<Offset>> _cutEdges(String excludeId) {
+    final segs = <List<Offset>>[];
+    for (final e in _elements) {
+      if (e.id == excludeId) continue;
+      if (e.type == CadElementType.line || e.type == CadElementType.wall) {
+        segs.add([e.start, e.end]);
+      } else if (e.type == CadElementType.rectangle) {
+        final r = Rect.fromPoints(e.start, e.end);
+        segs.add([r.topLeft, r.topRight]);
+        segs.add([r.topRight, r.bottomRight]);
+        segs.add([r.bottomRight, r.bottomLeft]);
+        segs.add([r.bottomLeft, r.topLeft]);
+      }
+    }
+    return segs;
+  }
+
+  CadElement? _pickLineAt(Offset p, double maxDist) {
+    CadElement? target;
+    var best = maxDist;
+    for (final e in _elements) {
+      if (e.type != CadElementType.line && e.type != CadElementType.wall) continue;
+      final dist = _distToSeg(p, e.start, e.end);
+      if (dist < best) {
+        best = dist;
+        target = e;
+      }
+    }
+    return target;
+  }
+
+  void _trimAt(Offset p) {
+    final target = _pickLineAt(p, 14);
+    if (target == null) {
+      setState(() => _commandPrompt = 'TRIM - tap on a line or wall');
+      return;
+    }
+    final a = target.start;
+    final b = target.end;
+    final ab = b - a;
+    final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (len2 == 0) return;
+    final tp = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / len2;
+    double? left;
+    double? right;
+    for (final seg in _cutEdges(target.id)) {
+      final h = _lineHit(a, b, seg[0], seg[1]);
+      if (h == null) continue;
+      final t = h[0];
+      final u = h[1];
+      if (u < 0 || u > 1 || t <= 0.001 || t >= 0.999) continue;
+      if (t < tp) {
+        if (left == null || t > left) left = t;
+      } else {
+        if (right == null || t < right) right = t;
+      }
+    }
+    if (left == null && right == null) {
+      setState(() => _commandPrompt = 'TRIM - no other line crosses here');
+      return;
+    }
+    final l = left;
+    final r = right;
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final keep = <CadElement>[];
+    if (l != null) {
+      keep.add(target.copyWith(id: 'el_${stamp}a', start: a, end: a + ab * l, isSelected: false));
+    }
+    if (r != null) {
+      keep.add(target.copyWith(id: 'el_${stamp}b', start: a + ab * r, end: b, isSelected: false));
+    }
+    _saveStateForUndo();
+    setState(() {
+      _elements.removeWhere((e) => e.id == target.id);
+      _elements.addAll(keep);
+      _selectedElement = null;
+      _commandPrompt = 'TRIM - done';
+    });
+  }
+
+  void _extendAt(Offset p) {
+    final target = _pickLineAt(p, 18);
+    if (target == null) {
+      setState(() => _commandPrompt = 'EXTEND - tap near the end of a line or wall');
+      return;
+    }
+    final a = target.start;
+    final b = target.end;
+    final ab = b - a;
+    final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+    if (len2 == 0) return;
+    final tp = ((p.dx - a.dx) * ab.dx + (p.dy - a.dy) * ab.dy) / len2;
+    final forward = tp >= 0.5;
+    double? bestT;
+    for (final seg in _cutEdges(target.id)) {
+      final h = _lineHit(a, b, seg[0], seg[1]);
+      if (h == null) continue;
+      final t = h[0];
+      final u = h[1];
+      if (u < 0 || u > 1) continue;
+      if (forward) {
+        if (t > 1.001 && (bestT == null || t < bestT)) bestT = t;
+      } else {
+        if (t < -0.001 && (bestT == null || t > bestT)) bestT = t;
+      }
+    }
+    final nt = bestT;
+    if (nt == null) {
+      setState(() => _commandPrompt = 'EXTEND - no line found in that direction');
+      return;
+    }
+    _saveStateForUndo();
+    setState(() {
+      if (forward) {
+        target.end = a + ab * nt;
+      } else {
+        target.start = a + ab * nt;
+      }
+      _commandPrompt = 'EXTEND - done';
+    });
+  }
+
+  // ---------- HATCH ----------
+  void _hatchFinish(Offset start, Offset end) {
+    var s = start;
+    var e = end;
+    if ((end - start).distance <= 8) {
+      CadElement? room;
+      var bestArea = double.infinity;
+      for (final el in _elements) {
+        if (el.type != CadElementType.rectangle) continue;
+        final r = el.boundingBox;
+        if (r.contains(start) && r.width * r.height < bestArea) {
+          bestArea = r.width * r.height;
+          room = el;
+        }
+      }
+      if (room == null) {
+        setState(() {
+          _dragStart = null;
+          _commandPrompt = 'HATCH - drag an area, or tap inside a room rectangle';
+        });
+        return;
+      }
+      s = room.start;
+      e = room.end;
+    }
+    _saveStateForUndo();
+    setState(() {
+      _elements.add(CadElement(
+        id: 'el_${DateTime.now().microsecondsSinceEpoch}',
+        type: CadElementType.hatch,
+        layerId: _activeLayerId,
+        start: s,
+        end: e,
+        text: 'diag',
+        radius: 10,
+      ));
+      _dragStart = null;
+      _commandPrompt = 'HATCH - created. Select it and open Props to change pattern';
+    });
+  }
+
+  // ---------- PROPERTIES PANEL ----------
+  String _dimText(double distM) {
+    final feet = distM * 3.28084;
+    final feetInt = feet.floor();
+    final inches = ((feet - feetInt) * 12).round();
+    return "$feetInt'-$inches\" (${distM.toStringAsFixed(2)}m)";
+  }
+
+  double? _num(Map<String, String> v, String k) {
+    return double.tryParse((v[k] ?? '').replaceAll(',', '.'));
+  }
+
+  void _showPropertiesDialog() {
+    final el = _selectedElement;
+    if (el == null) return;
+    String f(double v) => v.toStringAsFixed(2);
+    final keys = <String>[];
+    final labels = <String, String>{};
+    final ctrls = <String, TextEditingController>{};
+    void add(String key, String label, String value) {
+      keys.add(key);
+      labels[key] = label;
+      ctrls[key] = TextEditingController(text: value);
+    }
+
+    final t = el.type;
+    if (t == CadElementType.line || t == CadElementType.wall || t == CadElementType.window || t == CadElementType.door || t == CadElementType.dimension) {
+      final v = el.end - el.start;
+      add('x', 'Start X (m)', f(el.start.dx / 20));
+      add('y', 'Start Y (m)', f(el.start.dy / 20));
+      add('len', 'Length (m)', f(v.distance / 20));
+      add('ang', 'Angle (deg: 0 = right, 90 = down)', f(math.atan2(v.dy, v.dx) * 180 / math.pi));
+    } else if (t == CadElementType.rectangle || t == CadElementType.column || t == CadElementType.hatch) {
+      final r = Rect.fromPoints(el.start, el.end);
+      add('x', 'X (m)', f(r.left / 20));
+      add('y', 'Y (m)', f(r.top / 20));
+      add('w', 'Width (m)', f(r.width / 20));
+      add('h', 'Height (m)', f(r.height / 20));
+      if (t == CadElementType.hatch) add('gap', 'Hatch spacing (m)', f((el.radius ?? 10) / 20));
+    } else if (t == CadElementType.circle) {
+      add('x', 'Center X (m)', f(el.start.dx / 20));
+      add('y', 'Center Y (m)', f(el.start.dy / 20));
+      add('r', 'Radius (m)', f((el.radius ?? (el.end - el.start).distance) / 20));
+    } else if (t == CadElementType.arc) {
+      add('x', 'Center X (m)', f(el.start.dx / 20));
+      add('y', 'Center Y (m)', f(el.start.dy / 20));
+      add('r', 'Radius (m)', f((el.end - el.start).distance / 20));
+      add('sweep', 'Sweep (deg, + = clockwise)', f((el.radius ?? 0) * 180 / math.pi));
+    } else if (t == CadElementType.text) {
+      add('txt', 'Text', el.text ?? '');
+    }
+
+    var layerId = el.layerId;
+    var pattern = (el.text == 'cross' || el.text == 'solid') ? el.text! : 'diag';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setD) => AlertDialog(
+          backgroundColor: const Color(0xFF131C35),
+          title: Text('PROPERTIES - ${t.name.toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (final k in keys)
+                  TextField(
+                    controller: ctrls[k],
+                    keyboardType: k == 'txt' ? TextInputType.text : const TextInputType.numberWithOptions(decimal: true, signed: true),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(labelText: labels[k], labelStyle: const TextStyle(color: Colors.grey)),
+                  ),
+                const SizedBox(height: 12),
+                const Text('Layer', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                DropdownButton<String>(
+                  value: _layers.any((l) => l.id == layerId) ? layerId : null,
+                  isExpanded: true,
+                  dropdownColor: const Color(0xFF131C35),
+                  style: const TextStyle(color: Colors.white),
+                  items: [for (final l in _layers) DropdownMenuItem<String>(value: l.id, child: Text(l.name))],
+                  onChanged: (v) {
+                    if (v != null) setD(() => layerId = v);
+                  },
+                ),
+                if (t == CadElementType.hatch) ...[
+                  const SizedBox(height: 8),
+                  const Text('Pattern', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                  DropdownButton<String>(
+                    value: pattern,
+                    isExpanded: true,
+                    dropdownColor: const Color(0xFF131C35),
+                    style: const TextStyle(color: Colors.white),
+                    items: const [
+                      DropdownMenuItem<String>(value: 'diag', child: Text('Diagonal lines')),
+                      DropdownMenuItem<String>(value: 'cross', child: Text('Cross hatch')),
+                      DropdownMenuItem<String>(value: 'solid', child: Text('Solid fill')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) setD(() => pattern = v);
+                    },
+                  ),
+                ],
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            TextButton(
+              onPressed: () {
+                final vals = <String, String>{for (final k in keys) k: ctrls[k]!.text.trim()};
+                Navigator.pop(ctx);
+                _applyProperties(el, vals, layerId, pattern);
+              },
+              child: const Text('Apply'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _applyProperties(CadElement el, Map<String, String> v, String layerId, String pattern) {
+    final t = el.type;
+    var newStart = el.start;
+    var newEnd = el.end;
+    var newRadius = el.radius;
+    var newText = el.text;
+    var ok = true;
+
+    if (t == CadElementType.line || t == CadElementType.wall || t == CadElementType.window || t == CadElementType.door || t == CadElementType.dimension) {
+      final x = _num(v, 'x');
+      final y = _num(v, 'y');
+      final len = _num(v, 'len');
+      final ang = _num(v, 'ang');
+      if (x == null || y == null || len == null || ang == null || len <= 0) {
+        ok = false;
+      } else {
+        newStart = Offset(x * 20, y * 20);
+        final rad = ang * math.pi / 180;
+        newEnd = newStart + Offset(math.cos(rad), math.sin(rad)) * (len * 20);
+        if (t == CadElementType.dimension) newText = _dimText(len);
+      }
+    } else if (t == CadElementType.rectangle || t == CadElementType.column || t == CadElementType.hatch) {
+      final x = _num(v, 'x');
+      final y = _num(v, 'y');
+      final w = _num(v, 'w');
+      final h = _num(v, 'h');
+      if (x == null || y == null || w == null || h == null || w <= 0 || h <= 0) {
+        ok = false;
+      } else {
+        newStart = Offset(x * 20, y * 20);
+        newEnd = Offset((x + w) * 20, (y + h) * 20);
+        if (t == CadElementType.hatch) {
+          final gap = _num(v, 'gap');
+          if (gap != null && gap >= 0.15) newRadius = gap * 20;
+          newText = pattern;
+        }
+      }
+    } else if (t == CadElementType.circle) {
+      final x = _num(v, 'x');
+      final y = _num(v, 'y');
+      final r = _num(v, 'r');
+      if (x == null || y == null || r == null || r <= 0) {
+        ok = false;
+      } else {
+        newStart = Offset(x * 20, y * 20);
+        newRadius = r * 20;
+        newEnd = newStart + Offset(r * 20, 0);
+      }
+    } else if (t == CadElementType.arc) {
+      final x = _num(v, 'x');
+      final y = _num(v, 'y');
+      final r = _num(v, 'r');
+      final sw = _num(v, 'sweep');
+      if (x == null || y == null || r == null || sw == null || r <= 0) {
+        ok = false;
+      } else {
+        final a0 = math.atan2(el.end.dy - el.start.dy, el.end.dx - el.start.dx);
+        newStart = Offset(x * 20, y * 20);
+        newEnd = newStart + Offset(math.cos(a0), math.sin(a0)) * (r * 20);
+        newRadius = sw * math.pi / 180;
+      }
+    } else if (t == CadElementType.text) {
+      newText = v['txt'] ?? el.text;
+    }
+
+    if (!ok) {
+      setState(() => _commandPrompt = 'PROPERTIES - invalid value, nothing changed');
+      return;
+    }
+    _saveStateForUndo();
+    final updated = el.copyWith(layerId: layerId, start: newStart, end: newEnd, radius: newRadius, text: newText);
+    setState(() {
+      final i = _elements.indexWhere((e) => e.id == el.id);
+      if (i >= 0) _elements[i] = updated;
+      _selectedElement = updated;
+      _commandPrompt = 'PROPERTIES - updated';
+    });
   }
 
   void _showTextInputDialog(Offset position) {
@@ -784,6 +1250,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   selectedElement: _selectedElement,
                   currentSnap: _currentSnap,
                   orthoMode: _orthoMode,
+                  arcPoints: List<Offset>.from(_arcPts),
                 ),
               ),
             ),
@@ -809,6 +1276,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                     _buildToolIcon(CadTool.wall, Icons.border_all, 'Wall (W)'),
                     _buildToolIcon(CadTool.line, Icons.horizontal_rule, 'Line (L)'),
                     _buildToolIcon(CadTool.polyline, Icons.timeline, 'Polyline (PL)'),
+                    _buildToolIcon(CadTool.arc, Icons.rounded_corner, 'Arc (A)'),
+                    _buildToolIcon(CadTool.trim, Icons.content_cut, 'Trim (TR)'),
+                    _buildToolIcon(CadTool.extend, Icons.open_in_full, 'Extend (EX)'),
+                    _buildToolIcon(CadTool.hatch, Icons.texture, 'Hatch (H)'),
                     _buildToolIcon(CadTool.rectangle, Icons.crop_square, 'Room (REC)'),
                     _buildToolIcon(CadTool.door, Icons.meeting_room_outlined, 'Door (D)'),
                     _buildToolIcon(CadTool.window, Icons.window, 'Window (WIN)'),
@@ -872,6 +1343,23 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                 ],
               ),
             ),
+          if (_activeTool == CadTool.arc && _arcPts.isNotEmpty)
+            Positioned(
+              left: 70,
+              right: 12,
+              bottom: 64,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _buildActionChip(Icons.close, 'Cancel arc', () {
+                    setState(() {
+                      _arcPts.clear();
+                      _commandPrompt = 'ARC - cancelled';
+                    });
+                  }),
+                ],
+              ),
+            ),
           if (_activeTool == CadTool.select && _selectedElement != null)
             Positioned(
               left: 70,
@@ -886,6 +1374,8 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                     _buildActionChip(Icons.rotate_right, 'Rotate', _modifyRotateDialog),
                     const SizedBox(width: 8),
                     _buildActionChip(Icons.horizontal_split, 'Offset', _modifyOffsetDialog),
+                    const SizedBox(width: 8),
+                    _buildActionChip(Icons.tune, 'Props', _showPropertiesDialog),
                     const SizedBox(width: 8),
                     _buildActionChip(Icons.delete_outline, 'Delete', _modifyDelete),
                   ],
@@ -958,6 +1448,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             _polyLast = null;
             _polyCount = 0;
             _dragStart = null;
+            _arcPts.clear();
             _commandPrompt = 'Command: ${tool.name.toUpperCase()}';
           });
         },
@@ -1000,6 +1491,7 @@ class _CadCanvasPainter extends CustomPainter {
   final CadElement? selectedElement;
   final SnapPoint? currentSnap;
   final bool orthoMode;
+  final List<Offset> arcPoints;
 
   _CadCanvasPainter({
     required this.elements,
@@ -1013,6 +1505,7 @@ class _CadCanvasPainter extends CustomPainter {
     required this.selectedElement,
     required this.currentSnap,
     required this.orthoMode,
+    required this.arcPoints,
   });
 
   @override
@@ -1033,9 +1526,60 @@ class _CadCanvasPainter extends CustomPainter {
       _drawPreviewElement(canvas, dragStart!, currentCursor!);
     }
 
+    if (activeTool == CadTool.arc && arcPoints.isNotEmpty && currentCursor != null) {
+      _drawArcPreview(canvas);
+    }
+
     if (currentCursor != null) {
       _drawCrosshair(canvas, currentCursor!, size);
     }
+  }
+
+  void _drawArcPreview(Canvas canvas) {
+    final p = Paint()..color = activeLayer.color.withOpacity(0.85)..strokeWidth = activeLayer.strokeWidth..style = PaintingStyle.stroke;
+    final guide = Paint()..color = Colors.white38..strokeWidth = 1.0..style = PaintingStyle.stroke;
+    final cur = currentCursor!;
+    for (final pt in arcPoints) {
+      canvas.drawCircle(pt, 4, guide);
+    }
+    if (arcPoints.length == 1) {
+      canvas.drawLine(arcPoints[0], cur, guide);
+    } else if (arcPoints.length >= 2) {
+      final g = _arcGeometry(arcPoints[0], arcPoints[1], cur);
+      if (g == null) {
+        canvas.drawLine(arcPoints[0], arcPoints[1], guide);
+        canvas.drawLine(arcPoints[1], cur, guide);
+      } else {
+        canvas.drawArc(Rect.fromCircle(center: g.center, radius: g.radius), g.startAngle, g.sweep, false, p);
+      }
+    }
+  }
+
+  void _drawHatch(Canvas canvas, CadElement el, Color color, bool isSelected) {
+    final rect = Rect.fromPoints(el.start, el.end);
+    if (rect.width < 2 || rect.height < 2) return;
+    final c = isSelected ? const Color(0xFF38BDF8) : color;
+    final pattern = el.text ?? 'diag';
+    final rawGap = el.radius ?? 10.0;
+    final gap = rawGap < 3.0 ? 3.0 : rawGap;
+    canvas.save();
+    canvas.clipRect(rect);
+    if (pattern == 'solid') {
+      canvas.drawRect(rect, Paint()..color = c.withOpacity(0.35)..style = PaintingStyle.fill);
+    } else {
+      final hp = Paint()..color = c.withOpacity(0.8)..strokeWidth = 1.0..style = PaintingStyle.stroke;
+      final span = rect.width + rect.height;
+      for (double d = 0; d <= span; d += gap) {
+        canvas.drawLine(Offset(rect.left + d, rect.top), Offset(rect.left + d - rect.height, rect.bottom), hp);
+      }
+      if (pattern == 'cross') {
+        for (double d = 0; d <= span; d += gap) {
+          canvas.drawLine(Offset(rect.right - d, rect.top), Offset(rect.right - d + rect.height, rect.bottom), hp);
+        }
+      }
+    }
+    canvas.restore();
+    canvas.drawRect(rect, Paint()..color = c.withOpacity(0.6)..strokeWidth = 1.0..style = PaintingStyle.stroke);
   }
 
   void _drawGrid(Canvas canvas, Size size) {
@@ -1098,6 +1642,16 @@ class _CadCanvasPainter extends CustomPainter {
         canvas.drawLine(rect.topLeft, rect.bottomRight, paint..strokeWidth = 1.0);
         canvas.drawLine(rect.bottomLeft, rect.topRight, paint..strokeWidth = 1.0);
         break;
+      case CadElementType.arc:
+        final arcR = (el.end - el.start).distance;
+        if (arcR > 0) {
+          final a0 = math.atan2(el.end.dy - el.start.dy, el.end.dx - el.start.dx);
+          canvas.drawArc(Rect.fromCircle(center: el.start, radius: arcR), a0, el.radius ?? 0, false, paint);
+        }
+        break;
+      case CadElementType.hatch:
+        _drawHatch(canvas, el, color, isSelected);
+        break;
       case CadElementType.dimension:
         canvas.drawLine(el.start, el.end, paint);
         canvas.drawLine(el.start - const Offset(5, 5), el.start + const Offset(5, 5), paint);
@@ -1136,6 +1690,7 @@ class _CadCanvasPainter extends CustomPainter {
         canvas.drawLine(start, end, paint);
         break;
       case CadTool.rectangle:
+      case CadTool.hatch:
         canvas.drawRect(Rect.fromPoints(start, end), paint);
         break;
       case CadTool.circle:
@@ -1166,4 +1721,31 @@ class _CadCanvasPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CadCanvasPainter oldDelegate) => true;
+}
+
+class _ArcGeom {
+  final Offset center;
+  final double radius;
+  final double startAngle;
+  final double sweep;
+  _ArcGeom(this.center, this.radius, this.startAngle, this.sweep);
+}
+
+_ArcGeom? _arcGeometry(Offset a, Offset b, Offset c) {
+  final d = 2 * (a.dx * (b.dy - c.dy) + b.dx * (c.dy - a.dy) + c.dx * (a.dy - b.dy));
+  if (d.abs() < 1e-6) return null;
+  final sa = a.dx * a.dx + a.dy * a.dy;
+  final sb = b.dx * b.dx + b.dy * b.dy;
+  final sc = c.dx * c.dx + c.dy * c.dy;
+  final ux = (sa * (b.dy - c.dy) + sb * (c.dy - a.dy) + sc * (a.dy - b.dy)) / d;
+  final uy = (sa * (c.dx - b.dx) + sb * (a.dx - c.dx) + sc * (b.dx - a.dx)) / d;
+  final center = Offset(ux, uy);
+  final r = (a - center).distance;
+  if (r > 5000) return null;
+  final a0 = math.atan2(a.dy - center.dy, a.dx - center.dx);
+  final a1 = math.atan2(c.dy - center.dy, c.dx - center.dx);
+  final cross = (b.dx - a.dx) * (c.dy - b.dy) - (b.dy - a.dy) * (c.dx - b.dx);
+  const full = 2 * math.pi;
+  final sweep = cross > 0 ? (a1 - a0) % full : -((a0 - a1) % full);
+  return _ArcGeom(center, r, a0, sweep);
 }
