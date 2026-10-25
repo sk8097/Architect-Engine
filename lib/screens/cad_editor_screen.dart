@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'dart:convert' as conv;
 import 'dart:io' as io;
 import 'dart:math' as math;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
@@ -54,16 +56,32 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   bool _moveUndoSaved = false;
   final List<Offset> _arcPts = [];
   String? _pendingBlock;
+  Timer? _saveTimer;
+  bool _loaded = false;
+  String _lastSavedJson = '';
+  double _wallThickness = 0.5;
+  Offset? _lastPoint;
+  bool _multiMode = false;
+  final Set<String> _multi = {};
+  Offset? _winStart;
+  bool _groupDragging = false;
+  bool _multiMoved = false;
+  String? _multiDownId;
+  bool _multiDownWasMember = false;
 
   @override
   void initState() {
     super.initState();
     _activeLayerId = _layers.first.id;
     _loadSampleBlueprint();
+    _loadSaved();
+    _saveTimer = Timer.periodic(const Duration(seconds: 3), (_) => _autoSave());
   }
 
   @override
   void dispose() {
+    _saveTimer?.cancel();
+    _autoSave();
     _transformationController.dispose();
     super.dispose();
   }
@@ -116,6 +134,8 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       }
     }
 
+    foundSnap ??= _extraSnap(rawPoint, snapThreshold);
+
     if (foundSnap != null) {
       _currentSnap = foundSnap;
       return foundSnap.point;
@@ -147,6 +167,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     final snapped = _applySnapping(worldPos);
 
     if (_activeTool == CadTool.select) {
+      if (_multiMode) {
+        _multiDown(snapped);
+        return;
+      }
       CadElement? hit;
       for (final el in _elements.reversed) {
         if (el.type == CadElementType.hatch) continue;
@@ -250,12 +274,19 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         _selectedElement!.end += delta;
         _moveLast = snapped;
       }
+      if (_multiMode && _activeTool == CadTool.select) {
+        _multiMove(snapped);
+      }
     });
   }
 
   void _onPointerUp(PointerUpEvent details) {
     if (_isPanMode) return;
     _moveLast = null;
+    if (_multiMode && _activeTool == CadTool.select) {
+      _multiUp();
+      return;
+    }
     if (_activeTool == CadTool.polyline) {
       _polyAddPoint();
       return;
@@ -280,6 +311,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       if ((start - end).distance > 8 || _activeTool == CadTool.column || _activeTool == CadTool.text) {
         _saveStateForUndo();
         _createElement(start, end);
+        _lastPoint = end;
       }
       setState(() {
         _dragStart = null;
@@ -292,7 +324,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     final id = 'el_${DateTime.now().millisecondsSinceEpoch}';
     switch (_activeTool) {
       case CadTool.wall:
-        _elements.add(CadElement(id: id, type: CadElementType.wall, layerId: '0_WALLS', start: start, end: end));
+        _elements.add(CadElement(id: id, type: CadElementType.wall, layerId: '0_WALLS', start: start, end: end, radius: _wallThickness));
         break;
       case CadTool.line:
         _elements.add(CadElement(id: id, type: CadElementType.line, layerId: _activeLayerId, start: start, end: end));
@@ -557,6 +589,24 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       _selectedElement = made;
       _commandPrompt = 'OFFSET - ${meters.toStringAsFixed(2)} m done';
     });
+  }
+
+  Widget _buildChoiceChip(String label, bool selected, VoidCallback onTap) {
+    return Material(
+      color: selected ? AppColors.darkPrimary.withOpacity(0.25) : const Color(0xFF0F172A).withOpacity(0.96),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: BorderSide(color: selected ? AppColors.darkPrimary : Colors.white24),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+          child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: selected ? AppColors.darkPrimary : Colors.white)),
+        ),
+      ),
+    );
   }
 
   Widget _buildActionChip(IconData icon, String label, VoidCallback onTap) {
@@ -852,6 +902,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       add('y', 'Start Y (m)', f(el.start.dy / 20));
       add('len', 'Length (m)', f(v.distance / 20));
       add('ang', 'Angle (deg: 0 = right, 90 = down)', f(math.atan2(v.dy, v.dx) * 180 / math.pi));
+      if (t == CadElementType.wall) add('th', 'Wall thickness (m)', f(el.radius ?? 0.5));
     } else if (t == CadElementType.rectangle || t == CadElementType.column || t == CadElementType.hatch) {
       final r = Rect.fromPoints(el.start, el.end);
       add('x', 'X (m)', f(r.left / 20));
@@ -969,6 +1020,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         final rad = ang * math.pi / 180;
         newEnd = newStart + Offset(math.cos(rad), math.sin(rad)) * (len * 20);
         if (t == CadElementType.dimension) newText = _dimText(len);
+        if (t == CadElementType.wall) {
+          final th = _num(v, 'th');
+          if (th != null && th >= 0.05 && th <= 2.0) newRadius = th;
+        }
       }
     } else if (t == CadElementType.rectangle || t == CadElementType.column || t == CadElementType.hatch) {
       final x = _num(v, 'x');
@@ -1208,7 +1263,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         line(s, e, ly);
       } else if (t == CadElementType.wall) {
         if (dist > 0) {
-          final nrm = Offset(-dir.dy, dir.dx) / dist * 5.0;
+          final nrm = Offset(-dir.dy, dir.dx) / dist * (((el.radius ?? 0.5) * 20.0) / 2);
           line(s + nrm, e + nrm, ly);
           line(s - nrm, e - nrm, ly);
         }
@@ -1578,6 +1633,497 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
     }
   }
 
+  // ---------- AUTO-SAVE / REOPEN ----------
+  String _storageKey() {
+    final raw = widget.projectTitle ?? 'Drawing1';
+    return 'cad_drawing_${raw.replaceAll(RegExp(r'[^A-Za-z0-9_\-]'), '_')}';
+  }
+
+  Map<String, dynamic> _elToJson(CadElement e) {
+    final m = <String, dynamic>{
+      'id': e.id,
+      't': e.type.name,
+      'l': e.layerId,
+      'sx': e.start.dx,
+      'sy': e.start.dy,
+      'ex': e.end.dx,
+      'ey': e.end.dy,
+    };
+    if (e.radius != null) m['r'] = e.radius;
+    if (e.text != null) m['x'] = e.text;
+    if (e.customStrokeWidth != null) m['cw'] = e.customStrokeWidth;
+    return m;
+  }
+
+  CadElement? _elFromJson(Map<String, dynamic> m) {
+    final typeName = m['t'];
+    CadElementType? type;
+    for (final v in CadElementType.values) {
+      if (v.name == typeName) type = v;
+    }
+    if (type == null) return null;
+    final sx = m['sx'];
+    final sy = m['sy'];
+    final ex = m['ex'];
+    final ey = m['ey'];
+    final id = m['id'];
+    final layer = m['l'];
+    if (sx is! num || sy is! num || ex is! num || ey is! num || id is! String || layer is! String) return null;
+    final r = m['r'];
+    final x = m['x'];
+    final cw = m['cw'];
+    return CadElement(
+      id: id,
+      type: type,
+      layerId: layer,
+      start: Offset(sx.toDouble(), sy.toDouble()),
+      end: Offset(ex.toDouble(), ey.toDouble()),
+      radius: r is num ? r.toDouble() : null,
+      text: x is String ? x : null,
+      customStrokeWidth: cw is num ? cw.toDouble() : null,
+    );
+  }
+
+  Map<String, dynamic> _serialize() {
+    return <String, dynamic>{
+      'v': 1,
+      'elements': _elements.map(_elToJson).toList(),
+      'hidden': _layers.where((l) => !l.isVisible).map((l) => l.id).toList(),
+      'locked': _layers.where((l) => l.isLocked).map((l) => l.id).toList(),
+    };
+  }
+
+  Future<void> _autoSave() async {
+    if (!_loaded) return;
+    try {
+      final json = conv.jsonEncode(_serialize());
+      if (json == _lastSavedJson) return;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_storageKey(), json);
+      _lastSavedJson = json;
+    } catch (_) {}
+  }
+
+  Future<void> _loadSaved() async {
+    var restored = false;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_storageKey());
+      if (raw != null && raw.isNotEmpty && mounted) {
+        final data = conv.jsonDecode(raw);
+        if (data is Map<String, dynamic>) {
+          final list = data['elements'];
+          if (list is List) {
+            final loaded = <CadElement>[];
+            for (final m in list) {
+              if (m is Map<String, dynamic>) {
+                final el = _elFromJson(m);
+                if (el != null) loaded.add(el);
+              }
+            }
+            final hidden = data['hidden'];
+            final locked = data['locked'];
+            setState(() {
+              _elements = loaded;
+              for (final l in _layers) {
+                l.isVisible = !(hidden is List && hidden.contains(l.id));
+                l.isLocked = locked is List && locked.contains(l.id);
+              }
+              _undoStack.clear();
+              _redoStack.clear();
+              _selectedElement = null;
+            });
+            _lastSavedJson = raw;
+            restored = true;
+          }
+        }
+      }
+    } catch (_) {}
+    _loaded = true;
+    if (restored && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved drawing restored'), duration: Duration(seconds: 2)));
+    }
+  }
+
+  // ---------- MORE SNAPS: CENTER / INTERSECTION / PERPENDICULAR ----------
+  SnapPoint? _extraSnap(Offset p, double th) {
+    for (final el in _elements) {
+      if ((el.type == CadElementType.circle || el.type == CadElementType.arc) && (el.start - p).distance < th) {
+        return SnapPoint(point: el.start, label: 'CENTER', color: const Color(0xFFF59E0B));
+      }
+    }
+    final near = <List<Offset>>[];
+    for (final s in _cutEdges('')) {
+      if (_distToSeg(p, s[0], s[1]) < th * 2) near.add(s);
+      if (near.length >= 14) break;
+    }
+    for (int i = 0; i < near.length; i++) {
+      for (int j = i + 1; j < near.length; j++) {
+        final h = _lineHit(near[i][0], near[i][1], near[j][0], near[j][1]);
+        if (h == null) continue;
+        if (h[0] < 0 || h[0] > 1 || h[1] < 0 || h[1] > 1) continue;
+        final ip = near[i][0] + (near[i][1] - near[i][0]) * h[0];
+        if ((ip - p).distance < th) {
+          return SnapPoint(point: ip, label: 'INTERSECTION', color: const Color(0xFFEF4444));
+        }
+      }
+    }
+    final base = _dragStart ?? _polyLast;
+    if (base != null) {
+      for (final s in near) {
+        final ab = s[1] - s[0];
+        final len2 = ab.dx * ab.dx + ab.dy * ab.dy;
+        if (len2 == 0) continue;
+        final t = ((base.dx - s[0].dx) * ab.dx + (base.dy - s[0].dy) * ab.dy) / len2;
+        if (t <= 0 || t >= 1) continue;
+        final foot = s[0] + ab * t;
+        if ((foot - p).distance < th) {
+          return SnapPoint(point: foot, label: 'PERPENDICULAR', color: const Color(0xFFA855F7));
+        }
+      }
+    }
+    return null;
+  }
+
+  // ---------- TYPE-IN (exact length / angle) ----------
+  void _showTypeInDialog() {
+    final tool = _activeTool;
+    final base = _polyLast ?? _lastPoint ?? _currentCursor ?? Offset.zero;
+    String f(double v) => v.toStringAsFixed(2);
+    final keys = <String>[];
+    final labels = <String, String>{};
+    final ctrls = <String, TextEditingController>{};
+    void add(String key, String label, String value) {
+      keys.add(key);
+      labels[key] = label;
+      ctrls[key] = TextEditingController(text: value);
+    }
+
+    if (tool == CadTool.rectangle) {
+      add('x', 'Corner X (m)', f(base.dx / 20));
+      add('y', 'Corner Y (m)', f(base.dy / 20));
+      add('w', 'Width (m)', '3.00');
+      add('h', 'Height (m)', '3.00');
+    } else if (tool == CadTool.circle) {
+      add('x', 'Center X (m)', f(base.dx / 20));
+      add('y', 'Center Y (m)', f(base.dy / 20));
+      add('r', 'Radius (m)', '1.00');
+    } else {
+      add('x', 'Start X (m)', f(base.dx / 20));
+      add('y', 'Start Y (m)', f(base.dy / 20));
+      add('len', 'Length (m)', '3.00');
+      add('ang', 'Angle (deg: 0 = right, 90 = down)', '0');
+    }
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131C35),
+        title: Text('TYPE-IN ${tool.name.toUpperCase()}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (final k in keys)
+                TextField(
+                  controller: ctrls[k],
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: InputDecoration(labelText: labels[k], labelStyle: const TextStyle(color: Colors.grey)),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final vals = <String, String>{for (final k in keys) k: ctrls[k]!.text.trim()};
+              Navigator.pop(ctx);
+              _typeInCreate(tool, vals);
+            },
+            child: const Text('Draw'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _typeInCreate(CadTool tool, Map<String, String> v) {
+    final x = _num(v, 'x');
+    final y = _num(v, 'y');
+    if (x == null || y == null) {
+      setState(() => _commandPrompt = 'TYPE-IN - invalid start point');
+      return;
+    }
+    final start = Offset(x * 20, y * 20);
+    final id = 'el_${DateTime.now().microsecondsSinceEpoch}';
+    CadElement? made;
+    Offset? lastEnd;
+    if (tool == CadTool.rectangle) {
+      final w = _num(v, 'w');
+      final h = _num(v, 'h');
+      if (w != null && h != null && w > 0 && h > 0) {
+        lastEnd = start + Offset(w * 20, h * 20);
+        made = CadElement(id: id, type: CadElementType.rectangle, layerId: '0_WALLS', start: start, end: lastEnd);
+      }
+    } else if (tool == CadTool.circle) {
+      final r = _num(v, 'r');
+      if (r != null && r > 0) {
+        lastEnd = start + Offset(r * 20, 0);
+        made = CadElement(id: id, type: CadElementType.circle, layerId: _activeLayerId, start: start, end: lastEnd, radius: r * 20);
+      }
+    } else {
+      final len = _num(v, 'len');
+      final ang = _num(v, 'ang');
+      if (len != null && ang != null && len > 0) {
+        final rad = ang * math.pi / 180;
+        lastEnd = start + Offset(math.cos(rad), math.sin(rad)) * (len * 20);
+        if (tool == CadTool.wall) {
+          made = CadElement(id: id, type: CadElementType.wall, layerId: '0_WALLS', start: start, end: lastEnd, radius: _wallThickness);
+        } else {
+          made = CadElement(id: id, type: CadElementType.line, layerId: _activeLayerId, start: start, end: lastEnd);
+        }
+      }
+    }
+    if (made == null || lastEnd == null) {
+      setState(() => _commandPrompt = 'TYPE-IN - invalid value, nothing drawn');
+      return;
+    }
+    final newEl = made;
+    final newEnd = lastEnd;
+    _saveStateForUndo();
+    setState(() {
+      _elements.add(newEl);
+      _lastPoint = newEnd;
+      if (tool == CadTool.polyline) {
+        _polyFirst ??= start;
+        _polyLast = newEnd;
+        _polyCount++;
+        _dragStart = newEnd;
+      }
+      _commandPrompt = 'TYPE-IN - drawn. Press Type again for the next one (starts at the last end point)';
+    });
+  }
+
+  // ---------- MULTI-SELECT ----------
+  void _toggleMulti() {
+    setState(() {
+      _multiMode = !_multiMode;
+      _activeTool = CadTool.select;
+      _selectedElement = null;
+      _multi.clear();
+      _winStart = null;
+      _groupDragging = false;
+      _pendingBlock = null;
+      _polyFirst = null;
+      _polyLast = null;
+      _polyCount = 0;
+      _dragStart = null;
+      _arcPts.clear();
+      _commandPrompt = _multiMode ? 'MULTI - tap objects, or drag a box (right = inside only, left = touching)' : 'Command: SELECT';
+    });
+  }
+
+  CadElement? _pickAt(Offset p) {
+    for (final el in _elements.reversed) {
+      if (el.type == CadElementType.hatch) continue;
+      if (_selectHit(el, p)) return el;
+    }
+    for (final el in _elements.reversed) {
+      if (el.type == CadElementType.hatch && el.boundingBox.contains(p)) return el;
+    }
+    return null;
+  }
+
+  void _multiDown(Offset p) {
+    final hit = _pickAt(p);
+    setState(() {
+      _selectedElement = null;
+      _currentCursor = p;
+      _multiMoved = false;
+      _moveUndoSaved = false;
+      if (hit != null) {
+        _multiDownId = hit.id;
+        _multiDownWasMember = _multi.contains(hit.id);
+        _multi.add(hit.id);
+        _groupDragging = true;
+        _moveLast = p;
+        _winStart = null;
+        _commandPrompt = 'MULTI - ${_multi.length} selected. Drag to move, tap again to deselect';
+      } else {
+        _multiDownId = null;
+        _groupDragging = false;
+        _winStart = p;
+        _commandPrompt = 'MULTI - drag a box: right = inside only, left = touching';
+      }
+    });
+  }
+
+  void _multiMove(Offset p) {
+    if (_groupDragging && _moveLast != null && _multi.isNotEmpty) {
+      final delta = p - _moveLast!;
+      if (delta.distance < 0.5) return;
+      if (!_moveUndoSaved) {
+        _saveStateForUndo();
+        _moveUndoSaved = true;
+      }
+      _multiMoved = true;
+      for (final el in _elements) {
+        if (_multi.contains(el.id)) {
+          el.start += delta;
+          el.end += delta;
+        }
+      }
+      _moveLast = p;
+    }
+  }
+
+  void _multiUp() {
+    setState(() {
+      if (_groupDragging) {
+        if (!_multiMoved && _multiDownWasMember && _multiDownId != null) {
+          _multi.remove(_multiDownId);
+        }
+        _groupDragging = false;
+        _multiDownId = null;
+      } else if (_winStart != null && _currentCursor != null) {
+        final a = _winStart!;
+        final b = _currentCursor!;
+        final rect = Rect.fromPoints(a, b);
+        if (rect.width + rect.height < 8) {
+          _multi.clear();
+        } else {
+          final crossing = b.dx < a.dx;
+          for (final el in _elements) {
+            final lay = _layers.where((l) => l.id == el.layerId);
+            if (lay.isNotEmpty && !lay.first.isVisible) continue;
+            final bb = el.boundingBox;
+            final inside = bb.left >= rect.left && bb.right <= rect.right && bb.top >= rect.top && bb.bottom <= rect.bottom;
+            if (crossing ? bb.overlaps(rect) : inside) _multi.add(el.id);
+          }
+        }
+      }
+      _winStart = null;
+      _commandPrompt = 'MULTI - ${_multi.length} selected';
+    });
+  }
+
+  void _multiSelectAll() {
+    setState(() {
+      for (final el in _elements) {
+        final lay = _layers.where((l) => l.id == el.layerId);
+        if (lay.isNotEmpty && !lay.first.isVisible) continue;
+        _multi.add(el.id);
+      }
+      _commandPrompt = 'MULTI - ${_multi.length} selected';
+    });
+  }
+
+  void _multiCopy() {
+    if (_multi.isEmpty) return;
+    _saveStateForUndo();
+    const shift = Offset(20, 20);
+    final stamp = DateTime.now().microsecondsSinceEpoch;
+    final copies = <CadElement>[];
+    var i = 0;
+    for (final el in _elements) {
+      if (_multi.contains(el.id)) {
+        copies.add(el.copyWith(id: 'el_${stamp}_$i', start: el.start + shift, end: el.end + shift, isSelected: false));
+        i++;
+      }
+    }
+    setState(() {
+      _elements.addAll(copies);
+      _multi.clear();
+      for (final c in copies) {
+        _multi.add(c.id);
+      }
+      _commandPrompt = 'COPY - ${copies.length} objects copied 1 m away, drag to place';
+    });
+  }
+
+  void _multiDelete() {
+    if (_multi.isEmpty) return;
+    _saveStateForUndo();
+    setState(() {
+      _elements.removeWhere((e) => _multi.contains(e.id));
+      _multi.clear();
+      _commandPrompt = 'ERASE - selection deleted';
+    });
+  }
+
+  void _multiRotateDialog() {
+    if (_multi.isEmpty) return;
+    final controller = TextEditingController(text: '90');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF131C35),
+        title: const Text('ROTATE SELECTION', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: TextField(
+          controller: controller,
+          keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            labelText: 'Angle in degrees (+ = clockwise)',
+            labelStyle: TextStyle(color: Colors.grey),
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final deg = double.tryParse(controller.text.trim());
+              Navigator.pop(ctx);
+              if (deg != null) _multiRotate(deg);
+            },
+            child: const Text('Rotate'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _multiRotate(double deg) {
+    if (_multi.isEmpty) return;
+    Rect? box;
+    for (final el in _elements) {
+      if (_multi.contains(el.id)) {
+        final bb = el.boundingBox;
+        box = box == null ? bb : box.expandToInclude(bb);
+      }
+    }
+    if (box == null) return;
+    final c = box.center;
+    final quarter = (deg / 90).round() * 90.0;
+    _saveStateForUndo();
+    setState(() {
+      for (int i = 0; i < _elements.length; i++) {
+        final el = _elements[i];
+        if (!_multi.contains(el.id)) continue;
+        final rectLike = el.type == CadElementType.rectangle || el.type == CadElementType.column || el.type == CadElementType.hatch;
+        final a = rectLike ? quarter : deg;
+        final rad = a * math.pi / 180;
+        final cs = math.cos(rad);
+        final sn = math.sin(rad);
+        Offset rot(Offset p) {
+          final d = p - c;
+          return c + Offset(d.dx * cs - d.dy * sn, d.dx * sn + d.dy * cs);
+        }
+        if (el.type == CadElementType.block) {
+          final ctr = rot(_centerOf(el));
+          final half = Offset((el.end.dx - el.start.dx) / 2, (el.end.dy - el.start.dy) / 2);
+          _elements[i] = el.copyWith(start: ctr - half, end: ctr + half, radius: ((el.radius ?? 0.0) + deg) % 360);
+        } else {
+          el.start = rot(el.start);
+          el.end = rot(el.end);
+        }
+      }
+      _commandPrompt = 'ROTATE - ${_multi.length} objects rotated about the group centre';
+    });
+  }
+
   void _showTextInputDialog(Offset position) {
     final controller = TextEditingController(text: 'LIVING ROOM');
     showDialog(
@@ -1848,6 +2394,9 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   orthoMode: _orthoMode,
                   arcPoints: List<Offset>.from(_arcPts),
                   pendingBlock: _pendingBlock,
+                  multiIds: Set<String>.from(_multi),
+                  windowRect: (_winStart != null && _currentCursor != null) ? Rect.fromPoints(_winStart!, _currentCursor!) : null,
+                  windowCrossing: _winStart != null && _currentCursor != null && _currentCursor!.dx < _winStart!.dx,
                 ),
               ),
             ),
@@ -1888,6 +2437,19 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: _showBlockLibrary,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: IconButton(
+                        icon: const Icon(Icons.select_all, size: 22),
+                        color: _multiMode ? AppColors.darkPrimary : Colors.white70,
+                        tooltip: 'Multi-select',
+                        style: IconButton.styleFrom(
+                          backgroundColor: _multiMode ? AppColors.darkPrimary.withOpacity(0.2) : Colors.transparent,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                        onPressed: _toggleMulti,
                       ),
                     ),
                     _buildToolIcon(CadTool.rectangle, Icons.crop_square, 'Room (REC)'),
@@ -1943,7 +2505,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             Positioned(
               left: 70,
               right: 12,
-              bottom: 64,
+              bottom: 108,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1951,6 +2513,59 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
                   const SizedBox(width: 8),
                   _buildActionChip(Icons.crop_square, 'Close', () => _polyFinish(close: true)),
                 ],
+              ),
+            ),
+          if (_activeTool == CadTool.wall || _activeTool == CadTool.line || _activeTool == CadTool.polyline || _activeTool == CadTool.rectangle || _activeTool == CadTool.circle)
+            Positioned(
+              left: 70,
+              right: 12,
+              bottom: 64,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    if (_activeTool == CadTool.wall) ...[
+                      _buildChoiceChip('4.5"', (_wallThickness - 0.1143).abs() < 0.002, () => setState(() => _wallThickness = 0.1143)),
+                      const SizedBox(width: 6),
+                      _buildChoiceChip('9"', (_wallThickness - 0.2286).abs() < 0.002, () => setState(() => _wallThickness = 0.2286)),
+                      const SizedBox(width: 6),
+                      _buildChoiceChip('12"', (_wallThickness - 0.3048).abs() < 0.002, () => setState(() => _wallThickness = 0.3048)),
+                      const SizedBox(width: 6),
+                      _buildChoiceChip('0.5 m', (_wallThickness - 0.5).abs() < 0.002, () => setState(() => _wallThickness = 0.5)),
+                      const SizedBox(width: 12),
+                    ],
+                    _buildActionChip(Icons.keyboard, 'Type', _showTypeInDialog),
+                  ],
+                ),
+              ),
+            ),
+          if (_multiMode)
+            Positioned(
+              left: 70,
+              right: 12,
+              bottom: 64,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildActionChip(Icons.select_all, 'All', _multiSelectAll),
+                    if (_multi.isNotEmpty) ...[
+                      const SizedBox(width: 8),
+                      _buildActionChip(Icons.content_copy, 'Copy', _multiCopy),
+                      const SizedBox(width: 8),
+                      _buildActionChip(Icons.rotate_right, 'Rotate', _multiRotateDialog),
+                      const SizedBox(width: 8),
+                      _buildActionChip(Icons.delete_outline, 'Delete', _multiDelete),
+                      const SizedBox(width: 8),
+                      _buildActionChip(Icons.clear, 'Clear', () {
+                        setState(() {
+                          _multi.clear();
+                          _commandPrompt = 'MULTI - cleared';
+                        });
+                      }),
+                    ],
+                  ],
+                ),
               ),
             ),
           if (_activeTool == CadTool.block && _pendingBlock != null)
@@ -2080,6 +2695,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
             _dragStart = null;
             _arcPts.clear();
             _pendingBlock = null;
+            _multiMode = false;
+            _multi.clear();
+            _winStart = null;
+            _groupDragging = false;
             _commandPrompt = 'Command: ${tool.name.toUpperCase()}';
           });
         },
@@ -2124,6 +2743,9 @@ class _CadCanvasPainter extends CustomPainter {
   final bool orthoMode;
   final List<Offset> arcPoints;
   final String? pendingBlock;
+  final Set<String> multiIds;
+  final Rect? windowRect;
+  final bool windowCrossing;
 
   _CadCanvasPainter({
     required this.elements,
@@ -2139,6 +2761,9 @@ class _CadCanvasPainter extends CustomPainter {
     required this.orthoMode,
     required this.arcPoints,
     required this.pendingBlock,
+    required this.multiIds,
+    required this.windowRect,
+    required this.windowCrossing,
   });
 
   @override
@@ -2151,7 +2776,7 @@ class _CadCanvasPainter extends CustomPainter {
       if (layer != null && !layer.isVisible) continue;
       final color = el.customColor ?? layer?.color ?? Colors.white;
       final stroke = el.customStrokeWidth ?? layer?.strokeWidth ?? 2.0;
-      final isSel = selectedElement?.id == el.id;
+      final isSel = selectedElement?.id == el.id || multiIds.contains(el.id);
       _drawCadElement(canvas, el, color, stroke, isSel);
     }
 
@@ -2171,6 +2796,12 @@ class _CadCanvasPainter extends CustomPainter {
         _paintBlockSymbol(canvas, pendingBlock!, Rect.fromCenter(center: Offset.zero, width: def.w * 20, height: def.h * 20), activeLayer.color.withOpacity(0.7), 1.5);
         canvas.restore();
       }
+    }
+
+    if (windowRect != null) {
+      final wcol = windowCrossing ? const Color(0xFF22C55E) : const Color(0xFF38BDF8);
+      canvas.drawRect(windowRect!, Paint()..color = wcol.withOpacity(0.12)..style = PaintingStyle.fill);
+      canvas.drawRect(windowRect!, Paint()..color = wcol..strokeWidth = 1.2..style = PaintingStyle.stroke);
     }
 
     if (currentCursor != null) {
@@ -2263,7 +2894,7 @@ class _CadCanvasPainter extends CustomPainter {
       case CadElementType.wall:
         final dir = el.end - el.start;
         if (dir.distance > 0) {
-          final norm = Offset(-dir.dy, dir.dx) / dir.distance * 5.0;
+          final norm = Offset(-dir.dy, dir.dx) / dir.distance * (((el.radius ?? 0.5) * 20.0) / 2);
           canvas.drawLine(el.start + norm, el.end + norm, paint);
           canvas.drawLine(el.start - norm, el.end - norm, paint);
         }
