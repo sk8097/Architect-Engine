@@ -1656,6 +1656,12 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       CadElement(id: 'dim1', type: CadElementType.dimension, layerId: 'A_DIMS', start: const Offset(100, 70), end: const Offset(500, 70), text: '40\'-0" (12.20 m)'),
       CadElement(id: 'dim2', type: CadElementType.dimension, layerId: 'A_DIMS', start: const Offset(530, 100), end: const Offset(530, 400), text: '30\'-0" (9.14 m)'),
     ];
+    const k = 0.6096;
+    const o = Offset(100, 100);
+    for (final el in _elements) {
+      el.start = o + (el.start - o) * k;
+      el.end = o + (el.end - o) * k;
+    }
   }
 
   void _showLayersSheet() {
