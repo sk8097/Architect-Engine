@@ -18,20 +18,66 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      setState(() {}); // tab change pe button update hoga
+    });
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Widget _getBottomButton() {
+    String label = 'OPEN PHOTO MARKUP';
+    IconData icon = Icons.camera_alt;
+    Color color = Colors.redAccent;
+
+    if (_tabController.index == 1) {
+      label = 'OPEN SKETCH TO CAD';
+      icon = Icons.document_scanner;
+      color = kAccent;
+    } else if (_tabController.index == 2) {
+      label = 'OPEN WHITEBOARD';
+      icon = Icons.edit;
+      color = Colors.orangeAccent;
+    }
+
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        ),
+        onPressed: () {
+          if (_tabController.index == 0) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo Markup Opening...')));
+          } else if (_tabController.index == 1) {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sketch to CAD Opening...')));
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Whiteboard Opening...')));
+          }
+        },
+        icon: Icon(icon),
+        label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: kBg,
-      // Ye 2 lines important hai - keyboard se hide nahi hoga
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: kPrimary,
         title: const Text('DRAW TOOLS', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2, fontSize: 16)),
         centerTitle: true,
       ),
-      // TabBar ko AppBar se alag rakha taki SafeArea sahi lage
       body: Column(
         children: [
           Container(
@@ -61,53 +107,10 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
           ),
         ],
       ),
-      // BUTTON AB YAHAN HAI - SYSTEM NAV KE UPAR, HIDE NAHI HOGA
       bottomNavigationBar: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).padding.bottom + 8),
-          child: ValueListenableBuilder(
-            valueListenable: _tabController,
-            builder: (context, _, __) {
-              String label = 'OPEN PHOTO MARKUP';
-              IconData icon = Icons.camera_alt;
-              Color color = Colors.redAccent;
-              if (_tabController.index == 1) {
-                label = 'OPEN SKETCH TO CAD';
-                icon = Icons.document_scanner;
-                color = kAccent;
-              } else if (_tabController.index == 2) {
-                label = 'OPEN WHITEBOARD';
-                icon = Icons.edit;
-                color = Colors.orangeAccent;
-              }
-              return SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton.icon(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: color,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  onPressed: () {
-                    // AB KAAM KAREGA
-                    if (_tabController.index == 0) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo Markup Opening...')));
-                      // Yahan tera actual Photo Markup screen ka navigation lagana
-                      // Navigator.push(context, MaterialPageRoute(builder: (_) => PhotoMarkupCanvas()));
-                    } else if (_tabController.index == 1) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sketch to CAD Opening...')));
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Whiteboard Opening...')));
-                      // Navigator.push(context, MaterialPageRoute(builder: (_) => WhiteboardCanvas()));
-                    }
-                  },
-                  icon: Icon(icon),
-                  label: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                ),
-              );
-            },
-          ),
+          child: _getBottomButton(),
         ),
       ),
     );
@@ -117,11 +120,7 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
     return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       _buildHeaderCard(icon: Icons.photo_camera, title: 'SITE PHOTO MARKUP', subtitle: 'Mark defects directly on site photos', color: Colors.redAccent),
       const SizedBox(height: 16),
-      _buildGuideSection(
-        what: 'Takes a real site photo (column, beam, tile) and lets you draw, add arrows, text, and measurements directly on it for instant sharing.',
-        how: ['Tap CAMERA / GALLERY to import site photo','Select Tool: Pen (Red=Error, Green=OK), Arrow, Text, Dimension Line','Mark defect: Circle crack, add text "Remove & Redo"','Tap SAVE -> JPG saved in /PhotoMarkup/ -> Share via WhatsApp / Punch List'],
-        example: 'Tile mason installed wrong pattern. Photo > Mark cross with Red Pen > Text "Replace with Design B" > Share.',
-      ),
+      _buildGuideSection(what: 'Takes a real site photo (column, beam, tile) and lets you draw, add arrows, text, and measurements directly on it for instant sharing.', how: ['Tap CAMERA / GALLERY to import site photo','Select Tool: Pen (Red=Error, Green=OK), Arrow, Text, Dimension Line','Mark defect: Circle crack, add text "Remove & Redo"','Tap SAVE -> JPG saved in /PhotoMarkup/ -> Share via WhatsApp / Punch List'], example: 'Tile mason installed wrong pattern. Photo > Mark cross with Red Pen > Text "Replace with Design B" > Share.'),
     ]));
   }
 
@@ -129,11 +128,7 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
     return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       _buildHeaderCard(icon: Icons.auto_fix_high, title: 'HAND SKETCH TO CAD', subtitle: 'AI converts paper sketch to editable CAD', color: kAccent),
       const SizedBox(height: 16),
-      _buildGuideSection(
-        what: 'Converts photo of hand-drawn plan on paper into vector CAD drawing. Saves hours of manual redrawing.',
-        how: ['Take top-down photo of hand sketch in good light','Use 4-point crop to select exact boundary (auto perspective fix)','Tap "CONVERT TO CAD" -> AI detects walls & openings in 5 sec','Auto-opens in main CAD Workspace for adding dimensions & doors'],
-        example: 'Client gives 40x30 rough plan on paper. Photo > Convert > Opens in CAD > Add 40\'-0" dimensions & LIVING ROOM labels.',
-      ),
+      _buildGuideSection(what: 'Converts photo of hand-drawn plan on paper into vector CAD drawing. Saves hours of manual redrawing.', how: ['Take top-down photo of hand sketch in good light','Use 4-point crop to select exact boundary (auto perspective fix)','Tap "CONVERT TO CAD" -> AI detects walls & openings in 5 sec','Auto-opens in main CAD Workspace for adding dimensions & doors'], example: 'Client gives 40x30 rough plan on paper. Photo > Convert > Opens in CAD > Add 40\'-0" dimensions & LIVING ROOM labels.'),
     ]));
   }
 
@@ -141,11 +136,7 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
     return SingleChildScrollView(padding: const EdgeInsets.all(16), child: Column(children: [
       _buildHeaderCard(icon: Icons.draw, title: 'QUICK WHITEBOARD', subtitle: '30-second rough sketch for instant explanation', color: Colors.orangeAccent),
       const SizedBox(height: 16),
-      _buildGuideSection(
-        what: 'Blank infinite canvas with no grid, snap, or scale. Like a physical whiteboard for fastest explanation on site.',
-        how: ['Open Blank Board -> White canvas opens instantly','Finger Draw: Draw walls, arrows, boxes. No precision needed','Color Codes: Black=Existing, Red=Demolish, Blue=New','Add Text anywhere: "Gate Here", "Shift 2 ft" -> 1-tap Save as PNG'],
-        example: 'Client says "Remove this wall" on site. Open Whiteboard > Draw 2 lines "This wall to be removed" > Show instantly. No CAD needed.',
-      ),
+      _buildGuideSection(what: 'Blank infinite canvas with no grid, snap, or scale. Like a physical whiteboard for fastest explanation on site.', how: ['Open Blank Board -> White canvas opens instantly','Finger Draw: Draw walls, arrows, boxes. No precision needed','Color Codes: Black=Existing, Red=Demolish, Blue=New','Add Text anywhere: "Gate Here", "Shift 2 ft" -> 1-tap Save as PNG'], example: 'Client says "Remove this wall" on site. Open Whiteboard > Draw 2 lines "This wall to be removed" > Show instantly. No CAD needed.'),
     ]));
   }
 
@@ -166,7 +157,7 @@ class _DrawToolsScreenState extends State<DrawToolsScreen> with SingleTickerProv
       const Text('EXAMPLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: kAccent)),
       const SizedBox(height: 4),
       Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: kBg, borderRadius: BorderRadius.circular(8)), child: Text(example, style: const TextStyle(fontSize: 11, color: Colors.white70, fontStyle: FontStyle.italic))),
-      const SizedBox(height: 80), // Bottom space taki scroll me button ke piche na jaye
+      const SizedBox(height: 80),
     ]));
   }
 }
