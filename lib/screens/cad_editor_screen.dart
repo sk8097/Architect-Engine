@@ -1183,7 +1183,10 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       out.add(_Prim(2, mx(c.dx), my(c.dy), 0, 0, r / 20.0, s % 360.0, e % 360.0, '', ly));
     }
     void text(Offset p, String s, double h, String ly) {
-      out.add(_Prim(3, mx(p.dx), my(p.dy), 0, 0, h, 0, 0, s, ly));
+      final parts = s.split('\n');
+      for (int i = 0; i < parts.length; i++) {
+        out.add(_Prim(3, mx(p.dx), my(p.dy + i * h * 28.0), 0, 0, h, 0, 0, parts[i], ly));
+      }
     }
     void box(Rect r, String ly) {
       line(r.topLeft, r.topRight, ly);
@@ -1308,7 +1311,23 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   String _asciiOnly(String s) {
     final sb = StringBuffer();
     for (final u in s.codeUnits) {
-      sb.write((u < 32 || u > 126) ? '?' : String.fromCharCode(u));
+      if (u >= 32 && u <= 126) {
+        sb.writeCharCode(u);
+      } else if (u == 0xD7) {
+        sb.write('x');
+      } else if (u == 0xB0) {
+        sb.write(' deg');
+      } else if (u == 0xB2) {
+        sb.write('2');
+      } else if (u == 0xB7 || u == 0x2013 || u == 0x2014) {
+        sb.write('-');
+      } else if (u == 0x2018 || u == 0x2019) {
+        sb.write("'");
+      } else if (u == 0x201C || u == 0x201D) {
+        sb.write('"');
+      } else {
+        sb.write('?');
+      }
     }
     return sb.toString();
   }
@@ -1500,7 +1519,7 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
         c.write('S\n');
       } else {
         final size = math.max(3.0, p.r * 1000 / n * mm);
-        txt(px(p.x1), py(p.y1), size, p.text);
+        txt(px(p.x1), py(p.y1), size, _asciiOnly(p.text));
       }
     }
 
