@@ -1,0 +1,17 @@
+ARCHITECT ENGINE — PRE-RENDER FEASIBILITY REPORT
+Plan: 20'-0" × 30'-0"
+Plot: 6096 × 9144 mm (20.00 × 30.00 ft)
+Rooms checked: 7 | Walls checked: 17
+
+No basic schema/bounds/room-overlap blockers found.
+
+WARNINGS / UNVERIFIED (4):
+  [CHECK] CONNECTIVITY NOT PROVEN: verify every room has a usable door/path to the entry.
+  [CHECK] OPENINGS NOT BOOLEAN-CUT: renderer may draw door/window symbols over solid wall rectangles.
+  [CHECK] LOCAL CODE NOT CHECKED: setbacks, ventilation, room minima, parking access and structural design need jurisdiction-specific review.
+  [CHECK] VASTU IS ADVISORY ONLY; it is not a substitute for code or structural review.
+
+STATUS: NOT_APPROVED_NEEDS_ARCHITECTURAL_REVIEW
+This report is a screening aid only, not a construction approval.
+
+Report note: This is a saved copy of the initial screening output. It does not certify architectural feasibility.
