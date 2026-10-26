@@ -23,22 +23,6 @@ def load_plan(path):
         ids.add(wall["id"])
         x1,y1,x2,y2=wall["rect"]
         if not (0<=x1<x2<=W and 0<=y1<y2<=D): raise ValueError("Invalid wall bounds: "+wall["id"])
-    # Door openings: mask the wall segment so doors are shown as actual visual gaps.
-    # This is still a 2D raster/vector representation, not a CAD solid model.
-    for door in p.get("openings",{}).get("doors",[]):
-        wall=walls.get(door.get("wall_id"))
-        if not wall: raise ValueError("Door references unknown wall: "+str(door.get("id")))
-        x1,y1,x2,y2=wall["rect"]
-        a,b=door.get("opening_interval",[0,0])
-        if not (a < b): raise ValueError("Invalid door opening interval: "+str(door.get("id")))
-        if x2-x1 <= y2-y1:
-            # Vertical wall: interval is along Y.
-            cx=(x1+x2)/2
-            dwg.add(dwg.line(start=(sx(cx),sy(a)),end=(sx(cx),sy(b)),stroke=bg,stroke_width=(x2-x1)+55))
-        else:
-            # Horizontal wall: interval is along X.
-            cy=(y1+y2)/2
-            dwg.add(dwg.line(start=(sx(a),sy(cy)),end=(sx(b),sy(cy)),stroke=bg,stroke_width=(y2-y1)+55))
     for room in p["rooms"]:
         x1,y1,x2,y2=room["clear_bounds"]
         if not (0<=x1<x2<=W and 0<=y1<y2<=D): raise ValueError("Invalid room bounds: "+room["id"])
@@ -70,6 +54,20 @@ def render(p):
     for w in p["walls"]:
         x1,y1,x2,y2=w["rect"]
         dwg.add(dwg.rect(insert=(sx(x1),sy(y2)),size=(x2-x1,y2-y1),fill=wallc,stroke=wallc,stroke_width=2))
+    # Door openings: mask the wall segment so doors are shown as actual visual gaps.
+    # This is a 2D visual opening, not a production CAD solid model.
+    for door in p.get("openings",{}).get("doors",[]):
+        wall=walls.get(door.get("wall_id"))
+        if not wall: raise ValueError("Door references unknown wall: "+str(door.get("id")))
+        x1,y1,x2,y2=wall["rect"]
+        a,b=door.get("opening_interval",[0,0])
+        if not (a < b): raise ValueError("Invalid door opening interval: "+str(door.get("id")))
+        if x2-x1 <= y2-y1:
+            cx=(x1+x2)/2
+            dwg.add(dwg.line(start=(sx(cx),sy(a)),end=(sx(cx),sy(b)),stroke=bg,stroke_width=(x2-x1)+55))
+        else:
+            cy=(y1+y2)/2
+            dwg.add(dwg.line(start=(sx(a),sy(cy)),end=(sx(b),sy(cy)),stroke=bg,stroke_width=(y2-y1)+55))
     # Window symbols are visual masks; production geometry must split wall solids.
     for win in p.get("openings",{}).get("windows",[]):
         wall=walls[win["wall_id"]]; x1,y1,x2,y2=wall["rect"]; a,b=win["absolute_interval"]
