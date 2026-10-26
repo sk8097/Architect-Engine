@@ -1,0 +1,167 @@
+{
+  "schema_version": "1.0.0",
+  "project": "Architect Engine",
+  "purpose": "Pilot batch of 10 deterministic farmhouse floor-plan scenarios. These are test inputs, not pre-approved architectural designs.",
+  "units": {
+    "plot_dimensions": "ft",
+    "internal_geometry": "mm"
+  },
+  "rules": [
+    "Do not mark a scenario PASS solely because an image renders.",
+    "A scenario may be rejected if the selected requirements are infeasible; rejection must include a deterministic reason.",
+    "Every published image must be generated from the same canonical geometry as its JSON, SVG, and DXF outputs.",
+    "Do not claim code compliance or construction readiness without the applicable ruleset and independent review."
+  ],
+  "scenarios": [
+    {
+      "scenario_id": "FH-001",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 10,
+        "depth_ft": 20
+      },
+      "floors": "G",
+      "bhk": 1,
+      "parking": "none",
+      "kitchen": "closed",
+      "bathrooms": 1,
+      "purpose": "small-plot baseline",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-002",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 30
+      },
+      "floors": "G",
+      "bhk": 1,
+      "parking": "none",
+      "kitchen": "open",
+      "bathrooms": 1,
+      "purpose": "simple baseline",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-003",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 30
+      },
+      "floors": "G",
+      "bhk": 2,
+      "parking": "none",
+      "kitchen": "closed",
+      "bathrooms": 1,
+      "purpose": "room-fit stress test",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-004",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 40
+      },
+      "floors": "G",
+      "bhk": 2,
+      "parking": "none",
+      "kitchen": "L-shaped",
+      "bathrooms": 2,
+      "purpose": "long-plot 2BHK",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-005",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 30,
+        "depth_ft": 40
+      },
+      "floors": "G",
+      "bhk": 3,
+      "parking": "car",
+      "kitchen": "L-shaped",
+      "bathrooms": 2,
+      "purpose": "larger single-floor layout",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-006",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 30
+      },
+      "floors": "G+1",
+      "bhk": 2,
+      "parking": "none",
+      "kitchen": "closed",
+      "bathrooms": 2,
+      "purpose": "multi-floor stair and access test",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-007",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 40
+      },
+      "floors": "G+2",
+      "bhk": 3,
+      "parking": "car",
+      "kitchen": "open",
+      "bathrooms": 2,
+      "purpose": "stacked floors and parking fit test",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-008",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 30,
+        "depth_ft": 40
+      },
+      "floors": "G+3",
+      "bhk": 3,
+      "parking": "car",
+      "kitchen": "parallel",
+      "bathrooms": 2,
+      "purpose": "higher-floor circulation and rule review",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    },
+    {
+      "scenario_id": "FH-009",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 10,
+        "depth_ft": 20
+      },
+      "floors": "G",
+      "bhk": 3,
+      "parking": "car",
+      "kitchen": "L-shaped",
+      "bathrooms": 2,
+      "purpose": "intentional infeasibility / constraint rejection test",
+      "expected_outcome": "REJECT_OR_REQUIRE_EXPLICIT_RULE_JUSTIFICATION"
+    },
+    {
+      "scenario_id": "FH-010",
+      "category": "farmhouse",
+      "plot": {
+        "width_ft": 20,
+        "depth_ft": 30
+      },
+      "floors": "G",
+      "bhk": 2,
+      "parking": "car",
+      "kitchen": "open",
+      "bathrooms": 2,
+      "purpose": "parking and room-clearance conflict test",
+      "expected_outcome": "GENERATE_OR_REJECT_WITH_REASON"
+    }
+  ]
+}
