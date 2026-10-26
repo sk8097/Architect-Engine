@@ -1,26 +1,26 @@
 {
-  "schema_version": "1.0.15",
-  "generator_version": "arch-engine-v2.4",
+  "schema_version": "1.0.16",
+  "generator_version": "arch-engine-v2.5",
   "document_type": "architectural_floor_plan",
-  "status": "CONCEPT_DRAFT_NOT_APPROVED",
+  "status": "REFERENCE_RECONSTRUCTION_IN_PROGRESS",
   "units": {
     "length": "mm",
     "area": "mm2",
     "angle": "degrees"
   },
   "project": {
-    "name": "Architect Engine First Plan",
+    "name": "Architect Engine 20x30 East-Facing 2BHK Reference",
     "property_type": "residential",
-    "subcategory": "farmhouse",
+    "subcategory": "urban_residential",
     "plot_label": "20'-0\" × 30'-0\"",
     "facing": "EAST",
-    "bhk": 1,
+    "bhk": 2,
     "floors": "G",
     "parking": false,
-    "bathrooms": 1,
+    "bathrooms": 2,
     "kitchen_type": "closed",
     "branding": "Architect Engine",
-    "disclaimer": "Concept layout only. Verify setbacks, local rules, ventilation and construction details before use."
+    "disclaimer": "Approximate reconstruction of supplied 20x30 ft 2BHK reference. Verify geometry, access, openings, ventilation, setbacks and local rules before construction."
   },
   "plot": {
     "width": 6096,
@@ -88,6 +88,16 @@
       "kind": "inner"
     },
     {
+      "id": "BED_DIVIDER",
+      "rect": [
+        2850,
+        5550,
+        3000,
+        8944
+      ],
+      "kind": "inner"
+    },
+    {
       "id": "BED_SOUTH_LEFT",
       "rect": [
         350,
@@ -118,121 +128,188 @@
       "kind": "inner"
     },
     {
-      "id": "BATH_WEST",
+      "id": "LIVING_DIVIDER",
       "rect": [
-        200,
-        200,
-        350,
-        1900
+        2850,
+        2850,
+        3000,
+        5400
       ],
       "kind": "inner"
     },
     {
-      "id": "BATH_NORTH",
+      "id": "LIVING_NORTH_LEFT",
       "rect": [
-        350,
-        1750,
-        1800,
-        1900
+        200,
+        3650,
+        2300,
+        3800
       ],
       "kind": "inner"
     },
     {
-      "id": "BATH_EAST",
+      "id": "LIVING_NORTH_RIGHT",
       "rect": [
-        1650,
-        1900,
-        1800,
-        3000
+        3100,
+        3650,
+        5896,
+        3800
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "SERVICE_WEST",
+      "rect": [
+        3000,
+        200,
+        3150,
+        3050
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "TOILET_DIVIDER",
+      "rect": [
+        3150,
+        1550,
+        4350,
+        1700
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "SERVICE_NORTH",
+      "rect": [
+        3000,
+        2900,
+        5896,
+        3050
       ],
       "kind": "inner"
     },
     {
       "id": "KITCHEN_WEST",
       "rect": [
-        3000,
+        4200,
         200,
-        3150,
-        2850
-      ],
-      "kind": "inner"
-    },
-    {
-      "id": "KITCHEN_NORTH",
-      "rect": [
-        3150,
-        2700,
-        5896,
-        2850
-      ],
-      "kind": "inner"
-    },
-    {
-      "id": "LIVING_NORTH",
-      "rect": [
-        200,
-        3650,
-        5896,
-        3800
+        4350,
+        2050
       ],
       "kind": "inner"
     }
   ],
   "rooms": [
     {
-      "id": "LIVING_DINING",
-      "label": "LIVING / DINING",
+      "id": "BEDROOM_1",
+      "label": "BEDROOM 1",
       "clear_bounds": [
-        200,
-        3800,
-        5896,
-        5400
+        350,
+        5550,
+        2850,
+        8944
       ],
       "expected_dimensions": {
-        "width": 5696,
-        "depth": 1600
+        "width": 2500,
+        "depth": 3394
       },
       "text_xy": [
-        3000,
-        4550
+        1600,
+        7900
       ],
       "category": "habitable"
     },
     {
-      "id": "BEDROOM",
-      "label": "BEDROOM",
+      "id": "BEDROOM_2",
+      "label": "BEDROOM 2",
       "clear_bounds": [
-        350,
+        3000,
         5550,
         5750,
         8944
       ],
       "expected_dimensions": {
-        "width": 5400,
+        "width": 2750,
         "depth": 3394
       },
       "text_xy": [
-        3000,
-        7500
+        4375,
+        7900
       ],
       "category": "habitable"
     },
     {
-      "id": "BATHROOM",
-      "label": "BATHROOM",
+      "id": "LIVING",
+      "label": "LIVING",
       "clear_bounds": [
         350,
-        200,
-        1650,
-        1750
+        2850,
+        2850,
+        5400
       ],
       "expected_dimensions": {
-        "width": 1300,
-        "depth": 1550
+        "width": 2500,
+        "depth": 2550
       },
       "text_xy": [
-        1000,
-        900
+        1600,
+        3100
+      ],
+      "category": "habitable"
+    },
+    {
+      "id": "FAMILY_DINING",
+      "label": "LIVING / DINING",
+      "clear_bounds": [
+        3000,
+        3800,
+        5750,
+        5400
+      ],
+      "expected_dimensions": {
+        "width": 2750,
+        "depth": 1600
+      },
+      "text_xy": [
+        4400,
+        5100
+      ],
+      "category": "habitable"
+    },
+    {
+      "id": "TOILET_1",
+      "label": "TOILET 1",
+      "clear_bounds": [
+        3150,
+        200,
+        4200,
+        1550
+      ],
+      "expected_dimensions": {
+        "width": 1050,
+        "depth": 1350
+      },
+      "text_xy": [
+        3675,
+        1000
+      ],
+      "category": "wet"
+    },
+    {
+      "id": "TOILET_2",
+      "label": "TOILET 2",
+      "clear_bounds": [
+        3150,
+        1700,
+        4200,
+        2900
+      ],
+      "expected_dimensions": {
+        "width": 1050,
+        "depth": 1200
+      },
+      "text_xy": [
+        3675,
+        2550
       ],
       "category": "wet"
     },
@@ -240,39 +317,20 @@
       "id": "KITCHEN",
       "label": "KITCHEN",
       "clear_bounds": [
-        3150,
+        4350,
         200,
         5896,
-        2700
+        2900
       ],
       "expected_dimensions": {
-        "width": 2746,
-        "depth": 2500
+        "width": 1546,
+        "depth": 2700
       },
       "text_xy": [
-        4500,
-        1450
+        5100,
+        2600
       ],
       "category": "habitable"
-    },
-    {
-      "id": "ENTRY_HALL",
-      "label": "ENTRY / PASSAGE",
-      "clear_bounds": [
-        1800,
-        200,
-        3000,
-        3650
-      ],
-      "expected_dimensions": {
-        "width": 1200,
-        "depth": 3450
-      },
-      "text_xy": [
-        2400,
-        3300
-      ],
-      "category": "circulation"
     }
   ],
   "openings": {
@@ -286,96 +344,164 @@
           4200
         ],
         "orientation": "vertical",
-        "swing": "inward"
+        "swing": "inward",
+        "opening_interval": [
+          3750,
+          4650
+        ]
       },
       {
-        "id": "D_BEDROOM",
-        "wall_id": "BED_SOUTH_RIGHT",
+        "id": "D_BEDROOM_1",
+        "wall_id": "BED_SOUTH_LEFT",
         "width": 800,
         "hinge_xy": [
-          4800,
+          2000,
           5400
         ],
         "orientation": "horizontal",
-        "swing": "inward"
+        "swing": "inward",
+        "opening_interval": [
+          1600,
+          2400
+        ]
       },
       {
-        "id": "D_BATHROOM",
-        "wall_id": "BATH_NORTH",
-        "width": 700,
+        "id": "D_BEDROOM_2",
+        "wall_id": "BED_SOUTH_RIGHT",
+        "width": 800,
         "hinge_xy": [
-          900,
-          1750
+          4700,
+          5400
         ],
         "orientation": "horizontal",
-        "swing": "inward"
+        "swing": "inward",
+        "opening_interval": [
+          4300,
+          5100
+        ]
+      },
+      {
+        "id": "D_TOILET_1",
+        "wall_id": "SERVICE_WEST",
+        "width": 700,
+        "hinge_xy": [
+          3150,
+          900
+        ],
+        "orientation": "vertical",
+        "swing": "inward",
+        "opening_interval": [
+          550,
+          1250
+        ]
+      },
+      {
+        "id": "D_TOILET_2",
+        "wall_id": "SERVICE_WEST",
+        "width": 700,
+        "hinge_xy": [
+          3150,
+          2300
+        ],
+        "orientation": "vertical",
+        "swing": "inward",
+        "opening_interval": [
+          1950,
+          2650
+        ]
       },
       {
         "id": "D_KITCHEN",
-        "wall_id": "KITCHEN_NORTH",
+        "wall_id": "KITCHEN_WEST",
         "width": 800,
         "hinge_xy": [
-          3700,
-          2700
+          4350,
+          2250
         ],
-        "orientation": "horizontal",
-        "swing": "inward"
+        "orientation": "vertical",
+        "swing": "inward",
+        "opening_interval": [
+          1850,
+          2650
+        ]
       }
     ],
     "windows": [
       {
-        "id": "WIN_BED_N",
+        "id": "WIN_BED_1_N",
         "wall_id": "OUTER_NORTH",
         "absolute_interval": [
-          1800,
-          3300
+          800,
+          2000
         ]
       },
       {
-        "id": "WIN_LIVING_S",
-        "wall_id": "OUTER_SOUTH",
+        "id": "WIN_BED_2_N",
+        "wall_id": "OUTER_NORTH",
         "absolute_interval": [
-          2200,
-          3800
+          3900,
+          5200
+        ]
+      },
+      {
+        "id": "WIN_LIVING_W",
+        "wall_id": "OUTER_WEST",
+        "absolute_interval": [
+          700,
+          1800
         ]
       },
       {
         "id": "WIN_KITCHEN_E",
         "wall_id": "OUTER_EAST",
         "absolute_interval": [
-          1200,
-          2300
-        ]
-      },
-      {
-        "id": "WIN_BATH_W",
-        "wall_id": "OUTER_WEST",
-        "absolute_interval": [
           700,
-          1300
+          1700
         ]
       }
     ]
   },
   "furniture": [
     {
-      "id": "BED_MAIN",
+      "id": "BED_1",
       "type": "BED",
       "bounds": [
-        900,
-        6600,
-        2700,
-        7500
+        650,
+        6500,
+        2150,
+        7400
       ],
       "rotation": 0
     },
     {
-      "id": "WARDROBE_MAIN",
+      "id": "WARDROBE_1",
       "type": "WARDROBE",
       "bounds": [
-        3900,
+        800,
         8200,
-        5400,
+        2200,
+        8600
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "BED_2",
+      "type": "BED",
+      "bounds": [
+        3500,
+        6500,
+        5000,
+        7400
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "WARDROBE_2",
+      "type": "WARDROBE",
+      "bounds": [
+        3800,
+        8200,
+        5200,
         8600
       ],
       "rotation": 0
@@ -384,10 +510,10 @@
       "id": "SOFA_MAIN",
       "type": "SOFA",
       "bounds": [
-        700,
-        4050,
-        2200,
-        4550
+        650,
+        3900,
+        2150,
+        4400
       ],
       "rotation": 0
     },
@@ -395,9 +521,9 @@
       "id": "DINING_MAIN",
       "type": "DINING_TABLE",
       "bounds": [
-        2600,
+        4100,
         4050,
-        3500,
+        4800,
         4750
       ],
       "rotation": 0
@@ -407,7 +533,7 @@
       "type": "KITCHEN_PLATFORM_L",
       "polygon": [
         [
-          3300,
+          4500,
           350
         ],
         [
@@ -419,50 +545,51 @@
           600
         ],
         [
-          3550,
+          4750,
           600
         ],
         [
-          3550,
-          2350
+          4750,
+          2450
         ],
         [
-          3300,
-          2350
+          4500,
+          2450
         ]
       ]
     },
     {
-      "id": "WC_MAIN",
+      "id": "WC_1",
       "type": "WC",
       "bounds": [
-        500,
+        3250,
         350,
-        900,
+        3650,
         750
       ],
       "rotation": 0
     },
     {
-      "id": "SINK_MAIN",
-      "type": "BASIN",
+      "id": "WC_2",
+      "type": "WC",
       "bounds": [
-        1100,
-        350,
-        1450,
-        650
+        3250,
+        2050,
+        3650,
+        2450
       ],
       "rotation": 0
     }
   ],
   "metadata": {
     "author": "Architect Engine",
-    "purpose": "First feasible-layout prototype; geometry still requires validation",
+    "purpose": "Reference reconstruction of supplied 20x30 ft east-facing 2BHK; draft requiring geometric review.",
     "known_limitations": [
-      "Setbacks and local rules are not encoded yet.",
-      "Door/window markers are rendered symbolically; true wall polygon splitting is not yet implemented.",
-      "Room connectivity and fixture clearances require independent review.",
-      "Do not use as construction drawing."
+      "Coordinates reconstructed approximately from a raster reference, not source CAD.",
+      "Doors and windows are rendered as wall masks; not a true split-solid CAD model.",
+      "Door connectivity and swing clearance need independent verification.",
+      "Local setbacks, ventilation rules and structural design are not encoded.",
+      "Not approved for construction."
     ]
   }
 }
