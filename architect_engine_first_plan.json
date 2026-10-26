@@ -1,0 +1,468 @@
+{
+  "schema_version": "1.0.15",
+  "generator_version": "arch-engine-v2.4",
+  "document_type": "architectural_floor_plan",
+  "status": "CONCEPT_DRAFT_NOT_APPROVED",
+  "units": {
+    "length": "mm",
+    "area": "mm2",
+    "angle": "degrees"
+  },
+  "project": {
+    "name": "Architect Engine First Plan",
+    "property_type": "residential",
+    "subcategory": "farmhouse",
+    "plot_label": "20'-0\" × 30'-0\"",
+    "facing": "EAST",
+    "bhk": 1,
+    "floors": "G",
+    "parking": false,
+    "bathrooms": 1,
+    "kitchen_type": "closed",
+    "branding": "Architect Engine",
+    "disclaimer": "Concept layout only. Verify setbacks, local rules, ventilation and construction details before use."
+  },
+  "plot": {
+    "width": 6096,
+    "depth": 9144,
+    "origin": "SW",
+    "north_direction": "UP"
+  },
+  "render": {
+    "pixels_per_meter": 130,
+    "padding_mm": 1000,
+    "wall_color": "#111827",
+    "background_color": "#fffdf7",
+    "furniture_color": "#dce9f5",
+    "accent_color": "#c99b2e"
+  },
+  "walls": [
+    {
+      "id": "OUTER_WEST",
+      "rect": [
+        0,
+        0,
+        200,
+        9144
+      ],
+      "kind": "outer"
+    },
+    {
+      "id": "OUTER_EAST",
+      "rect": [
+        5896,
+        0,
+        6096,
+        9144
+      ],
+      "kind": "outer"
+    },
+    {
+      "id": "OUTER_SOUTH",
+      "rect": [
+        200,
+        0,
+        5896,
+        200
+      ],
+      "kind": "outer"
+    },
+    {
+      "id": "OUTER_NORTH",
+      "rect": [
+        200,
+        8944,
+        5896,
+        9144
+      ],
+      "kind": "outer"
+    },
+    {
+      "id": "BED_WEST",
+      "rect": [
+        200,
+        5550,
+        350,
+        8944
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BED_SOUTH_LEFT",
+      "rect": [
+        350,
+        5400,
+        2300,
+        5550
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BED_SOUTH_RIGHT",
+      "rect": [
+        3100,
+        5400,
+        5896,
+        5550
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BED_EAST",
+      "rect": [
+        5750,
+        5550,
+        5896,
+        8944
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BATH_WEST",
+      "rect": [
+        200,
+        200,
+        350,
+        1900
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BATH_NORTH",
+      "rect": [
+        350,
+        1750,
+        1800,
+        1900
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "BATH_EAST",
+      "rect": [
+        1650,
+        1900,
+        1800,
+        3000
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "KITCHEN_WEST",
+      "rect": [
+        3000,
+        200,
+        3150,
+        2850
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "KITCHEN_NORTH",
+      "rect": [
+        3150,
+        2700,
+        5896,
+        2850
+      ],
+      "kind": "inner"
+    },
+    {
+      "id": "LIVING_NORTH",
+      "rect": [
+        200,
+        3650,
+        5896,
+        3800
+      ],
+      "kind": "inner"
+    }
+  ],
+  "rooms": [
+    {
+      "id": "LIVING_DINING",
+      "label": "LIVING / DINING",
+      "clear_bounds": [
+        200,
+        3800,
+        5896,
+        5400
+      ],
+      "expected_dimensions": {
+        "width": 5696,
+        "depth": 1600
+      },
+      "text_xy": [
+        3000,
+        4550
+      ],
+      "category": "habitable"
+    },
+    {
+      "id": "BEDROOM",
+      "label": "BEDROOM",
+      "clear_bounds": [
+        350,
+        5550,
+        5750,
+        8944
+      ],
+      "expected_dimensions": {
+        "width": 5400,
+        "depth": 3394
+      },
+      "text_xy": [
+        3000,
+        7500
+      ],
+      "category": "habitable"
+    },
+    {
+      "id": "BATHROOM",
+      "label": "BATHROOM",
+      "clear_bounds": [
+        350,
+        200,
+        1650,
+        1750
+      ],
+      "expected_dimensions": {
+        "width": 1300,
+        "depth": 1550
+      },
+      "text_xy": [
+        1000,
+        900
+      ],
+      "category": "wet"
+    },
+    {
+      "id": "KITCHEN",
+      "label": "KITCHEN",
+      "clear_bounds": [
+        3150,
+        200,
+        5896,
+        2700
+      ],
+      "expected_dimensions": {
+        "width": 2746,
+        "depth": 2500
+      },
+      "text_xy": [
+        4500,
+        1450
+      ],
+      "category": "habitable"
+    },
+    {
+      "id": "ENTRY_HALL",
+      "label": "ENTRY / PASSAGE",
+      "clear_bounds": [
+        1800,
+        200,
+        3000,
+        3650
+      ],
+      "expected_dimensions": {
+        "width": 1200,
+        "depth": 3450
+      },
+      "text_xy": [
+        2400,
+        3300
+      ],
+      "category": "circulation"
+    }
+  ],
+  "openings": {
+    "doors": [
+      {
+        "id": "D_MAIN",
+        "wall_id": "OUTER_EAST",
+        "width": 900,
+        "hinge_xy": [
+          5896,
+          4200
+        ],
+        "orientation": "vertical",
+        "swing": "inward"
+      },
+      {
+        "id": "D_BEDROOM",
+        "wall_id": "BED_SOUTH_RIGHT",
+        "width": 800,
+        "hinge_xy": [
+          4800,
+          5400
+        ],
+        "orientation": "horizontal",
+        "swing": "inward"
+      },
+      {
+        "id": "D_BATHROOM",
+        "wall_id": "BATH_NORTH",
+        "width": 700,
+        "hinge_xy": [
+          900,
+          1750
+        ],
+        "orientation": "horizontal",
+        "swing": "inward"
+      },
+      {
+        "id": "D_KITCHEN",
+        "wall_id": "KITCHEN_NORTH",
+        "width": 800,
+        "hinge_xy": [
+          3700,
+          2700
+        ],
+        "orientation": "horizontal",
+        "swing": "inward"
+      }
+    ],
+    "windows": [
+      {
+        "id": "WIN_BED_N",
+        "wall_id": "OUTER_NORTH",
+        "absolute_interval": [
+          1800,
+          3300
+        ]
+      },
+      {
+        "id": "WIN_LIVING_S",
+        "wall_id": "OUTER_SOUTH",
+        "absolute_interval": [
+          2200,
+          3800
+        ]
+      },
+      {
+        "id": "WIN_KITCHEN_E",
+        "wall_id": "OUTER_EAST",
+        "absolute_interval": [
+          1200,
+          2300
+        ]
+      },
+      {
+        "id": "WIN_BATH_W",
+        "wall_id": "OUTER_WEST",
+        "absolute_interval": [
+          700,
+          1300
+        ]
+      }
+    ]
+  },
+  "furniture": [
+    {
+      "id": "BED_MAIN",
+      "type": "BED",
+      "bounds": [
+        900,
+        6600,
+        2700,
+        7500
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "WARDROBE_MAIN",
+      "type": "WARDROBE",
+      "bounds": [
+        3900,
+        8200,
+        5400,
+        8600
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "SOFA_MAIN",
+      "type": "SOFA",
+      "bounds": [
+        700,
+        4050,
+        2200,
+        4550
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "DINING_MAIN",
+      "type": "DINING_TABLE",
+      "bounds": [
+        2600,
+        4050,
+        3500,
+        4750
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "KITCHEN_PLATFORM",
+      "type": "KITCHEN_PLATFORM_L",
+      "polygon": [
+        [
+          3300,
+          350
+        ],
+        [
+          5650,
+          350
+        ],
+        [
+          5650,
+          600
+        ],
+        [
+          3550,
+          600
+        ],
+        [
+          3550,
+          2350
+        ],
+        [
+          3300,
+          2350
+        ]
+      ]
+    },
+    {
+      "id": "WC_MAIN",
+      "type": "WC",
+      "bounds": [
+        500,
+        350,
+        900,
+        750
+      ],
+      "rotation": 0
+    },
+    {
+      "id": "SINK_MAIN",
+      "type": "BASIN",
+      "bounds": [
+        1100,
+        350,
+        1450,
+        650
+      ],
+      "rotation": 0
+    }
+  ],
+  "metadata": {
+    "author": "Architect Engine",
+    "purpose": "First feasible-layout prototype; geometry still requires validation",
+    "known_limitations": [
+      "Setbacks and local rules are not encoded yet.",
+      "Door/window markers are rendered symbolically; true wall polygon splitting is not yet implemented.",
+      "Room connectivity and fixture clearances require independent review.",
+      "Do not use as construction drawing."
+    ]
+  }
+}
