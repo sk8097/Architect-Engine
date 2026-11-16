@@ -1,0 +1,13 @@
+{
+  "name": "2D Video Editing Studio",
+  "plugins": [
+    {
+      "path": "2d-video-editing-studio",
+      "id": "2d-video-editing-studio",
+      "name": "2D Video Editing Studio",
+      "version": "3.1.0",
+      "description": "Master Autonomous 2D Video Director & Production Engine: Broadcast-quality Vox explainers, stickman animations, doodle sketchbooks, crime documentary thrillers, and 8-bit retro arcade videos with rapid Google Flow parallel asset dispatch.",
+      "icon": "icon.png"
+    }
+  ]
+}
