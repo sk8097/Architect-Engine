@@ -33,8 +33,9 @@ class VoiceDirectionTests(unittest.TestCase):
         self.assertEqual(plan["segments"][1]["intent"], "revelation")
 
     def test_unknown_voice_does_not_silently_switch_to_rohan(self):
-        with self.assertRaises(ValueError):
-            cartesia_tts.resolve_voice_id("definitely-not-a-real-preset")
+        with mock.patch.object(cartesia_tts, "DEFAULT_API_KEY", ""):
+            with self.assertRaises(ValueError):
+                cartesia_tts.resolve_voice_id("definitely-not-a-real-preset")
 
     def test_unknown_emotion_is_rejected(self):
         with self.assertRaises(ValueError):
