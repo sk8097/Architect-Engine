@@ -123,7 +123,7 @@ def main():
                    "line_ids": ids.split(","), "backup_dir": backup_dir,
                    "backup_files": backup_files, "plan_path": os.path.abspath(args.out)},
                   stream, ensure_ascii=False, indent=2)
-        stream.write("\\n")
+        stream.write("\n")
     voice_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice.py")
     command = [sys.executable, voice_script, "--only-lines", ids]
     if args.voice_args:
