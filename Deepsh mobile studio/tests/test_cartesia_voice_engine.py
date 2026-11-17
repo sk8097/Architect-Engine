@@ -58,6 +58,21 @@ class VoiceDirectionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             cartesia_tts.build_generation_config(volume=2.5)
 
+    def test_hinglish_uses_hindi_locale_with_english_number_normalization(self):
+        plan = build_direction_plan("Aapka order confirm ho gaya hai.", language="hinglish")
+        self.assertEqual(plan["provider_language"], "hi")
+        self.assertEqual(plan["normalization"], "en-IN")
+
+    def test_ssml_escapes_user_supplied_markup(self):
+        plan = build_direction_plan("Use <script> safely.", language="en")
+        rendered, _ = render_directed_transcript(plan)
+        self.assertIn("&lt;script&gt;", rendered)
+        self.assertNotIn("<script>", rendered)
+
+    def test_auto_language_does_not_assume_english_emotion(self):
+        config = cartesia_tts.build_generation_config(emotion="curious", language="auto")
+        self.assertNotIn("emotion", config)
+
     def test_unknown_voice_does_not_silently_switch_to_rohan(self):
         with mock.patch.object(cartesia_tts, "DEFAULT_API_KEY", ""):
             with self.assertRaises(ValueError):
