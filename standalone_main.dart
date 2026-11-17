@@ -1222,7 +1222,7 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
   }) async {
-    final index = _projects.findIndex((p) => p.id == id);
+    final index = _projects.indexWhere((p) => p.id == id);
     if (index != -1) {
       _projects[index].name = name;
       _projects[index].length = length;
@@ -1345,7 +1345,6 @@ class NotificationProvider extends ChangeNotifier {
 // ==========================================
 // 5. DIALOGS & POPUPS
 // ==========================================
-import 'dart:math' as math;
 class CalculatorDialog extends StatefulWidget {
   final ToolModel tool;
 
@@ -2137,7 +2136,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
           floors: _floors,
           facing: _facing,
         );
-        notifProvider.addNotification('success', 'New Project Created', '$name ($bhk, ${length * width} sqft) was created.');
+        notifProvider.addNotification('success', 'New Project Created', '$name ($_bhk, ${length * width} sqft) was created.');
       }
 
       Navigator.pop(context);
@@ -2165,7 +2164,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.between,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       isEditing ? 'Edit Project' : 'Create New Project',
@@ -2395,7 +2394,7 @@ class HomeScreen extends StatelessWidget {
 
           // Section Header: My Projects
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'My Projects',
@@ -2556,7 +2555,7 @@ class HomeScreen extends StatelessWidget {
 
           // Design Studio Modules Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Design Modules',
@@ -2588,7 +2587,7 @@ class HomeScreen extends StatelessWidget {
 
           // Tools & Utilities Shortcut
           Row(
-            mainAxisAlignment: MainAxisAlignment.between,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
                 'Engineering & Tools',
@@ -2806,7 +2805,7 @@ class DesignScreen extends StatelessWidget {
             const SizedBox(height: 20),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Design Modules', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Text('${DesignData.modules.length} modules', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -2842,7 +2841,7 @@ class DesignScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
                               width: 36,
@@ -3048,7 +3047,7 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
             const SizedBox(height: 18),
 
             Row(
-              mainAxisAlignment: MainAxisAlignment.between,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text('Professional Tools', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 Text('${filtered.length} modules', style: const TextStyle(fontSize: 12, color: Colors.grey)),
@@ -3082,7 +3081,7 @@ class _ProfessionalScreenState extends State<ProfessionalScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.between,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Container(
                               width: 36,
@@ -3284,7 +3283,7 @@ class _ToolsScreenState extends State<ToolsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Row(
-                              mainAxisAlignment: MainAxisAlignment.between,
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Container(
                                   width: 38,
