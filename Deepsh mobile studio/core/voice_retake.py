@@ -14,7 +14,7 @@ def build_retake_plan(performance_report="VO.wav.performance.json",
         raise FileNotFoundError(lines_path)
     import csv
     with open(lines_path, encoding="utf-8-sig", newline="") as stream:
-        rows = list(csv.DictReader(stream, delimiter="\\t"))
+        rows = list(csv.DictReader(stream, delimiter="\t"))
     if not rows:
         raise ValueError("LINES.tsv has no lines.")
     known = {str(row.get("id", "")): row for row in rows}
@@ -79,7 +79,7 @@ def main():
     plan = build_retake_plan(args.report, manual_ids, args.lines, args.cache_dir, args.audio)
     with open(args.out, "w", encoding="utf-8") as stream:
         json.dump(plan, stream, ensure_ascii=False, indent=2)
-        stream.write("\\n")
+        stream.write("\n")
     print("Retake plan: {} | {} selected line(s) | estimated Cartesia requests: {}".format(
         plan["status"].upper(), plan["selected_line_count"], plan["estimated_cartesia_requests"]))
     print("Plan: " + os.path.abspath(args.out))
