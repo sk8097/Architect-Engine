@@ -55,23 +55,24 @@ def cartesia_voice_direction_catalog() -> str:
 
 @app.tool()
 def cartesia_plan_voice_direction(transcript: str, delivery_mode: str = "documentary",
-    personality: str = "documentary_host", language: str = "auto", voice: str = "rohan") -> str:
+    personality: str = "documentary_host", language: str = "auto", voice: str = "rohan",
+    adaptive: bool = True) -> str:
     """Build a zero-credit direction plan. Does not synthesize audio."""
     try:
         return json.dumps(build_direction_plan(transcript, delivery_mode, personality,
-            language, voice), ensure_ascii=False, indent=2)
+            language, voice, adaptive=adaptive), ensure_ascii=False, indent=2)
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
 
 @app.tool()
 def cartesia_generate_directed_voice(transcript: str, delivery_mode: str = "documentary",
     personality: str = "documentary_host", voice: str = "rohan", language: str = "hi",
-    output_path: str = "VO.wav", force: bool = False) -> str:
+    output_path: str = "VO.wav", force: bool = False, adaptive: bool = True) -> str:
     """Auto-direct a complete script and synthesize it in one credit-aware request."""
     try:
         result = generate_directed_voiceover(transcript, output_path=output_path,
             delivery_mode=delivery_mode, personality=personality, voice=voice,
-            language=language, force=force)
+            language=language, force=force, adaptive=adaptive)
         return json.dumps(result, ensure_ascii=False, indent=2)
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
