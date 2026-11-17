@@ -587,5 +587,32 @@
     ],
     "max_explicit_breaks_per_script": 12,
     "minimum_break_ms": 350
+  },
+  "adaptive_performance": {
+    "enabled_by_default": true,
+    "description": "Deterministic local sentence-level pacing and intensity heuristics; no model or API calls.",
+    "speed_bounds": [
+      0.78,
+      1.18
+    ],
+    "volume_ratio_bounds": [
+      0.9,
+      1.12
+    ],
+    "pause_bounds_ms": [
+      160,
+      720
+    ],
+    "signals": [
+      "sentence_length",
+      "numeric_content",
+      "list_punctuation",
+      "question",
+      "revelation",
+      "human_interest",
+      "exclamation",
+      "quoted_phrase"
+    ],
+    "manual_override": "adaptive=false disables content-aware modifiers while retaining delivery-mode and personality baselines."
   }
 }
