@@ -95,6 +95,12 @@ def main():
     if not a.key:
         sys.exit("Set CARTESIA_API_KEY or pass --key (free key: play.cartesia.ai -> API Keys)")
     rows = list(csv.DictReader(open("LINES.tsv", encoding="utf-8"), delimiter="\t"))
+    selected_ids = set(x.strip() for x in (a.only_lines or "").split(",") if x.strip()) if a.only_lines else None
+    known_ids = {r["id"] for r in rows}
+    if selected_ids is not None and not selected_ids:
+        sys.exit("--only-lines requires at least one line ID")
+    if selected_ids is not None and not selected_ids.issubset(known_ids):
+        sys.exit("Unknown line ID(s): " + ", ".join(sorted(selected_ids - known_ids)))
     os.makedirs("vo_parts", exist_ok=True)
     vid = resolve_voice_id(a.voice, a.key)
     def fetch(r):
