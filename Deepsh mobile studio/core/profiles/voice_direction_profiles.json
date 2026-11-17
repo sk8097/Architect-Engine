@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "note": "Profiles are local direction presets, not separate Cartesia voices. Speed is an internal target and is not sent to the provider by this initial adapter.",
+  "note": "Profiles are performance-direction presets, not separate vocal identities. Sonic 3.6 speed/volume controls are applied through inline SSML and generation_config. Emotion guidance is English-only and remains off by default because Cartesia labels mid-transcript emotion shifts experimental.",
   "delivery_modes": [
     {
       "id": "natural_conversational",
@@ -191,7 +191,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.96,
+      "volume_multiplier": 0.98,
+      "expressiveness": "medium"
     },
     {
       "id": "financial_analyst",
@@ -200,7 +203,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.97,
+      "volume_multiplier": 1,
+      "expressiveness": "low"
     },
     {
       "id": "documentary_host",
@@ -209,7 +215,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.96,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "master_storyteller",
@@ -218,7 +227,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.94,
+      "volume_multiplier": 1,
+      "expressiveness": "high"
     },
     {
       "id": "friendly_teacher",
@@ -227,7 +239,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1.02,
+      "expressiveness": "medium"
     },
     {
       "id": "authoritative_presenter",
@@ -236,7 +251,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1.04,
+      "expressiveness": "medium"
     },
     {
       "id": "emotional_narrator",
@@ -245,7 +263,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.94,
+      "volume_multiplier": 0.98,
+      "expressiveness": "high"
     },
     {
       "id": "calm_expert",
@@ -254,7 +275,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.94,
+      "volume_multiplier": 0.98,
+      "expressiveness": "low"
     },
     {
       "id": "curious_researcher",
@@ -263,7 +287,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "suspense_specialist",
@@ -272,7 +299,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.9,
+      "volume_multiplier": 0.96,
+      "expressiveness": "high"
     },
     {
       "id": "news_anchor",
@@ -281,7 +311,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1.02,
+      "volume_multiplier": 1.03,
+      "expressiveness": "low"
     },
     {
       "id": "podcast_host",
@@ -290,7 +323,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1,
+      "volume_multiplier": 0.98,
+      "expressiveness": "medium"
     },
     {
       "id": "intellectual_analyst",
@@ -299,7 +335,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.95,
+      "volume_multiplier": 0.98,
+      "expressiveness": "medium"
     },
     {
       "id": "critical_reviewer",
@@ -308,7 +347,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "corporate_executive",
@@ -317,7 +359,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1,
+      "volume_multiplier": 1.02,
+      "expressiveness": "medium"
     },
     {
       "id": "motivational_speaker",
@@ -326,7 +371,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1.04,
+      "volume_multiplier": 1.06,
+      "expressiveness": "medium"
     },
     {
       "id": "warm_companion",
@@ -335,7 +383,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "technical_educator",
@@ -344,7 +395,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.96,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "historical_narrator",
@@ -353,7 +407,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.92,
+      "volume_multiplier": 0.96,
+      "expressiveness": "medium"
     },
     {
       "id": "crime_documentary_host",
@@ -362,7 +419,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.92,
+      "volume_multiplier": 0.96,
+      "expressiveness": "medium"
     },
     {
       "id": "science_communicator",
@@ -371,7 +431,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "business_strategist",
@@ -380,7 +443,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.98,
+      "volume_multiplier": 1.02,
+      "expressiveness": "medium"
     },
     {
       "id": "luxury_brand_voice",
@@ -389,7 +455,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.92,
+      "volume_multiplier": 0.94,
+      "expressiveness": "medium"
     },
     {
       "id": "energetic_presenter",
@@ -398,7 +467,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1.06,
+      "volume_multiplier": 1.07,
+      "expressiveness": "medium"
     },
     {
       "id": "minimalist_narrator",
@@ -407,7 +479,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.96,
+      "volume_multiplier": 0.98,
+      "expressiveness": "low"
     },
     {
       "id": "human_interest_storyteller",
@@ -416,7 +491,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.94,
+      "volume_multiplier": 0.98,
+      "expressiveness": "high"
     },
     {
       "id": "debate_moderator",
@@ -425,7 +503,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     },
     {
       "id": "dramatic_performer",
@@ -434,7 +515,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.92,
+      "volume_multiplier": 1.03,
+      "expressiveness": "high"
     },
     {
       "id": "skeptical_investigator",
@@ -443,7 +527,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 0.94,
+      "volume_multiplier": 0.98,
+      "expressiveness": "medium"
     },
     {
       "id": "multilingual_presenter",
@@ -452,7 +539,10 @@
       "emotion_bias": "contextual",
       "intensity_bias": "balanced",
       "pace_bias": "natural",
-      "language_adaptation": true
+      "language_adaptation": true,
+      "speed_multiplier": 1,
+      "volume_multiplier": 1,
+      "expressiveness": "medium"
     }
   ],
   "supported_language_codes": [
@@ -469,7 +559,9 @@
     "language": "hi",
     "model": "sonic-3.6",
     "cache_enabled": true,
-    "force_regenerate": false
+    "force_regenerate": false,
+    "volume": 1,
+    "emotion_tags_enabled": false
   },
   "credit_policy": {
     "analysis_calls": 0,
@@ -484,5 +576,16 @@
     ],
     "regenerate_only_on_force_or_cache_miss": true,
     "avoid_sentence_level_requests": true
+  },
+  "ssml": {
+    "enabled": true,
+    "speed_tags": true,
+    "explicit_breaks": true,
+    "emotion_tags_enabled": false,
+    "emotion_language_allowlist": [
+      "en"
+    ],
+    "max_explicit_breaks_per_script": 12,
+    "minimum_break_ms": 350
   }
 }
