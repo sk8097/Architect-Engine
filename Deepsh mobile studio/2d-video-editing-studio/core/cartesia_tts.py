@@ -169,7 +169,7 @@ def _probe_duration(path):
     except (OSError, ValueError, subprocess.SubprocessError):
         return 0.0
 
-def build_generation_config(speed=1.0, volume=1.0, emotion=None, language="en", model=DEFAULT_MODEL):
+def build_generation_config(speed=1.0, volume=1.0, emotion=None, language="auto", model=DEFAULT_MODEL):
     if not isinstance(speed, (int, float)) or isinstance(speed, bool) or not 0.6 <= float(speed) <= 1.5:
         raise ValueError("Cartesia speed must be between 0.6 and 1.5.")
     if not isinstance(volume, (int, float)) or isinstance(volume, bool) or not 0.5 <= float(volume) <= 2.0:
@@ -178,7 +178,7 @@ def build_generation_config(speed=1.0, volume=1.0, emotion=None, language="en", 
         raise ValueError("generation_config controls in this adapter require a Sonic 3+ model.")
     config = {"speed": round(float(speed), 3), "volume": round(float(volume), 3)}
     language_code = normalize_language(language)
-    if emotion and (language_code or "").split("-")[0] == "en":
+    if emotion and language_code and language_code.split("-")[0] == "en":
         config["emotion"] = resolve_emotion(emotion)
     return config
 
