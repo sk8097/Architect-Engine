@@ -10,6 +10,7 @@ if STUDIO not in sys.path:
     sys.path.insert(0, STUDIO)
 
 from core.audio_quality import analyze_wav
+from studio import quality_check
 
 
 def write_pcm(path, samples, sample_rate=1000):
@@ -61,6 +62,22 @@ class AudioQualityTests(unittest.TestCase):
             report = analyze_wav(path)
             self.assertTrue(any("not LUFS" in item for item in report["limitations"]))
             self.assertTrue(any("human or natural" in item for item in report["limitations"]))
+
+
+    def test_cli_quality_check_writes_report(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = os.path.join(temp, "voice.wav")
+            write_pcm(path, [9000, -9000] * 200)
+            report = quality_check(path)
+            self.assertEqual(report["status"], "pass")
+            self.assertTrue(os.path.isfile(path + ".quality.json"))
+
+    def test_strict_quality_gate_rejects_warning_report(self):
+        with tempfile.TemporaryDirectory() as temp:
+            path = os.path.join(temp, "clipped.wav")
+            write_pcm(path, [32767] * 200)
+            with self.assertRaises(SystemExit):
+                quality_check(path, strict=True)
 
 
 if __name__ == "__main__":
