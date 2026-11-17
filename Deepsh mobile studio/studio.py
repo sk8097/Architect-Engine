@@ -195,6 +195,8 @@ def main():
         run(os.path.join(CORE, "flow_safe.py"), *[x for x in rest if x != "--no-lint"])
     elif cmd == "key":
         key_props()
+    elif cmd == "narration-audit":
+        run(os.path.join(CORE, "narration_audit.py"), *rest)
     elif cmd == "quality":
         audio_path = rest[0] if rest and not rest[0].startswith("-") else "VO.wav"
         quality_check(audio_path, strict="--strict" in rest)
