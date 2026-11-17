@@ -3603,8 +3603,6 @@ class _MainScaffoldState extends State<MainScaffold> {
   @override
   Widget build(BuildContext context) {
     final appState = Provider.of<AppStateProvider>(context);
-    final notifProvider = Provider.of<NotificationProvider>(context);
-
     final List<Widget> screens = [
       HomeScreen(onNavigateTab: (idx) => setState(() => _currentIndex = idx)),
       const ProfessionalScreen(),
