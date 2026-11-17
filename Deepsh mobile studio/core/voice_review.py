@@ -67,7 +67,7 @@ def compare_review(pending_path=PENDING):
     out = "voice-retake-comparison.json"
     with open(out, "w", encoding="utf-8") as stream:
         json.dump(report, stream, ensure_ascii=False, indent=2)
-        stream.write("\\n")
+        stream.write("\n")
     print("Comparison report: " + os.path.abspath(out))
     for item in results:
         print("Line {} | duration {:+.3f}s | RMS delta {} dB".format(
@@ -102,7 +102,7 @@ def decide(action, pending_path=PENDING):
     pending["status"] = "approved" if action == "approve" else "rejected_restored"
     with open(pending_path, "w", encoding="utf-8") as stream:
         json.dump(pending, stream, ensure_ascii=False, indent=2)
-        stream.write("\\n")
+        stream.write("\n")
     print("Retake review decision: " + pending["status"])
     if action == "reject":
         print("Original approved audio and line caches restored.")
