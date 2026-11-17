@@ -41,7 +41,7 @@ class NarrationPerformanceTests(unittest.TestCase):
     def test_inter_line_gap_is_reported_not_automatically_repaired(self):
         report = analyze_performance(self.audio, self.tsv)
         self.assertEqual(report["inter_line_gaps"][0]["status"], "long")
-        self.assertIn("listen", report["inter_line_gaps"][0]["recommendation"])
+        self.assertIn("listen", report["inter_line_gaps"][0]["recommendation"].lower())
 
 
 if __name__ == "__main__":
