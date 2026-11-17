@@ -12,7 +12,7 @@ reads as sloppy. So word times are never guessed here:
   * WORDS.tsv gets a `src` column: `cartesia` (exact) or `estimate` (fallback only if the
     API returned no timestamps -- `studio.py check` warns about any estimated line)
 
-usage:  CARTESIA_API_KEY=sk_car_... python core/voice.py [--voice anuj] [--lang hi] [--speed 1.0] [--force]
+usage:  CARTESIA_API_KEY=sk_car_... python core/voice.py [--voice anuj] [--lang hi] [--normalize-digits] [--glossary pronunciation_glossary.json] [--speed 1.0] [--force]
 Per-line results are cached in vo_parts/ (audio + timestamps), so re-runs only fetch missing lines.
 """
 import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.request, urllib.error
