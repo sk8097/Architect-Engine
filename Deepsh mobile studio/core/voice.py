@@ -89,6 +89,7 @@ def main():
     ap.add_argument("--key", default=os.environ.get("CARTESIA_API_KEY"))
     ap.add_argument("--speed", type=float, default=1.0, help="tempo factor applied after synthesis (0.9-1.1)")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--only-lines", default=None, help="Comma-separated line IDs to synthesize; all other cache entries must already be valid")
     ap.add_argument("--jobs", type=int, default=2, help="parallel requests (2 is safe on the free tier)")
     a = ap.parse_args()
     if not a.key:
@@ -110,8 +111,10 @@ def main():
                     and cached_meta.get("sample_rate") == SR
                     and cached_meta.get("api_version") == API_VERSION
                 )
-                if cache_matches:
+                if cache_matches and (selected_ids is None or r["id"] not in selected_ids):
                     return None
+                if selected_ids is not None and r["id"] not in selected_ids:
+                    raise RuntimeError("Line {} has missing/stale cache but was not selected; refusing full narration regeneration.".format(r["id"]))
             except (OSError, ValueError, TypeError):
                 pass  # Invalid/stale cache: regenerate this line only.
         for attempt in range(5):
