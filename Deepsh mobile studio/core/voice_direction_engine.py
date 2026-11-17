@@ -17,7 +17,7 @@ def load_profiles(path=None):
 
 def _split_segments(text):
     # Split on sentence punctuation/newlines while retaining readable units.
-    pieces = re.split(r"(?<=[.!?।॥])\\s+|\\n+", text.strip())
+    pieces = re.split(r"(?<=[.!?।॥])\s+|\n+", text.strip())
     return [p.strip() for p in pieces if p.strip()]
 
 def _infer_intent(sentence):
@@ -79,7 +79,10 @@ def generate_directed_voiceover(text, output_path="VO.wav", delivery_mode=None,
     cfg = load_profiles()
     plan = build_direction_plan(text, delivery_mode, personality, language, voice, cfg)
     selected_emotion = emotion or cfg["delivery_modes"][[x["id"] for x in cfg["delivery_modes"]].index(plan["delivery_mode"])]["default_emotion"]
-    result = generate_voiceover(text, voice=voice, language=language,
+    # Hinglish is a script/content mix, not a provider language code. Let the
+    # selected Cartesia model infer it rather than sending an unsupported label.
+    provider_language = None if (language or "").lower() in ("auto", "hinglish") else language
+    result = generate_voiceover(text, voice=voice, language=provider_language,
         emotion=selected_emotion, output_path=output_path,
         model=model or cfg["defaults"]["model"], api_key=api_key,
         use_cache=cfg["defaults"]["cache_enabled"], force=force)
