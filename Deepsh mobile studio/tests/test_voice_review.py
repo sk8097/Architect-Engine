@@ -45,6 +45,7 @@ class VoiceReviewTests(unittest.TestCase):
             self.assertEqual(stream.read(), "original")
 
     def test_approve_marks_review_without_overwriting_audio(self):
+        compare_review()
         decide("approve")
         with open("vo_parts/review_pending.json", encoding="utf-8") as stream:
             self.assertEqual(json.load(stream)["status"], "approved")
