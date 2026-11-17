@@ -14,7 +14,7 @@ class VoiceRetakePlanTests(unittest.TestCase):
         self.cache = os.path.join(self.temp.name, "vo_parts")
         os.makedirs(self.cache)
         with open(self.lines, "w", encoding="utf-8") as stream:
-            stream.write("id\\ttext\\tgap\\n1\\tपहिली ओळ\\t0.3\\n2\\tSecond line\\t0.3\\n")
+            stream.write("id\ttext\tgap\n1\tपहिली ओळ\t0.3\n2\tSecond line\t0.3\n")
         with open(self.report, "w", encoding="utf-8") as stream:
             json.dump({"schema": "narration-performance-v1",
                        "review_recommendations": [{"line_id": "2", "recommendations": ["Silent segment"]}]}, stream)
