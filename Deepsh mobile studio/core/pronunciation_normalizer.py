@@ -20,6 +20,7 @@ DIGITS = {
 CURRENCY = {"en": "rupees", "hi": "रुपये", "mr": "रुपये"}
 PERCENT = {"en": "percent", "hi": "प्रतिशत", "mr": "टक्के"}
 DECIMAL = {"en": "point", "hi": "दशमलव", "mr": "दशांश"}
+SLASH = {"en": "slash", "hi": "स्लैश", "mr": "स्लॅश"}
 
 def _base_language(language):
     value = (language or "auto").strip().lower()
@@ -75,7 +76,7 @@ def normalize_for_speech(text, language="auto", glossary_path=None, expand_digit
                 elif char == "." or char == ",":
                     out.append(DECIMAL[lang] if char == "." else "")
                 elif char == "/":
-                    out.append(" ")
+                    out.append(SLASH[lang])
             return " ".join(x for x in out if x)
         normalized = re.sub(r"(?<!\w)\d+(?:[.,/]\d+)*(?!\w)", speak_number, normalized)
         normalized = re.sub(r"\s+", " ", normalized).strip()
