@@ -197,6 +197,8 @@ def main():
         key_props()
     elif cmd == "narration-audit":
         run(os.path.join(CORE, "narration_audit.py"), *rest)
+    elif cmd == "performance-audit":
+        run(os.path.join(CORE, "narration_performance.py"), *rest)
     elif cmd == "quality":
         audio_path = rest[0] if rest and not rest[0].startswith("-") else "VO.wav"
         quality_check(audio_path, strict="--strict" in rest)
