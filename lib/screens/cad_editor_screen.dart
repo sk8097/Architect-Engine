@@ -189,7 +189,6 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       setState(() {
         _selectedElement = hit;
         if (hit != null) {
-          _elementDragOffset = snapped - hit.start;
           _moveLast = snapped;
           _moveUndoSaved = false;
           _commandPrompt = 'Selected: ${hit.type.name.toUpperCase()} (Layer: ${hit.layerId})';
