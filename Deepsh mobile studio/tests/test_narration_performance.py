@@ -23,7 +23,7 @@ class NarrationPerformanceTests(unittest.TestCase):
         with open(self.tsv, "w", encoding="utf-8") as stream:
             stream.write("id\tstart\tend\ttext\n")
             stream.write("1\t0\t1\tThis is a test line\n")
-            stream.write("2\t2\t3\tThis is another test line\n")
+            stream.write("2\t3\t4\tThis is another test line\n")
 
     def tearDown(self):
         self.temp.cleanup()
