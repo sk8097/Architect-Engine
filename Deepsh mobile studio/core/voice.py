@@ -88,12 +88,30 @@ def main():
     def fetch(r):
         pa, pj = f"vo_parts/{r['id']}.f32", f"vo_parts/{r['id']}.json"
         if os.path.exists(pa) and os.path.exists(pj) and not a.force:
-            return None
+            try:
+                cached_meta = json.load(open(pj, encoding="utf-8"))
+                cache_matches = (
+                    cached_meta.get("text") == r["text"]
+                    and cached_meta.get("voice_id") == vid
+                    and cached_meta.get("language") == a.lang
+                    and cached_meta.get("emotion") == a.emotion
+                    and cached_meta.get("model") == "sonic-3.6"
+                    and cached_meta.get("sample_rate") == SR
+                )
+                if cache_matches:
+                    return None
+            except (OSError, ValueError, TypeError):
+                pass  # Invalid/stale cache: regenerate this line only.
         for attempt in range(5):
             try:
                 audio, words = synth_line(r["text"], vid, a.lang, a.emotion, a.key)
                 open(pa, "wb").write(audio.tobytes())
-                json.dump({"text": r["text"], "words": words}, open(pj, "w", encoding="utf-8"), ensure_ascii=False)
+                with open(pj, "w", encoding="utf-8") as meta_file:
+                    json.dump({
+                        "text": r["text"], "words": words, "voice_id": vid,
+                        "language": a.lang, "emotion": a.emotion,
+                        "model": "sonic-3.6", "sample_rate": SR
+                    }, meta_file, ensure_ascii=False)
                 print(f"  ✓ line {r['id']}  {len(audio) / SR:.1f}s  {len(words)} timed words", flush=True)
                 return None
             except Exception as ex:                       # rate limit / network: back off and retry
