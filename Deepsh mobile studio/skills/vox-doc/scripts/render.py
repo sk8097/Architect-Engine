@@ -461,7 +461,8 @@ def write_ass(scenes):
 def master(scenes):
     with open("_concat.txt", "w", encoding="utf-8") as f:
         for s in scenes:
-            f.write(f"file '{os.path.abspath(f"{SHOTS}/{s['id']}.mp4")}'\n".replace("\\", "/"))
+            shot_path = os.path.abspath(os.path.join(SHOTS, str(s.get("id")) + ".mp4"))
+            f.write("file '{}'\n".format(shot_path.replace("\\", "/")))
     run = lambda c: subprocess.run(c, check=True)
     run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", "_concat.txt",
          "-c", "copy", "_silent.mp4"])
