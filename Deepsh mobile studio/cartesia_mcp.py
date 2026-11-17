@@ -1,106 +1,91 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""cartesia_mcp.py — Native MCP Server for Cartesia AI Sonic TTS.
-Provides tools to generate high-fidelity broadcast voiceover directly in Antigravity
-with emotion controls and top-tier voice presets.
-"""
-
+"""MCP tools for credit-aware Cartesia voice generation."""
+import json
 import os
 import sys
-import json
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from core.cartesia_tts import generate_voiceover, list_voices, DEFAULT_API_KEY, resolve_voice_id, POPULAR_VOICES, EMOTION_MAP
-
+from core.cartesia_tts import (
+    generate_voiceover, list_voices, DEFAULT_API_KEY, resolve_voice_id,
+    POPULAR_VOICES, EMOTION_MAP, API_VERSION, DEFAULT_MODEL
+)
+from core.voice_direction_engine import load_profiles, build_direction_plan, generate_directed_voiceover
 from mcp.server.mcpserver import MCPServer
 
-app = MCPServer(
-    name="cartesia-mcp",
-    version="1.1.0",
-    description="Direct Cartesia AI Sonic TTS integration with emotion styling and recommended narrator presets"
-)
+app = MCPServer(name="cartesia-mcp", version="2.0.0",
+    description="Credit-aware Cartesia TTS with configurable voice direction profiles")
 
 @app.tool()
-def cartesia_generate_voice(
-    transcript: str,
-    voice: str = "rohan",
-    emotion: str = "neutral",
-    language: str = "hi",
-    output_path: str = "VO.wav",
-    model: str = "sonic-3.6"
-) -> str:
-    """Generate ultra-realistic voiceover using Cartesia Sonic 3.6 API with emotion styling.
-    
-    Args:
-        transcript: The full narration script text (clean spoken prose).
-        voice: Voice name or ID. Top Recommended: "rohan" (Hindi male), "dev" (Hindi male), "neha" (Hindi female), "anuj" (Hindi narrator), "skylar" (English female), "mariana" (Multilingual).
-        emotion: Emotion preset: "neutral", "calm", "content", "excited", "sad", "angry", "curious", "dramatic".
-        language: Language code, e.g. "hi" for Hindi, "en" for English.
-        output_path: Target path to write the 44.1kHz WAV file (default: VO.wav in current project).
-        model: Cartesia model to use. Default is "sonic-3.6" (ultra-fast multilingual).
-    """
+def cartesia_generate_voice(transcript: str, voice: str = "rohan",
+    emotion: str = "neutral", language: str = "hi", output_path: str = "VO.wav",
+    model: str = DEFAULT_MODEL, use_cache: bool = True, force: bool = False) -> str:
+    """Generate speech. Cache hits reuse audio without a Cartesia synthesis request."""
     try:
-        res = generate_voiceover(
-            transcript=transcript,
-            voice=voice,
-            emotion=emotion,
-            language=language,
-            output_path=output_path,
-            model=model
-        )
-        return json.dumps({
-            "status": "success",
-            "message": f"Successfully generated {res['duration_seconds']}s voiceover in {res['generation_time_seconds']}s with emotion '{res['emotion']}'",
-            "output_path": res["output_path"],
-            "duration_seconds": res["duration_seconds"],
-            "generation_time_seconds": res["generation_time_seconds"],
-            "voice_name": res["voice_name"],
-            "voice_id": res["voice_id"],
-            "emotion": res["emotion"],
-            "applied_emotion_tags": res["applied_emotion_tags"],
-            "model": res["model"]
-        }, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "error": str(e)
-        }, indent=2)
+        result = generate_voiceover(transcript, voice, language, emotion,
+            output_path, model, use_cache=use_cache, force=force)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
 
 @app.tool()
 def cartesia_list_voices(query: str = "", language: str = "") -> str:
-    """List available Cartesia AI voices filtered by query name or language code."""
+    """List local presets without API access, or filter provider voices when configured."""
     try:
         voices = list_voices(query=query, language=language)
-        return json.dumps({
-            "status": "success",
-            "recommended_voices": list(POPULAR_VOICES.keys()),
-            "available_emotions": list(EMOTION_MAP.keys()),
-            "total_matching": len(voices),
-            "voices": voices[:25]
-        }, indent=2, ensure_ascii=False)
-    except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "error": str(e)
-        }, indent=2)
+        return json.dumps({"status": "success",
+            "recommended_voices": list(POPULAR_VOICES),
+            "available_emotions": list(EMOTION_MAP),
+            "total_matching": len(voices), "voices": voices[:50]},
+            ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
+
+@app.tool()
+def cartesia_voice_direction_catalog() -> str:
+    """Return all local delivery modes and personality presets; makes no API calls."""
+    try:
+        return json.dumps(load_profiles(), ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
+
+@app.tool()
+def cartesia_plan_voice_direction(transcript: str, delivery_mode: str = "documentary",
+    personality: str = "documentary_host", language: str = "auto", voice: str = "rohan") -> str:
+    """Build a zero-credit direction plan. Does not synthesize audio."""
+    try:
+        return json.dumps(build_direction_plan(transcript, delivery_mode, personality,
+            language, voice), ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
+
+@app.tool()
+def cartesia_generate_directed_voice(transcript: str, delivery_mode: str = "documentary",
+    personality: str = "documentary_host", voice: str = "rohan", language: str = "hi",
+    output_path: str = "VO.wav", force: bool = False) -> str:
+    """Auto-direct a complete script and synthesize it in one credit-aware request."""
+    try:
+        result = generate_directed_voiceover(transcript, output_path=output_path,
+            delivery_mode=delivery_mode, personality=personality, voice=voice,
+            language=language, force=force)
+        return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
 
 @app.tool()
 def cartesia_status() -> str:
-    """Check Cartesia API connection status, active model, and recommended presets."""
-    try:
-        return json.dumps({
-            "status": "ready",
-            "message": "Cartesia AI Sonic TTS API is connected and ready.",
-            "recommended_voices": ["rohan", "dev", "neha", "anuj", "skylar", "mariana"],
-            "supported_emotions": ["neutral", "calm", "content", "excited", "sad", "angry", "curious", "dramatic"],
-            "default_model": "sonic-3.6",
-            "api_version": "2024-06-10"
-        }, indent=2)
-    except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "error": str(e)
-        }, indent=2)
+    """Report local readiness without pretending to verify remote connectivity."""
+    return json.dumps({
+        "status": "configured" if DEFAULT_API_KEY else "missing_api_key",
+        "message": "API key is configured; remote connectivity is not tested by this local status check."
+                   if DEFAULT_API_KEY else "Set CARTESIA_API_KEY to enable synthesis.",
+        "recommended_voices": list(POPULAR_VOICES),
+        "supported_emotions": list(EMOTION_MAP),
+        "delivery_modes": len(load_profiles()["delivery_modes"]),
+        "personalities": len(load_profiles()["personalities"]),
+        "default_model": DEFAULT_MODEL, "api_version": API_VERSION,
+        "cache_directory": os.path.expanduser(os.environ.get("CARTESIA_CACHE_DIR", "~/.cache/deepsh-cartesia"))
+    }, ensure_ascii=False, indent=2)
 
 if __name__ == "__main__":
     app.run(transport="stdio")
