@@ -63,8 +63,8 @@ def normalize_for_speech(text, language="auto", glossary_path=None, expand_digit
     normalized, applied = _replace_glossary(text, entries)
     numeric_tokens = re.findall(r"(?<!\w)\d+(?:[.,/]\d+)*(?!\w)", normalized)
     if expand_digits and lang:
-        normalized = re.sub(r"₹\\s*(?=\\d)", CURRENCY[lang] + " ", normalized)
-        normalized = re.sub(r"(?<=\\d)\\s*%", " " + PERCENT[lang], normalized)
+        normalized = re.sub(r"₹\s*(?=\d)", CURRENCY[lang] + " ", normalized)
+        normalized = re.sub(r"(?<=\d)\s*%", " " + PERCENT[lang], normalized)
         digit_words = DIGITS[lang]
         def speak_number(match):
             raw = match.group(0)
