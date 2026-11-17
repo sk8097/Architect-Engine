@@ -47,7 +47,6 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   Offset? _currentCursor;
   SnapPoint? _currentSnap;
   CadElement? _selectedElement;
-  Offset? _elementDragOffset;
   String _commandPrompt = 'Command: WALL - Tap or drag to draw architectural wall';
   Offset? _polyFirst;
   Offset? _polyLast;
