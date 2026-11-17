@@ -148,12 +148,16 @@ def resolve_emotions(emotion):
     return [value] if value and value != "neutral" else []
 
 def normalize_language(language):
-    value = (language or "").strip().lower()
-    if value in ("", "auto"):
+    value = (language or '').strip()
+    lower = value.lower()
+    if lower in ('', 'auto'):
         return None
-    if value == "hinglish":
-        return "hi"
-    return value
+    if lower == 'hinglish':
+        return 'hi'
+    if '-' in lower:
+        base, region = lower.split('-', 1)
+        return base + '-' + region.upper()
+    return lower
 
 def _cache_path(cache_key):
     root = os.path.expanduser(os.environ.get("CARTESIA_CACHE_DIR", "~/.cache/deepsh-cartesia"))
@@ -200,7 +204,7 @@ def generate_voiceover(transcript, voice="rohan", language="hi", emotion="neutra
     loc = locale or (lang if lang and "-" in lang else None)
     if lang and not loc:
         loc = lang
-    generation_config = build_generation_config(speed, volume, emotion, loc or lang or "en", model)
+    generation_config = build_generation_config(speed, volume, emotion, loc or lang or "auto", model)
     payload = {
         "model_id": model, "transcript": text, "voice": voice_id,
         "output_format": {"container": "wav", "encoding": "pcm_s16le",
