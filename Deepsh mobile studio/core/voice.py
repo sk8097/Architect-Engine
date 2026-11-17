@@ -21,6 +21,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from cartesia_tts import resolve_emotion, resolve_voice_id, normalize_language, API_VERSION, BASE_URL  # noqa: E402
+from pronunciation_normalizer import normalize_for_speech  # noqa: E402
 
 SR = 44100
 
@@ -90,6 +91,8 @@ def main():
     ap.add_argument("--speed", type=float, default=1.0, help="tempo factor applied after synthesis (0.9-1.1)")
     ap.add_argument("--force", action="store_true")
     ap.add_argument("--only-lines", default=None, help="Comma-separated line IDs to synthesize; all other cache entries must already be valid")
+    ap.add_argument("--normalize-digits", action="store_true", help="Speak numeric digits individually; off by default")
+    ap.add_argument("--glossary", default="pronunciation_glossary.json", help="Project-local pronunciation glossary JSON")
     ap.add_argument("--jobs", type=int, default=2, help="parallel requests (2 is safe on the free tier)")
     a = ap.parse_args()
     if not a.key:
@@ -103,7 +106,13 @@ def main():
         sys.exit("Unknown line ID(s): " + ", ".join(sorted(selected_ids - known_ids)))
     os.makedirs("vo_parts", exist_ok=True)
     vid = resolve_voice_id(a.voice, a.key)
+    pronunciation = {r["id"]: normalize_for_speech(r["text"], a.lang, a.glossary, a.normalize_digits) for r in rows}
+    with open("PRONUNCIATION.json", "w", encoding="utf-8") as stream:
+        json.dump({"schema_version": "pronunciation-plan-v1", "lines": pronunciation}, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
     def fetch(r):
+        spoken = pronunciation[r["id"]]
+        normalized_text = spoken["normalized_text"]
         pa, pj = f"vo_parts/{r['id']}.f32", f"vo_parts/{r['id']}.json"
         if selected_ids is not None and r["id"] not in selected_ids:
             try:
@@ -111,6 +120,9 @@ def main():
                 cache_matches = (
                     os.path.isfile(pa)
                     and cached_meta.get("text") == r["text"]
+                    and cached_meta.get("normalized_text") == normalized_text
+                    and cached_meta.get("normalizer_version") == spoken["ruleset_version"]
+                    and cached_meta.get("glossary_version") == spoken["glossary_version"]
                     and cached_meta.get("voice_id") == vid
                     and cached_meta.get("language") == a.lang
                     and cached_meta.get("emotion") == a.emotion
@@ -128,6 +140,9 @@ def main():
                 cached_meta = json.load(open(pj, encoding="utf-8"))
                 cache_matches = (
                     cached_meta.get("text") == r["text"]
+                    and cached_meta.get("normalized_text") == normalized_text
+                    and cached_meta.get("normalizer_version") == spoken["ruleset_version"]
+                    and cached_meta.get("glossary_version") == spoken["glossary_version"]
                     and cached_meta.get("voice_id") == vid
                     and cached_meta.get("language") == a.lang
                     and cached_meta.get("emotion") == a.emotion
@@ -143,11 +158,13 @@ def main():
                 pass  # Invalid/stale cache: regenerate this line only.
         for attempt in range(5):
             try:
-                audio, words = synth_line(r["text"], vid, a.lang, a.emotion, a.key)
+                audio, words = synth_line(normalized_text, vid, a.lang, a.emotion, a.key)
                 open(pa, "wb").write(audio.tobytes())
                 with open(pj, "w", encoding="utf-8") as meta_file:
                     json.dump({
-                        "text": r["text"], "words": words, "voice_id": vid,
+                        "text": r["text"], "normalized_text": normalized_text, "normalizer_version": spoken["ruleset_version"],
+                        "glossary_version": spoken["glossary_version"], "normalization_audit": spoken,
+                        "words": words, "voice_id": vid,
                         "language": a.lang, "emotion": a.emotion,
                         "model": "sonic-3.6", "sample_rate": SR,
                         "api_version": API_VERSION
