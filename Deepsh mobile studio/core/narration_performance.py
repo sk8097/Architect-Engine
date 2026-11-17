@@ -8,7 +8,7 @@ import os
 import statistics
 import wave
 
-from audio_quality import _decode_pcm
+try:\n    from .audio_quality import _decode_pcm\nexcept ImportError:\n    from audio_quality import _decode_pcm
 
 
 def _read_rows(path):
