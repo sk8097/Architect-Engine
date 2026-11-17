@@ -22,7 +22,18 @@ def _read_tsv(path):
 
 
 def _tokens(text):
-    return re.findall(r"[^\W_]+", (text or "").casefold(), flags=re.UNICODE)
+    # Keep combining marks (matras/diacritics) attached to their base letters.
+    out, current = [], []
+    for char in (text or "").casefold():
+        category = unicodedata.category(char)
+        if category[0] in ("L", "N") or (category[0] == "M" and current):
+            current.append(char)
+        elif current:
+            out.append("".join(current))
+            current = []
+    if current:
+        out.append("".join(current))
+    return out
 
 
 def _edit_distance(a, b):
