@@ -12,6 +12,7 @@ from core.cartesia_tts import (
 )
 from core.voice_direction_engine import load_profiles, build_direction_plan, generate_directed_voiceover
 from core.audio_quality import analyze_wav
+from core.pronunciation_normalizer import normalize_for_speech
 from mcp.server.mcpserver import MCPServer
 
 app = MCPServer(name="cartesia-mcp", version="2.0.0",
@@ -72,6 +73,16 @@ def cartesia_generate_directed_voice(transcript: str, delivery_mode: str = "docu
             delivery_mode=delivery_mode, personality=personality, voice=voice,
             language=language, force=force)
         return json.dumps(result, ensure_ascii=False, indent=2)
+    except Exception as exc:
+        return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
+
+@app.tool()
+def cartesia_normalize_pronunciation(transcript: str, language: str = "auto",
+    glossary_path: str = "pronunciation_glossary.json", expand_digits: bool = False) -> str:
+    """Preview deterministic pronunciation normalization locally; makes no API calls."""
+    try:
+        return json.dumps(normalize_for_speech(transcript, language, glossary_path, expand_digits),
+            ensure_ascii=False, indent=2)
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
 
