@@ -20,7 +20,7 @@ import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.reques
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cartesia_tts import resolve_emotion, resolve_voice_id, API_VERSION, BASE_URL  # noqa: E402
+from cartesia_tts import resolve_emotion, resolve_voice_id, normalize_language, API_VERSION, BASE_URL  # noqa: E402
 
 SR = 44100
 
@@ -28,6 +28,7 @@ SR = 44100
 def synth_line(text, voice_id, lang, emotion, key, model="sonic-3.6"):
     """Returns (float32 mono audio, [(word, start, end), ...]) for one line."""
     language_code = (lang or "").split("-")[0].lower()
+    provider_locale = normalize_language(lang)
     generation_config = {"speed": 1.0, "volume": 1.0}
     # Cartesia documents emotion guidance for English only.
     if language_code == "en" and emotion and emotion.lower() != "neutral":
@@ -35,8 +36,9 @@ def synth_line(text, voice_id, lang, emotion, key, model="sonic-3.6"):
     payload = {"model_id": model, "transcript": text.strip(), "voice": voice_id,
                "output_format": {"container": "raw", "encoding": "pcm_f32le", "sample_rate": SR},
                "add_timestamps": True, "generation_config": generation_config}
-    if lang:
-        payload["locale"] = lang
+    if provider_locale:
+        payload["locale"] = provider_locale
+    payload["normalization"] = "en-IN" if (lang or "").lower() == "hinglish" else "auto"
     req = urllib.request.Request(BASE_URL + "/tts/sse", data=json.dumps(payload).encode(), headers={
         "Authorization": "Bearer " + key, "Cartesia-Version": API_VERSION,
         "Content-Type": "application/json"})
