@@ -99,6 +99,24 @@ def main():
     vid = resolve_voice_id(a.voice, a.key)
     def fetch(r):
         pa, pj = f"vo_parts/{r['id']}.f32", f"vo_parts/{r['id']}.json"
+        if selected_ids is not None and r["id"] not in selected_ids:
+            try:
+                cached_meta = json.load(open(pj, encoding="utf-8"))
+                cache_matches = (
+                    os.path.isfile(pa)
+                    and cached_meta.get("text") == r["text"]
+                    and cached_meta.get("voice_id") == vid
+                    and cached_meta.get("language") == a.lang
+                    and cached_meta.get("emotion") == a.emotion
+                    and cached_meta.get("model") == "sonic-3.6"
+                    and cached_meta.get("sample_rate") == SR
+                    and cached_meta.get("api_version") == API_VERSION
+                )
+            except (OSError, ValueError, TypeError):
+                cache_matches = False
+            if not cache_matches:
+                raise RuntimeError("Unselected line {} has missing/stale cache; refusing to synthesize it.".format(r["id"]))
+            return None
         if os.path.exists(pa) and os.path.exists(pj) and not a.force:
             try:
                 cached_meta = json.load(open(pj, encoding="utf-8"))
