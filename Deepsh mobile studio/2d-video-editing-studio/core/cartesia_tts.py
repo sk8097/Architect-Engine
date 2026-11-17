@@ -200,7 +200,10 @@ def generate_voiceover(transcript, voice="rohan", language="hi", emotion="neutra
     if not key:
         raise ValueError("Missing Cartesia API key. Set CARTESIA_API_KEY.")
     voice_id = resolve_voice_id(voice, api_key=key)
+    raw_language = (language or "").strip().lower()
     lang = normalize_language(language)
+    if raw_language == "hinglish" and normalization == "auto":
+        normalization = "en-IN"
     loc = locale or (lang if lang and "-" in lang else None)
     if lang and not loc:
         loc = lang
