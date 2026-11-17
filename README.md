@@ -69,6 +69,10 @@ The Cartesia voice-direction planner, pronunciation normalizer, audio analyzers,
 - Third-party fonts, music, sound effects, and bundled media require independent licence/provenance checks before commercial publication.
 - Google Flow bridge workflows require the user's own browser session and local bridge service.
 
+## Legacy migration scripts
+
+Root-level source-generation scripts are historical and can overwrite current Dart files. Review [LEGACY_MIGRATION_SCRIPTS.md](LEGACY_MIGRATION_SCRIPTS.md) before running any of them. The current authoritative Flutter source is under `lib/`.
+
 ## Development policy
 
 - Keep provider/API calls out of CI.
