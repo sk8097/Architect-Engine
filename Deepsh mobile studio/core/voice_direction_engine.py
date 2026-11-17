@@ -67,7 +67,11 @@ def _sentence_signals(sentence):
         "is_long_sentence": count >= 24,
     }
 
-def _adaptive_controls(intent, signals, mode, person, adaptive=True):
+def _adaptive_controls(intent, signals, mode, person, adaptive=True, policy=None):
+    policy = policy or {}
+    speed_bounds = policy.get("speed_bounds", [0.78, 1.18])
+    volume_bounds = policy.get("volume_ratio_bounds", [0.9, 1.12])
+    pause_bounds = policy.get("pause_bounds_ms", [160, 720])
     base_speed = float(mode.get("target_speed", 1.0)) * float(person.get("speed_multiplier", 1.0))
     speed_factor = {
         "question": 0.98, "revelation": 0.91, "financial_fact": 0.96,
@@ -94,9 +98,9 @@ def _adaptive_controls(intent, signals, mode, person, adaptive=True):
             pause += 60
         if signals["has_quoted_phrase"]:
             volume_ratio = max(volume_ratio, 1.025)
-    speed = _clamp(base_speed * speed_factor, 0.78, 1.18)
-    volume_ratio = round(max(0.9, min(1.12, volume_ratio)), 3)
-    pause = max(160, min(720, int(pause)))
+    speed = _clamp(base_speed * speed_factor, float(speed_bounds[0]), float(speed_bounds[1]))
+    volume_ratio = round(max(float(volume_bounds[0]), min(float(volume_bounds[1]), volume_ratio)), 3)
+    pause = max(int(pause_bounds[0]), min(int(pause_bounds[1]), int(pause)))
     return speed, volume_ratio, pause
 
 def build_direction_plan(text, delivery_mode=None, personality=None, language="auto",
@@ -113,6 +117,8 @@ def build_direction_plan(text, delivery_mode=None, personality=None, language="a
     if person_id not in people:
         raise ValueError("Unknown personality: " + person_id)
     mode, person = modes[mode_id], people[person_id]
+    adaptive_policy = cfg.get("adaptive_performance", {})
+    adaptive = bool(adaptive and adaptive_policy.get("enabled_by_default", True))
     provider_language, normalization = _language_settings(language)
     segments = []
     for index, sentence in enumerate(_split_segments(text), 1):
@@ -124,7 +130,7 @@ def build_direction_plan(text, delivery_mode=None, personality=None, language="a
             "explanation": mode["default_emotion"],
         }[intent]
         speed, volume_ratio, pause_after = _adaptive_controls(
-            intent, signals, mode, person, adaptive=adaptive)
+            intent, signals, mode, person, adaptive=adaptive, policy=adaptive_policy)
         segments.append({
             "segment_id": "{:04d}".format(index), "text": sentence,
             "intent": intent, "suggested_emotion": suggested_emotion,
@@ -163,11 +169,14 @@ def render_directed_transcript(plan, profiles=None, emotion_tags_enabled=None):
     allow_emotion = enabled and language == "en"
     minimum_break = int(ssml_cfg.get("minimum_break_ms", 350))
     max_breaks = int(ssml_cfg.get("max_explicit_breaks_per_script", 12))
+    adaptive_policy = cfg.get("adaptive_performance", {})
+    speed_bounds = adaptive_policy.get("speed_bounds", [0.78, 1.18])
+    volume_bounds = adaptive_policy.get("volume_ratio_bounds", [0.9, 1.12])
     rendered, break_count, volume_count = [], 0, 0
     for index, segment in enumerate(plan["segments"]):
         sentence = escape(segment["text"], {'"': "&quot;", "'": "&apos;"})
-        speed = _clamp(segment.get("speed", 1.0), 0.78, 1.18)
-        volume_ratio = max(0.9, min(1.12, float(segment.get("volume_ratio", 1.0))))
+        speed = _clamp(segment.get("speed", 1.0), float(speed_bounds[0]), float(speed_bounds[1]))
+        volume_ratio = max(float(volume_bounds[0]), min(float(volume_bounds[1]), float(segment.get("volume_ratio", 1.0))))
         chunk = '<speed ratio="{:.3f}"/>'.format(speed)
         if abs(volume_ratio - 1.0) >= 0.01:
             chunk += '<volume ratio="{:.3f}"/>'.format(volume_ratio)
