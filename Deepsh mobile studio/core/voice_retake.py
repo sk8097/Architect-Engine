@@ -3,7 +3,9 @@
 import argparse
 import json
 import os
+import shutil
 import subprocess
+import time
 import sys
 
 
@@ -94,12 +96,47 @@ def main():
     if not os.environ.get("CARTESIA_API_KEY"):
         raise SystemExit("CARTESIA_API_KEY is not set; no synthesis request was sent.")
     ids = ",".join(item["line_id"] for item in plan["selected_lines"])
+    pending_path = "vo_parts/review_pending.json"
+    if os.path.isfile(pending_path):
+        with open(pending_path, encoding="utf-8") as stream:
+            previous_review = json.load(stream)
+        if previous_review.get("status") == "pending":
+            raise SystemExit("A previous retake is awaiting review; run studio.py voice-review compare/approve/reject first.")
+    backup_dir = os.path.join("vo_parts", "review_baseline_" + str(time.time_ns()))
+    os.makedirs(backup_dir, exist_ok=False)
+    backup_files = []
+    for line_id in ids.split(","):
+        for suffix in (".f32", ".json"):
+            source = os.path.join(args.cache_dir, line_id + suffix)
+            if not os.path.isfile(source):
+                raise SystemExit("Cannot create review baseline; missing approved cache: " + source)
+            target = os.path.join(backup_dir, line_id + suffix)
+            shutil.copy2(source, target)
+            backup_files.append({"source": source, "backup": target})
+    for filename in ("VO.wav", "VO.tsv", "WORDS.tsv"):
+        if os.path.isfile(filename):
+            target = os.path.join(backup_dir, filename)
+            shutil.copy2(filename, target)
+            backup_files.append({"source": filename, "backup": target})
+    with open(pending_path, "w", encoding="utf-8") as stream:
+        json.dump({"schema": "voice-retake-review-v1", "status": "pending",
+                   "line_ids": ids.split(","), "backup_dir": backup_dir,
+                   "backup_files": backup_files, "plan_path": os.path.abspath(args.out)},
+                  stream, ensure_ascii=False, indent=2)
+        stream.write("\\n")
     voice_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), "voice.py")
     command = [sys.executable, voice_script, "--only-lines", ids]
     if args.voice_args:
         import shlex
         command.extend(shlex.split(args.voice_args))
-    subprocess.run(command, check=True)
+    try:
+        subprocess.run(command, check=True)
+    except Exception:
+        for item in backup_files:
+            shutil.copy2(item["backup"], item["source"])
+        if os.path.isfile(pending_path):
+            os.remove(pending_path)
+        raise
 
 
 if __name__ == "__main__":
