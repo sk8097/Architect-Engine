@@ -11,6 +11,7 @@ import json
 import os
 import re
 import wave
+import unicodedata
 
 
 def _read_tsv(path):
