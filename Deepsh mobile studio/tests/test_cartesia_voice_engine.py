@@ -46,6 +46,34 @@ class VoiceDirectionTests(unittest.TestCase):
         self.assertEqual(stats["emotion_tags_enabled"], False)
         self.assertGreater(stats["ssml_speed_tags"], 0)
 
+    def test_adaptive_plan_responds_to_numeric_and_sentence_signals(self):
+        text = "The fee is 25 percent, and the rate changes?"
+        adaptive = build_direction_plan(text, language="en", adaptive=True)
+        fixed = build_direction_plan(text, language="en", adaptive=False)
+        self.assertTrue(adaptive["adaptive_performance"])
+        self.assertTrue(adaptive["segments"][0]["signals"]["has_numeric_content"])
+        self.assertLess(adaptive["segments"][0]["speed"], fixed["segments"][0]["speed"])
+        self.assertGreater(adaptive["segments"][0]["pause_after_ms"], fixed["segments"][0]["pause_after_ms"])
+
+    def test_adaptive_controls_are_bounded_and_deterministic(self):
+        text = "A surprising result! This is a much longer sentence with several details, figures, and clauses that need measured delivery."
+        first = build_direction_plan(text, language="hi")
+        second = build_direction_plan(text, language="hi")
+        self.assertEqual(first["segments"], second["segments"])
+        for segment in first["segments"]:
+            self.assertGreaterEqual(segment["speed"], 0.78)
+            self.assertLessEqual(segment["speed"], 1.18)
+            self.assertGreaterEqual(segment["volume_ratio"], 0.9)
+            self.assertLessEqual(segment["volume_ratio"], 1.12)
+            self.assertLessEqual(segment["pause_after_ms"], 720)
+
+    def test_adaptive_ssml_renders_volume_direction(self):
+        plan = build_direction_plan("Stop now! This is important.", language="en")
+        rendered, stats = render_directed_transcript(plan)
+        self.assertIn("<volume ratio=", rendered)
+        self.assertGreater(stats["ssml_volume_tags"], 0)
+        self.assertTrue(stats["adaptive_performance"])
+
     def test_generation_controls_respect_language_and_ranges(self):
         hindi = cartesia_tts.build_generation_config(
             speed=0.94, volume=1.02, emotion="dramatic", language="hi")
