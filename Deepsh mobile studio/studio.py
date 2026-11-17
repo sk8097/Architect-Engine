@@ -219,13 +219,13 @@ def main():
         if _cues_is_stub("cues.tsv") or "--autocues" in rest:
             print("cues.tsv unpopulated or missing -> auto-generating rich sound design cues (BGM + Foley SFX)...")
             run(os.path.join(CORE, "mix.py"), "--autocues", *(["--lines", "VO.tsv"] if os.path.exists("VO.tsv") else []))
-        quality_check("VO.wav", strict="--strict-quality" in rest)
+        quality_check("VO.wav", strict=strict_quality)
         run(os.path.join(CORE, "mix.py"), "cues.tsv", "--vo", "VO.wav",
             *(["--lines", "VO.tsv"] if os.path.exists("VO.tsv") else []),
             *(["--words", "WORDS.tsv"] if os.path.exists("WORDS.tsv") else []),
             "--out", "mix.wav", *rest)
         if os.path.exists("mix.wav"):
-            quality_check("mix.wav", strict="--strict-quality" in rest)
+            quality_check("mix.wav", strict=strict_quality)
     elif cmd in ("check", "sheet", "still"):
         run(eng, cmd, *rest)
     elif cmd in ("preview", "render"):
