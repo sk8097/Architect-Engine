@@ -98,6 +98,7 @@ def cartesia_status() -> str:
         "supported_emotions": list(EMOTION_MAP),
         "delivery_modes": len(load_profiles()["delivery_modes"]),
         "personalities": len(load_profiles()["personalities"]),
+        "adaptive_performance": load_profiles().get("adaptive_performance", {}).get("enabled_by_default", False),
         "default_model": DEFAULT_MODEL, "api_version": API_VERSION,
         "cache_directory": os.path.expanduser(os.environ.get("CARTESIA_CACHE_DIR", "~/.cache/deepsh-cartesia"))
     }, ensure_ascii=False, indent=2)
