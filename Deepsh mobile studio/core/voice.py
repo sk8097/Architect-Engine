@@ -12,31 +12,43 @@ reads as sloppy. So word times are never guessed here:
   * WORDS.tsv gets a `src` column: `cartesia` (exact) or `estimate` (fallback only if the
     API returned no timestamps -- `studio.py check` warns about any estimated line)
 
-usage:  CARTESIA_API_KEY=sk_car_... python core/voice.py [--voice anuj] [--lang hi] [--speed 1.0] [--force]
+usage:  CARTESIA_API_KEY=sk_car_... python core/voice.py [--voice anuj] [--lang hi] [--normalize-digits] [--glossary pronunciation_glossary.json] [--speed 1.0] [--force]
 Per-line results are cached in vo_parts/ (audio + timestamps), so re-runs only fetch missing lines.
 """
-import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.request
+import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.request, urllib.error
 
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cartesia_tts import resolve_emotions, resolve_voice_id, API_VERSION, BASE_URL  # noqa: E402
+from cartesia_tts import resolve_emotion, resolve_voice_id, normalize_language, API_VERSION, BASE_URL  # noqa: E402
+from pronunciation_normalizer import normalize_for_speech  # noqa: E402
 
 SR = 44100
 
 
 def synth_line(text, voice_id, lang, emotion, key, model="sonic-3.6"):
     """Returns (float32 mono audio, [(word, start, end), ...]) for one line."""
-    vd = {"mode": "id", "id": voice_id}
-    em = resolve_emotions(emotion)
-    if em:
-        vd["__experimental_controls"] = {"emotion": em}
-    payload = {"model_id": model, "transcript": text.strip(), "voice": vd, "language": lang,
+    language_code = (lang or "").split("-")[0].lower()
+    provider_locale = normalize_language(lang)
+    generation_config = {"speed": 1.0, "volume": 1.0}
+    # Cartesia documents emotion guidance for English only.
+    if language_code == "en" and emotion and emotion.lower() != "neutral":
+        generation_config["emotion"] = resolve_emotion(emotion)
+    payload = {"model_id": model, "transcript": text.strip(), "voice": voice_id,
                "output_format": {"container": "raw", "encoding": "pcm_f32le", "sample_rate": SR},
-               "add_timestamps": True}
-    req = urllib.request.Request(f"{BASE_URL}/tts/sse", data=json.dumps(payload).encode(), headers={
-        "X-API-Key": key, "Cartesia-Version": API_VERSION, "Content-Type": "application/json"})
-    raw = urllib.request.urlopen(req, timeout=90).read().decode("utf-8")
+               "add_timestamps": True, "generation_config": generation_config}
+    if provider_locale:
+        payload["locale"] = provider_locale
+    payload["normalization"] = "en-IN" if (lang or "").lower() == "hinglish" else "auto"
+    req = urllib.request.Request(BASE_URL + "/tts/sse", data=json.dumps(payload).encode(), headers={
+        "Authorization": "Bearer " + key, "Cartesia-Version": API_VERSION,
+        "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:1200]
+        raise RuntimeError("Cartesia SSE HTTP {}: {}".format(exc.code, detail)) from exc
     audio, words = bytearray(), []
     for line in raw.splitlines():
         if not line.startswith("data:"):
@@ -78,22 +90,85 @@ def main():
     ap.add_argument("--key", default=os.environ.get("CARTESIA_API_KEY"))
     ap.add_argument("--speed", type=float, default=1.0, help="tempo factor applied after synthesis (0.9-1.1)")
     ap.add_argument("--force", action="store_true")
+    ap.add_argument("--only-lines", default=None, help="Comma-separated line IDs to synthesize; all other cache entries must already be valid")
+    ap.add_argument("--normalize-digits", action="store_true", help="Speak numeric digits individually; off by default")
+    ap.add_argument("--glossary", default="pronunciation_glossary.json", help="Project-local pronunciation glossary JSON")
     ap.add_argument("--jobs", type=int, default=2, help="parallel requests (2 is safe on the free tier)")
     a = ap.parse_args()
     if not a.key:
         sys.exit("Set CARTESIA_API_KEY or pass --key (free key: play.cartesia.ai -> API Keys)")
     rows = list(csv.DictReader(open("LINES.tsv", encoding="utf-8"), delimiter="\t"))
+    selected_ids = set(x.strip() for x in (a.only_lines or "").split(",") if x.strip()) if a.only_lines else None
+    known_ids = {r["id"] for r in rows}
+    if selected_ids is not None and not selected_ids:
+        sys.exit("--only-lines requires at least one line ID")
+    if selected_ids is not None and not selected_ids.issubset(known_ids):
+        sys.exit("Unknown line ID(s): " + ", ".join(sorted(selected_ids - known_ids)))
     os.makedirs("vo_parts", exist_ok=True)
     vid = resolve_voice_id(a.voice, a.key)
+    pronunciation = {r["id"]: normalize_for_speech(r["text"], a.lang, a.glossary, a.normalize_digits) for r in rows}
+    with open("PRONUNCIATION.json", "w", encoding="utf-8") as stream:
+        json.dump({"schema_version": "pronunciation-plan-v1", "lines": pronunciation}, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
     def fetch(r):
+        spoken = pronunciation[r["id"]]
+        normalized_text = spoken["normalized_text"]
         pa, pj = f"vo_parts/{r['id']}.f32", f"vo_parts/{r['id']}.json"
-        if os.path.exists(pa) and os.path.exists(pj) and not a.force:
+        if selected_ids is not None and r["id"] not in selected_ids:
+            try:
+                cached_meta = json.load(open(pj, encoding="utf-8"))
+                cache_matches = (
+                    os.path.isfile(pa)
+                    and cached_meta.get("text") == r["text"]
+                    and cached_meta.get("normalized_text") == normalized_text
+                    and cached_meta.get("normalizer_version") == spoken["ruleset_version"]
+                    and cached_meta.get("glossary_version") == spoken["glossary_version"]
+                    and cached_meta.get("voice_id") == vid
+                    and cached_meta.get("language") == a.lang
+                    and cached_meta.get("emotion") == a.emotion
+                    and cached_meta.get("model") == "sonic-3.6"
+                    and cached_meta.get("sample_rate") == SR
+                    and cached_meta.get("api_version") == API_VERSION
+                )
+            except (OSError, ValueError, TypeError):
+                cache_matches = False
+            if not cache_matches:
+                raise RuntimeError("Unselected line {} has missing/stale cache; refusing to synthesize it.".format(r["id"]))
             return None
+        if os.path.exists(pa) and os.path.exists(pj) and not a.force:
+            try:
+                cached_meta = json.load(open(pj, encoding="utf-8"))
+                cache_matches = (
+                    cached_meta.get("text") == r["text"]
+                    and cached_meta.get("normalized_text") == normalized_text
+                    and cached_meta.get("normalizer_version") == spoken["ruleset_version"]
+                    and cached_meta.get("glossary_version") == spoken["glossary_version"]
+                    and cached_meta.get("voice_id") == vid
+                    and cached_meta.get("language") == a.lang
+                    and cached_meta.get("emotion") == a.emotion
+                    and cached_meta.get("model") == "sonic-3.6"
+                    and cached_meta.get("sample_rate") == SR
+                    and cached_meta.get("api_version") == API_VERSION
+                )
+                if cache_matches and (selected_ids is None or r["id"] not in selected_ids):
+                    return None
+                if selected_ids is not None and r["id"] not in selected_ids:
+                    raise RuntimeError("Line {} has missing/stale cache but was not selected; refusing full narration regeneration.".format(r["id"]))
+            except (OSError, ValueError, TypeError):
+                pass  # Invalid/stale cache: regenerate this line only.
         for attempt in range(5):
             try:
-                audio, words = synth_line(r["text"], vid, a.lang, a.emotion, a.key)
+                audio, words = synth_line(normalized_text, vid, a.lang, a.emotion, a.key)
                 open(pa, "wb").write(audio.tobytes())
-                json.dump({"text": r["text"], "words": words}, open(pj, "w", encoding="utf-8"), ensure_ascii=False)
+                with open(pj, "w", encoding="utf-8") as meta_file:
+                    json.dump({
+                        "text": r["text"], "normalized_text": normalized_text, "normalizer_version": spoken["ruleset_version"],
+                        "glossary_version": spoken["glossary_version"], "normalization_audit": spoken,
+                        "words": words, "voice_id": vid,
+                        "language": a.lang, "emotion": a.emotion,
+                        "model": "sonic-3.6", "sample_rate": SR,
+                        "api_version": API_VERSION
+                    }, meta_file, ensure_ascii=False)
                 print(f"  ✓ line {r['id']}  {len(audio) / SR:.1f}s  {len(words)} timed words", flush=True)
                 return None
             except Exception as ex:                       # rate limit / network: back off and retry

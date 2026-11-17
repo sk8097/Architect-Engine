@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../constants/app_colors.dart';
+import 'cad_editor_screen.dart';
 
 class ExportScreen extends StatelessWidget {
   const ExportScreen({super.key});
 
-  void _export(BuildContext context, String format) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Exporting project in $format format... Ready!')),
+  void _openCadExport(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const CadEditorScreen(projectTitle: 'Drawing1'),
+      ),
     );
   }
 
@@ -15,31 +17,44 @@ class ExportScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Export Center')),
-      body: Padding(
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            _buildTile(context, '📄 PDF Document', 'Print-ready A3/A4 architectural drawing sets', 'PDF'),
-            const SizedBox(height: 12),
-            _buildTile(context, '📐 CAD / DXF Format', 'AutoCAD and vector CAD compatible entities', 'DXF'),
-            const SizedBox(height: 12),
-            _buildTile(context, '🖼️ High-Res Image', 'Rendered PNG/JPG elevation and plan visualizations', 'Image'),
-            const SizedBox(height: 12),
-            _buildTile(context, '📊 BOQ Spreadsheet', 'Itemized material quantity takeoff in CSV/Excel', 'CSV'),
-          ],
-        ),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.darkBorder),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('CAD drawing export', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                SizedBox(height: 8),
+                Text(
+                  'Open the CAD editor to export the current Drawing1 workspace. '
+                  'The editor currently supports DXF and PDF sharing. Draw or open your saved workspace first.',
+                  style: TextStyle(fontSize: 13, height: 1.45, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          ListTile(
+            tileColor: Theme.of(context).cardColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+              side: const BorderSide(color: AppColors.darkBorder),
+            ),
+            leading: const Icon(Icons.edit_document, color: AppColors.darkPrimary),
+            title: const Text('Open CAD Editor', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
+            subtitle: const Text('Create or edit a drawing, then share it as DXF or PDF', style: TextStyle(fontSize: 11)),
+            trailing: const Icon(Icons.arrow_forward),
+            onTap: () => _openCadExport(context),
+          ),
+        ],
       ),
-    );
-  }
-
-  Widget _buildTile(BuildContext context, String title, String sub, String fmt) {
-    return ListTile(
-      tileColor: Theme.of(context).cardColor,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: const BorderSide(color: AppColors.darkBorder)),
-      title: Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
-      subtitle: Text(sub, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      trailing: const Icon(Icons.download),
-      onTap: () => _export(context, fmt),
     );
   }
 }
@@ -59,98 +74,33 @@ class ShareScreen extends StatelessWidget {
             const SizedBox(height: 12),
             const Text('Share Architect Engine', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 6),
-            const Text('Help fellow architects, civil engineers, and homeowners build smarter.', style: TextStyle(color: Colors.grey, fontSize: 13), textAlign: TextAlign.center),
+            const Text(
+              'Help fellow architects, civil engineers, and homeowners build smarter.',
+              style: TextStyle(color: Colors.grey, fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.darkBorder),
-              ),
-              child: Row(
-                children: [
-                  const Expanded(child: Text('https://architectengine.app', style: TextStyle(fontSize: 13))),
-                  IconButton(
-                    icon: const Icon(Icons.copy, size: 20),
-                    onPressed: () {
-                      Clipboard.setData(const ClipboardData(text: 'https://architectengine.app'));
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Link copied to clipboard!')));
-                    },
-                  ),
-                ],
-              ),
+            ElevatedButton.icon(
+              onPressed: () => _shareApp(context),
+              icon: const Icon(Icons.share),
+              label: const Text('Share'),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class AboutScreen extends StatelessWidget {
-  const AboutScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('About Us')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Center(
-              child: Column(
-                children: const [
-                  Text('🏠', style: TextStyle(fontSize: 52)),
-                  SizedBox(height: 10),
-                  Text('ARCHITECT ENGINE', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                  Text('Design • Plan • Build • Smarter', style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  SizedBox(height: 4),
-                  Text('Version 1.0.0', style: TextStyle(fontSize: 11, color: AppColors.darkPrimary, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            const Text('🎯 Our Mission', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.darkPrimary)),
-            const SizedBox(height: 6),
-            const Text('To make professional architectural design and civil engineering calculation accessible to everyone — homeowners, students, contractors, and architects.', style: TextStyle(fontSize: 13, height: 1.5)),
-            const SizedBox(height: 18),
-            const Text('✨ What We Offer', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.darkPrimary)),
-            const SizedBox(height: 6),
-            const Text('• 168 Engineering, Architectural & BOQ Calculation Tools\n• 11 Coordinated Architectural Design Modules\n• 9 Professional CAD Drafting & Standard Specifications\n• Built-in Vastu Shastra Guidelines\n• Multi-Language Support (English, Hindi, Marathi, Gujarati, Tamil)', style: TextStyle(fontSize: 13, height: 1.6)),
-            const SizedBox(height: 24),
-            Center(child: Text('Made with ❤️ in India', style: TextStyle(color: Colors.grey.shade400, fontSize: 12))),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class PrivacyPolicyScreen extends StatelessWidget {
-  const PrivacyPolicyScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('Privacy Policy')),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('Privacy Policy for Architect Engine', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text('Last updated: January 2025 • Version 1.0\n\n'
-                '1. Information We Collect: Project dimensional records, user profile preferences, and tool settings stored on your device.\n\n'
-                '2. Data Security: All design records remain private on your device unless you explicitly opt to backup to your personal Google Drive.\n\n'
-                '3. Third-Party Sharing: We never monetize or sell personal drawing data to third parties.\n\n'
-                '4. Offline Priority: Core engineering calculations run completely locally without transferring data to external servers.',
-                style: TextStyle(fontSize: 13, height: 1.6, color: Colors.grey)),
-          ],
-        ),
+  Future<void> _shareApp(BuildContext context) async {
+    // Sharing the application binary/link is intentionally not fabricated here.
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('App link unavailable'),
+        content: const Text('A verified public download link has not been configured yet.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Close')),
+        ],
       ),
     );
   }

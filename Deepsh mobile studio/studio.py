@@ -146,15 +146,46 @@ def key_props():
               + (f"   ⚠ not separated: {' '.join(miss)} (regenerate the sheet: python studio.py generate --only {n})" if miss else ""))
 
 
+
+def quality_check(audio_path="VO.wav", strict=False):
+    """Inspect a WAV locally and persist a machine-readable report."""
+    sys.path.insert(0, CORE)
+    from audio_quality import analyze_wav
+    import json
+    report = analyze_wav(audio_path)
+    report_path = audio_path + ".quality.json"
+    with open(report_path, "w", encoding="utf-8") as stream:
+        json.dump(report, stream, ensure_ascii=False, indent=2)
+        stream.write("\n")
+    signal = report["signal"]
+    print("Audio quality: {} | {:.2f}s | peak {} dBFS | RMS {} dBFS | clipping {:.3f}%".format(report["status"].upper(), report["format"]["duration_seconds"], signal["peak_dbfs"], signal["rms_dbfs"], signal["clipped_frame_ratio"] * 100))
+    print("Quality report: {}".format(os.path.abspath(report_path)))
+    for warning in report["warnings"]:
+        print("  WARNING: " + warning)
+    if strict and report["status"] != "pass":
+        sys.exit("Audio quality gate failed (strict mode).")
+    return report
+
 def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
         sys.exit(__doc__)
     cmd, rest = sys.argv[1], sys.argv[2:]
+    strict_quality = "--strict-quality" in rest
+    rest = [arg for arg in rest if arg != "--strict-quality"]
     eng = os.path.join(CORE, "engine", "render.py")
     if cmd == "new":
         new(rest[0] if rest else "my_video")
     elif cmd == "voice":
+        review_state = os.path.join("vo_parts", "review_pending.json")
+        if os.path.isfile(review_state):
+            import json
+            with open(review_state, encoding="utf-8") as stream:
+                pending_review = json.load(stream)
+            if pending_review.get("status") == "pending":
+                sys.exit("A retake is awaiting review. Run `studio.py voice-review compare`, then approve or reject before another voice render.")
         run(os.path.join(CORE, "voice.py"), *rest)
+        if os.path.exists("VO.wav"):
+            quality_check("VO.wav", strict=strict_quality)
     elif cmd == "plan":
         run(os.path.join(CORE, "asset_planner.py"), *rest)
     elif cmd == "lint":
@@ -171,19 +202,35 @@ def main():
         run(os.path.join(CORE, "flow_safe.py"), *[x for x in rest if x != "--no-lint"])
     elif cmd == "key":
         key_props()
+    elif cmd == "narration-audit":
+        run(os.path.join(CORE, "narration_audit.py"), *rest)
+    elif cmd == "performance-audit":
+        run(os.path.join(CORE, "narration_performance.py"), *rest)
+    elif cmd == "retake-plan":
+        run(os.path.join(CORE, "voice_retake.py"), *rest)
+    elif cmd == "voice-review":
+        run(os.path.join(CORE, "voice_review.py"), *rest)
+    elif cmd == "quality":
+        audio_path = rest[0] if rest and not rest[0].startswith("-") else "VO.wav"
+        quality_check(audio_path, strict="--strict" in rest)
     elif cmd == "mix":
         if not os.path.exists("VO.wav"):
             sys.exit("mix needs VO.wav -- run `python studio.py voice` first")
         if _cues_is_stub("cues.tsv") or "--autocues" in rest:
             print("cues.tsv unpopulated or missing -> auto-generating rich sound design cues (BGM + Foley SFX)...")
             run(os.path.join(CORE, "mix.py"), "--autocues", *(["--lines", "VO.tsv"] if os.path.exists("VO.tsv") else []))
+        quality_check("VO.wav", strict=strict_quality)
         run(os.path.join(CORE, "mix.py"), "cues.tsv", "--vo", "VO.wav",
             *(["--lines", "VO.tsv"] if os.path.exists("VO.tsv") else []),
             *(["--words", "WORDS.tsv"] if os.path.exists("WORDS.tsv") else []),
             "--out", "mix.wav", *rest)
+        if os.path.exists("mix.wav"):
+            quality_check("mix.wav", strict=strict_quality)
     elif cmd in ("check", "sheet", "still"):
         run(eng, cmd, *rest)
     elif cmd in ("preview", "render"):
+        if os.path.exists("VO.wav"):
+            quality_check("VO.wav", strict="--strict-quality" in rest)
         # Auto-mix sound if VO.wav exists and mix.wav is missing
         if os.path.exists("VO.wav") and (not os.path.exists("mix.wav") or _cues_is_stub("cues.tsv")):
             print("Auto-mixing compulsory broadcast background music and Foley SFX (-14 LUFS)...")
@@ -193,6 +240,8 @@ def main():
                 *(["--lines", "VO.tsv"] if os.path.exists("VO.tsv") else []),
                 *(["--words", "WORDS.tsv"] if os.path.exists("WORDS.tsv") else []),
                 "--out", "mix.wav")
+        if os.path.exists("mix.wav"):
+            quality_check("mix.wav", strict="--strict-quality" in rest)
         run(eng, "video" if cmd == "render" else cmd, *rest)
     elif cmd in ("harvest", "collect"):
         run(os.path.join(CORE, "flow_harvest.py"), *rest)

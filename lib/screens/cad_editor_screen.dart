@@ -47,7 +47,6 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
   Offset? _currentCursor;
   SnapPoint? _currentSnap;
   CadElement? _selectedElement;
-  Offset? _elementDragOffset;
   String _commandPrompt = 'Command: WALL - Tap or drag to draw architectural wall';
   Offset? _polyFirst;
   Offset? _polyLast;
@@ -190,7 +189,6 @@ class _CadEditorScreenState extends State<CadEditorScreen> {
       setState(() {
         _selectedElement = hit;
         if (hit != null) {
-          _elementDragOffset = snapped - hit.start;
           _moveLast = snapped;
           _moveUndoSaved = false;
           _commandPrompt = 'Selected: ${hit.type.name.toUpperCase()} (Layer: ${hit.layerId})';

@@ -3,6 +3,15 @@ name: Build Android APK
 on:
   push:
     branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+    paths:
+      - "lib/**"
+      - "pubspec.yaml"
+      - "pubspec.lock"
+      - ".github/workflows/build_apk.yml"
+      - "*.dart"
+      - "*.py"
   workflow_dispatch:
 
 jobs:
@@ -58,6 +67,12 @@ jobs:
 
       - name: Install Dependencies
         run: flutter pub get
+
+      - name: Analyze Flutter application
+        run: flutter analyze --no-fatal-infos
+
+      - name: Run Flutter widget tests
+        run: flutter test
 
       - name: Build Android Release APK
         run: flutter build apk --release --android-skip-build-dependency-validation

@@ -1,28 +1,50 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/project_model.dart';
 
 class ProjectProvider extends ChangeNotifier {
   List<ProjectModel> _projects = [];
+  int _corruptProjectCount = 0;
 
-  List<ProjectModel> get projects => _projects;
+  List<ProjectModel> get projects => List.unmodifiable(_projects);
   bool get hasProjects => _projects.isNotEmpty;
+  int get corruptProjectCount => _corruptProjectCount;
 
   ProjectProvider() {
     _loadProjects();
   }
 
+  String _newProjectId() => 'p_${DateTime.now().microsecondsSinceEpoch}';
+
   Future<void> _loadProjects() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonList = prefs.getStringList('ae_projects_v1') ?? [];
-    _projects = jsonList.map((e) => ProjectModel.fromJson(e)).toList();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final stored = prefs.getStringList('ae_projects_v1') ?? [];
+      final loaded = <ProjectModel>[];
+      _corruptProjectCount = 0;
+      for (final entry in stored) {
+        try {
+          final project = ProjectModel.fromJson(entry);
+          if (project.id.isEmpty || project.length <= 0 || project.width <= 0) {
+            _corruptProjectCount++;
+            continue;
+          }
+          loaded.add(project);
+        } catch (_) {
+          _corruptProjectCount++;
+        }
+      }
+      _projects = loaded;
+    } catch (error) {
+      debugPrint('Project storage could not be loaded: $error');
+      _projects = [];
+    }
     notifyListeners();
   }
 
   Future<void> _saveProjects() async {
     final prefs = await SharedPreferences.getInstance();
-    final jsonList = _projects.map((e) => e.toJson()).toList();
+    final jsonList = _projects.map((project) => project.toJson()).toList();
     await prefs.setStringList('ae_projects_v1', jsonList);
   }
 
@@ -34,10 +56,13 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
   }) async {
+    if (name.trim().isEmpty || length <= 0 || width <= 0) {
+      throw ArgumentError('Project name and positive plot dimensions are required.');
+    }
     final now = DateTime.now();
     final newProject = ProjectModel(
-      id: 'p_${now.millisecondsSinceEpoch}',
-      name: name,
+      id: _newProjectId(),
+      name: name.trim(),
       length: length,
       width: width,
       bhk: bhk,
@@ -60,25 +85,31 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
   }) async {
-    final index = _projects.indexWhere((p) => p.id == id);
-    if (index != -1) {
-      _projects[index].name = name;
-      _projects[index].length = length;
-      _projects[index].width = width;
-      _projects[index].bhk = bhk;
-      _projects[index].floors = floors;
-      _projects[index].facing = facing;
-      _projects[index].updatedAt = DateTime.now();
-      notifyListeners();
-      await _saveProjects();
+    if (name.trim().isEmpty || length <= 0 || width <= 0) {
+      throw ArgumentError('Project name and positive plot dimensions are required.');
     }
+    final index = _projects.indexWhere((project) => project.id == id);
+    if (index == -1) return;
+    final project = _projects[index];
+    project
+      ..name = name.trim()
+      ..length = length
+      ..width = width
+      ..bhk = bhk
+      ..floors = floors
+      ..facing = facing
+      ..updatedAt = DateTime.now();
+    notifyListeners();
+    await _saveProjects();
   }
 
   Future<void> duplicateProject(String id) async {
-    final original = _projects.firstWhere((p) => p.id == id);
+    final index = _projects.indexWhere((project) => project.id == id);
+    if (index == -1) return;
+    final original = _projects[index];
     final now = DateTime.now();
     final copy = ProjectModel(
-      id: 'p_${now.millisecondsSinceEpoch}',
+      id: _newProjectId(),
       name: '${original.name} (Copy)',
       length: original.length,
       width: original.width,
@@ -94,7 +125,7 @@ class ProjectProvider extends ChangeNotifier {
   }
 
   Future<void> deleteProject(String id) async {
-    _projects.removeWhere((p) => p.id == id);
+    _projects.removeWhere((project) => project.id == id);
     notifyListeners();
     await _saveProjects();
   }

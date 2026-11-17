@@ -16,6 +16,7 @@ import '../screens/tutorials_screen.dart';
 import '../screens/faq_screen.dart';
 import '../screens/cloud_sync_screen.dart';
 import '../screens/export_screen.dart';
+import '../screens/about_screen.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

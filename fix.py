@@ -27,9 +27,6 @@ if os.path.exists(pfd):
     with open(pfd, 'w', encoding='utf-8') as f:
         f.write(c)
 
-for s in ['share_screen.dart', 'about_screen.dart', 'privacy_policy_screen.dart']:
-    sp = os.path.join('lib', 'screens', s)
-    with open(sp, 'w', encoding='utf-8') as f:
-        f.write("export 'export_screen.dart';\n")
-
-print("Sabhi errors theek ho gaye!")
+# Do not replace real screens with export aliases. These screens have
+# independent responsibilities and must remain separate source files.
+print("Legacy targeted fixes applied. Review the diff before committing.")

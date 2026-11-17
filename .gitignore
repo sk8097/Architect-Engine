@@ -1,4 +1,10 @@
 # Miscellaneous
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
 *.class
 *.log
 *.pyc

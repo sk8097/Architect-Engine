@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
-import '../models/project_model.dart';
 import '../providers/project_provider.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';

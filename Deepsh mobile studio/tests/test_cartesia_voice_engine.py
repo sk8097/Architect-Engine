@@ -1,0 +1,138 @@
+import io
+import os
+import sys
+import tempfile
+import unittest
+from unittest import mock
+
+STUDIO = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if STUDIO not in sys.path:
+    sys.path.insert(0, STUDIO)
+
+from core import cartesia_tts
+from core.voice_direction_engine import build_direction_plan, load_profiles, render_directed_transcript
+
+
+class VoiceDirectionTests(unittest.TestCase):
+    def test_catalog_has_twenty_modes_and_thirty_personalities(self):
+        catalog = load_profiles()
+        self.assertEqual(len(catalog["delivery_modes"]), 20)
+        self.assertEqual(len(catalog["personalities"]), 30)
+
+    def test_plan_is_local_and_splits_sentences(self):
+        plan = build_direction_plan(
+            "यह एक सवाल है? लेकिन असली तथ्य यहाँ है।",
+            delivery_mode="investigative",
+            personality="skeptical_investigator",
+            language="hi",
+        )
+        self.assertEqual(len(plan["segments"]), 2)
+        self.assertEqual(plan["credit_estimate"]["analysis_api_calls"], 0)
+        self.assertEqual(plan["credit_estimate"]["tts_requests_if_synthesized"], 1)
+        self.assertEqual(plan["segments"][0]["intent"], "question")
+        self.assertEqual(plan["segments"][1]["intent"], "revelation")
+
+
+    def test_ssml_plan_contains_speed_tags_and_sparse_breaks(self):
+        plan = build_direction_plan(
+            "यह एक सवाल है? लेकिन असली तथ्य यहाँ है।",
+            delivery_mode="investigative",
+            personality="skeptical_investigator",
+            language="hi",
+        )
+        rendered, stats = render_directed_transcript(plan)
+        self.assertIn("<speed ratio=", rendered)
+        self.assertIn("<break time=", rendered)
+        self.assertEqual(stats["emotion_tags_enabled"], False)
+        self.assertGreater(stats["ssml_speed_tags"], 0)
+
+    def test_adaptive_plan_responds_to_numeric_and_sentence_signals(self):
+        text = "The fee is 25 percent, and the rate changes?"
+        adaptive = build_direction_plan(text, language="en", adaptive=True)
+        fixed = build_direction_plan(text, language="en", adaptive=False)
+        self.assertTrue(adaptive["adaptive_performance"])
+        self.assertTrue(adaptive["segments"][0]["signals"]["has_numeric_content"])
+        self.assertLess(adaptive["segments"][0]["speed"], fixed["segments"][0]["speed"])
+        self.assertGreater(adaptive["segments"][0]["pause_after_ms"], fixed["segments"][0]["pause_after_ms"])
+
+    def test_adaptive_controls_are_bounded_and_deterministic(self):
+        text = "A surprising result! This is a much longer sentence with several details, figures, and clauses that need measured delivery."
+        first = build_direction_plan(text, language="hi")
+        second = build_direction_plan(text, language="hi")
+        self.assertEqual(first["segments"], second["segments"])
+        for segment in first["segments"]:
+            self.assertGreaterEqual(segment["speed"], 0.78)
+            self.assertLessEqual(segment["speed"], 1.18)
+            self.assertGreaterEqual(segment["volume_ratio"], 0.9)
+            self.assertLessEqual(segment["volume_ratio"], 1.12)
+            self.assertLessEqual(segment["pause_after_ms"], 720)
+
+    def test_adaptive_ssml_renders_volume_direction(self):
+        plan = build_direction_plan("Stop now! This is important.", language="en")
+        rendered, stats = render_directed_transcript(plan)
+        self.assertIn("<volume ratio=", rendered)
+        self.assertGreater(stats["ssml_volume_tags"], 0)
+        self.assertTrue(stats["adaptive_performance"])
+
+    def test_generation_controls_respect_language_and_ranges(self):
+        hindi = cartesia_tts.build_generation_config(
+            speed=0.94, volume=1.02, emotion="dramatic", language="hi")
+        english = cartesia_tts.build_generation_config(
+            speed=1.05, volume=1.0, emotion="curious", language="en")
+        self.assertNotIn("emotion", hindi)
+        self.assertEqual(english["emotion"], "curious")
+        with self.assertRaises(ValueError):
+            cartesia_tts.build_generation_config(speed=1.7)
+        with self.assertRaises(ValueError):
+            cartesia_tts.build_generation_config(volume=2.5)
+
+    def test_hinglish_uses_hindi_locale_with_english_number_normalization(self):
+        plan = build_direction_plan("Aapka order confirm ho gaya hai.", language="hinglish")
+        self.assertEqual(plan["provider_language"], "hi")
+        self.assertEqual(plan["normalization"], "en-IN")
+
+    def test_ssml_escapes_user_supplied_markup(self):
+        plan = build_direction_plan("Use <script> safely.", language="en")
+        rendered, _ = render_directed_transcript(plan)
+        self.assertIn("&lt;script&gt;", rendered)
+        self.assertNotIn("<script>", rendered)
+
+    def test_auto_language_does_not_assume_english_emotion(self):
+        config = cartesia_tts.build_generation_config(emotion="curious", language="auto")
+        self.assertNotIn("emotion", config)
+
+    def test_unknown_voice_does_not_silently_switch_to_rohan(self):
+        with mock.patch.object(cartesia_tts, "DEFAULT_API_KEY", ""):
+            with self.assertRaises(ValueError):
+                cartesia_tts.resolve_voice_id("definitely-not-a-real-preset")
+
+    def test_unknown_emotion_is_rejected(self):
+        with self.assertRaises(ValueError):
+            cartesia_tts.resolve_emotions("made_up_emotion")
+
+    def test_cache_hit_skips_second_provider_request(self):
+        wav = b"RIFF" + (36).to_bytes(4, "little") + b"WAVE" + (b"\x00" * 36)
+        with tempfile.TemporaryDirectory() as temp:
+            with mock.patch.dict(os.environ, {"CARTESIA_CACHE_DIR": temp}):
+                response = mock.MagicMock()
+                response.__enter__.return_value.read.return_value = wav
+                with mock.patch.object(cartesia_tts.urllib.request, "urlopen",
+                                       return_value=response) as urlopen:
+                    first_path = os.path.join(temp, "first.wav")
+                    second_path = os.path.join(temp, "second.wav")
+                    first = cartesia_tts.generate_voiceover(
+                        "Cache test sentence.", output_path=first_path,
+                        api_key="test-key", use_cache=True)
+                    second = cartesia_tts.generate_voiceover(
+                        "Cache test sentence.", output_path=second_path,
+                        api_key="test-key", use_cache=True)
+                    self.assertFalse(first["cache_hit"])
+                    self.assertTrue(second["cache_hit"])
+                    self.assertEqual(first["cache_key"], second["cache_key"])
+                    self.assertEqual(second["api_requests"], 0)
+                    self.assertEqual(urlopen.call_count, 1)
+                    self.assertTrue(os.path.isfile(second_path))
+
+
+if __name__ == "__main__":
+    unittest.main()
