@@ -82,6 +82,16 @@ def decide(action, pending_path=PENDING):
         pending = json.load(stream)
     if pending.get("schema") != "voice-retake-review-v1" or pending.get("status") != "pending":
         raise ValueError("No pending review is available.")
+    if action == "approve":
+        comparison_path = "voice-retake-comparison.json"
+        if not os.path.isfile(comparison_path):
+            raise FileNotFoundError("Run studio.py voice-review compare before approval.")
+        with open(comparison_path, encoding="utf-8") as stream:
+            comparison = json.load(stream)
+        if comparison.get("schema") != "voice-retake-comparison-v1" or comparison.get("status") != "pending_human_approval":
+            raise ValueError("A valid comparison report is required before approval.")
+        if {str(item.get("line_id")) for item in comparison.get("lines", [])} != set(pending.get("line_ids", [])):
+            raise ValueError("Comparison report does not match the pending retake line IDs.")
     if action == "reject":
         for item in pending.get("backup_files", []):
             if not os.path.isfile(item["backup"]):
