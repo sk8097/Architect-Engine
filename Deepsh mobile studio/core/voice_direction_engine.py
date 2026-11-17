@@ -118,7 +118,7 @@ def render_directed_transcript(plan, profiles=None, emotion_tags_enabled=None):
     minimum_break = int(ssml_cfg.get("minimum_break_ms", 350))
     max_breaks = int(ssml_cfg.get("max_explicit_breaks_per_script", 12))
     rendered, break_count = [], 0
-    for segment in plan["segments"]:
+    for index, segment in enumerate(plan["segments"]):
         sentence = escape(segment["text"], {'"': "&quot;", "'": "&apos;"})
         speed = _clamp(segment.get("speed", 1.0))
         chunk = '<speed ratio="{:.3f}"/>'.format(speed) + sentence
@@ -131,7 +131,7 @@ def render_directed_transcript(plan, profiles=None, emotion_tags_enabled=None):
                 chunk = '<emotion value="{}"/>'.format(emotion) + chunk
         rendered.append(chunk)
         pause_ms = int(segment.get("pause_after_ms", 0))
-        if pause_ms >= minimum_break and break_count < max_breaks:
+        if index < len(plan["segments"]) - 1 and pause_ms >= minimum_break and break_count < max_breaks:
             rendered.append('<break time="{}ms"/>'.format(pause_ms))
             break_count += 1
     return "".join(rendered), {"explicit_breaks": break_count,
