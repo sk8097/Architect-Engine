@@ -26,7 +26,7 @@ jobs:
           python-version: "3.11"
       - name: Compile Cartesia modules
         working-directory: Deepsh mobile studio
-        run: python -m py_compile core/cartesia_tts.py core/voice_direction_engine.py core/audio_quality.py core/narration_audit.py cartesia_mcp.py studio.py
+        run: python -m py_compile core/cartesia_tts.py core/voice_direction_engine.py core/audio_quality.py core/narration_audit.py core/narration_performance.py cartesia_mcp.py studio.py
       - name: Run offline tests (no Cartesia API calls)
         working-directory: Deepsh mobile studio
         run: python -m unittest discover -s tests -p "test_*.py" -v
