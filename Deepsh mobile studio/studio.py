@@ -199,6 +199,10 @@ def main():
         run(os.path.join(CORE, "narration_audit.py"), *rest)
     elif cmd == "performance-audit":
         run(os.path.join(CORE, "narration_performance.py"), *rest)
+    elif cmd == "retake-plan":
+        run(os.path.join(CORE, "voice_retake.py"), *rest)
+    elif cmd == "voice-review":
+        run(os.path.join(CORE, "voice_review.py"), *rest)
     elif cmd == "quality":
         audio_path = rest[0] if rest and not rest[0].startswith("-") else "VO.wav"
         quality_check(audio_path, strict="--strict" in rest)
