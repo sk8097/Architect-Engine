@@ -1,0 +1,488 @@
+{
+  "schema_version": "1.0.0",
+  "note": "Profiles are local direction presets, not separate Cartesia voices. Speed is an internal target and is not sent to the provider by this initial adapter.",
+  "delivery_modes": [
+    {
+      "id": "natural_conversational",
+      "name": "Natural Conversational",
+      "description": "Conversational, relaxed, direct speech.",
+      "default_emotion": "neutral",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "cinematic_narration",
+      "name": "Cinematic Narration",
+      "description": "Measured narration with deliberate phrasing and controlled intensity.",
+      "default_emotion": "dramatic",
+      "target_speed": 0.94,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "expressive_performance",
+      "name": "Expressive Performance",
+      "description": "Performance-led delivery with clear emotional intent.",
+      "default_emotion": "content",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "investigative",
+      "name": "Investigative",
+      "description": "Evidence-led, skeptical, restrained delivery.",
+      "default_emotion": "curious",
+      "target_speed": 0.96,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "documentary",
+      "name": "Documentary",
+      "description": "Credible, composed, information-first narration.",
+      "default_emotion": "serious",
+      "target_speed": 0.98,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "news_bulletin",
+      "name": "News Bulletin",
+      "description": "Precise, neutral, clearly articulated presentation.",
+      "default_emotion": "neutral",
+      "target_speed": 1.02,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "educational",
+      "name": "Educational",
+      "description": "Patient, structured explanation with clear articulation.",
+      "default_emotion": "calm",
+      "target_speed": 0.98,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "storytelling",
+      "name": "Storytelling",
+      "description": "Narrative flow with varied pacing and curiosity.",
+      "default_emotion": "curious",
+      "target_speed": 0.96,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "dramatic",
+      "name": "Dramatic",
+      "description": "Intentional emphasis and heightened but controlled expression.",
+      "default_emotion": "dramatic",
+      "target_speed": 0.92,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "suspense",
+      "name": "Suspense",
+      "description": "Tension through restraint, pacing, and pauses.",
+      "default_emotion": "mysterious",
+      "target_speed": 0.9,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "emotional",
+      "name": "Emotional",
+      "description": "Empathetic delivery without melodrama.",
+      "default_emotion": "empathetic",
+      "target_speed": 0.94,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "conversational_podcast",
+      "name": "Conversational Podcast",
+      "description": "Intimate, spontaneous podcast-style speech.",
+      "default_emotion": "content",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "professional_corporate",
+      "name": "Professional Corporate",
+      "description": "Polished, confident business communication.",
+      "default_emotion": "confident",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "financial_explainer",
+      "name": "Financial Explainer",
+      "description": "Numerically precise, skeptical, accessible finance narration.",
+      "default_emotion": "serious",
+      "target_speed": 0.97,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "authoritative",
+      "name": "Authoritative",
+      "description": "Decisive, composed, credible delivery.",
+      "default_emotion": "confident",
+      "target_speed": 0.96,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "friendly_explainer",
+      "name": "Friendly Explainer",
+      "description": "Approachable, clear, low-pressure explanation.",
+      "default_emotion": "content",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "motivational",
+      "name": "Motivational",
+      "description": "Positive, energetic but credible delivery.",
+      "default_emotion": "excited",
+      "target_speed": 1.03,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "luxury_commercial",
+      "name": "Luxury Commercial",
+      "description": "Understated, refined, premium brand delivery.",
+      "default_emotion": "calm",
+      "target_speed": 0.92,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "energetic_promotional",
+      "name": "Energetic Promotional",
+      "description": "Upbeat, concise, high-energy presentation.",
+      "default_emotion": "excited",
+      "target_speed": 1.08,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    },
+    {
+      "id": "minimal_neutral",
+      "name": "Minimal Neutral",
+      "description": "Low-variance, clean, restrained delivery.",
+      "default_emotion": "neutral",
+      "target_speed": 1,
+      "pausing": "contextual",
+      "intensity": "adaptive"
+    }
+  ],
+  "personalities": [
+    {
+      "id": "investigative_journalist",
+      "name": "Investigative Journalist",
+      "description": "Skeptical, evidence-first, probing.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "financial_analyst",
+      "name": "Financial Analyst",
+      "description": "Numerical precision, measured confidence.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "documentary_host",
+      "name": "Documentary Host",
+      "description": "Credible, composed, narrative clarity.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "master_storyteller",
+      "name": "Master Storyteller",
+      "description": "Curiosity, scene-setting, narrative flow.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "friendly_teacher",
+      "name": "Friendly Teacher",
+      "description": "Patient, simple, encouraging.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "authoritative_presenter",
+      "name": "Authoritative Presenter",
+      "description": "Decisive, structured, assured.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "emotional_narrator",
+      "name": "Emotional Narrator",
+      "description": "Empathetic, restrained emotional color.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "calm_expert",
+      "name": "Calm Expert",
+      "description": "Low arousal, precise, reassuring.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "curious_researcher",
+      "name": "Curious Researcher",
+      "description": "Question-led, exploratory.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "suspense_specialist",
+      "name": "Suspense Specialist",
+      "description": "Controlled tension, delayed reveals.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "news_anchor",
+      "name": "News Anchor",
+      "description": "Neutral, crisp, factual.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "podcast_host",
+      "name": "Podcast Host",
+      "description": "Natural, intimate, conversational.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "intellectual_analyst",
+      "name": "Intellectual Analyst",
+      "description": "Nuanced, analytical, deliberate.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "critical_reviewer",
+      "name": "Critical Reviewer",
+      "description": "Evaluative, direct, skeptical.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "corporate_executive",
+      "name": "Corporate Executive",
+      "description": "Professional, concise, confident.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "motivational_speaker",
+      "name": "Motivational Speaker",
+      "description": "Energetic, optimistic, purposeful.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "warm_companion",
+      "name": "Warm Companion",
+      "description": "Approachable, human, supportive.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "technical_educator",
+      "name": "Technical Educator",
+      "description": "Accurate, systematic, articulate.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "historical_narrator",
+      "name": "Historical Narrator",
+      "description": "Contextual, measured, atmospheric.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "crime_documentary_host",
+      "name": "Crime Documentary Host",
+      "description": "Serious, restrained, investigative.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "science_communicator",
+      "name": "Science Communicator",
+      "description": "Curious, accessible, evidence-led.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "business_strategist",
+      "name": "Business Strategist",
+      "description": "Commercially aware, decisive.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "luxury_brand_voice",
+      "name": "Luxury Brand Voice",
+      "description": "Refined, understated, premium.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "energetic_presenter",
+      "name": "Energetic Presenter",
+      "description": "Bright, dynamic, clear.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "minimalist_narrator",
+      "name": "Minimalist Narrator",
+      "description": "Understated, low-variation.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "human_interest_storyteller",
+      "name": "Human Interest Storyteller",
+      "description": "Empathy, character-led storytelling.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "debate_moderator",
+      "name": "Debate Moderator",
+      "description": "Balanced, impartial, clear.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "dramatic_performer",
+      "name": "Dramatic Performer",
+      "description": "Expressive, theatrical, controlled.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "skeptical_investigator",
+      "name": "Skeptical Investigator",
+      "description": "Challenge assumptions, seek evidence.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    },
+    {
+      "id": "multilingual_presenter",
+      "name": "Multilingual Presenter",
+      "description": "Clear code-switching and language-aware delivery.",
+      "emotion_bias": "contextual",
+      "intensity_bias": "balanced",
+      "pace_bias": "natural",
+      "language_adaptation": true
+    }
+  ],
+  "supported_language_codes": [
+    "hi",
+    "mr",
+    "en",
+    "hinglish",
+    "auto"
+  ],
+  "defaults": {
+    "delivery_mode": "documentary",
+    "personality": "documentary_host",
+    "voice": "rohan",
+    "language": "hi",
+    "model": "sonic-3.6",
+    "cache_enabled": true,
+    "force_regenerate": false
+  },
+  "credit_policy": {
+    "analysis_calls": 0,
+    "cache_enabled": true,
+    "cache_key_fields": [
+      "text",
+      "voice_id",
+      "language",
+      "emotion",
+      "model",
+      "sample_rate"
+    ],
+    "regenerate_only_on_force_or_cache_miss": true,
+    "avoid_sentence_level_requests": true
+  }
+}
