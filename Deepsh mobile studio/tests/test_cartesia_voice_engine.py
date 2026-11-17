@@ -10,7 +10,7 @@ if STUDIO not in sys.path:
     sys.path.insert(0, STUDIO)
 
 from core import cartesia_tts
-from core.voice_direction_engine import build_direction_plan, load_profiles
+from core.voice_direction_engine import build_direction_plan, load_profiles, render_directed_transcript
 
 
 class VoiceDirectionTests(unittest.TestCase):
@@ -31,6 +31,32 @@ class VoiceDirectionTests(unittest.TestCase):
         self.assertEqual(plan["credit_estimate"]["tts_requests_if_synthesized"], 1)
         self.assertEqual(plan["segments"][0]["intent"], "question")
         self.assertEqual(plan["segments"][1]["intent"], "revelation")
+
+
+    def test_ssml_plan_contains_speed_tags_and_sparse_breaks(self):
+        plan = build_direction_plan(
+            "यह एक सवाल है? लेकिन असली तथ्य यहाँ है।",
+            delivery_mode="investigative",
+            personality="skeptical_investigator",
+            language="hi",
+        )
+        rendered, stats = render_directed_transcript(plan)
+        self.assertIn("<speed ratio=", rendered)
+        self.assertIn("<break time=", rendered)
+        self.assertEqual(stats["emotion_tags_enabled"], False)
+        self.assertGreater(stats["ssml_speed_tags"], 0)
+
+    def test_generation_controls_respect_language_and_ranges(self):
+        hindi = cartesia_tts.build_generation_config(
+            speed=0.94, volume=1.02, emotion="dramatic", language="hi")
+        english = cartesia_tts.build_generation_config(
+            speed=1.05, volume=1.0, emotion="curious", language="en")
+        self.assertNotIn("emotion", hindi)
+        self.assertEqual(english["emotion"], "curious")
+        with self.assertRaises(ValueError):
+            cartesia_tts.build_generation_config(speed=1.7)
+        with self.assertRaises(ValueError):
+            cartesia_tts.build_generation_config(volume=2.5)
 
     def test_unknown_voice_does_not_silently_switch_to_rohan(self):
         with mock.patch.object(cartesia_tts, "DEFAULT_API_KEY", ""):
