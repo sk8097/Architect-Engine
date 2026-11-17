@@ -320,7 +320,10 @@ class _CalculatorDialogState extends State<CalculatorDialog> {
         res='Area: ${(l*w).toStringAsFixed(3)} m² | ${(l*w*10.764).toStringAsFixed(2)} sqft\nVol: ${(l*w*(h==0?1:h)).toStringAsFixed(3)} m³\nValue conversion: ${(val*w/h).toStringAsFixed(4)}';
         det='Tool: ${_def.name}';
     }
-    setState(()=> {_result=res, _detailed=det});
+    setState(() {
+      _result = res;
+      _detailed = det;
+    });
   }
 
   Future<void> _saveToFile(String ext) async {
