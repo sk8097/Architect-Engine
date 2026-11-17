@@ -24,7 +24,7 @@ class PronunciationNormalizerTests(unittest.TestCase):
         hi = normalize_for_speech("₹25", "hi", expand_digits=True)
         mr = normalize_for_speech("2026", "mr", expand_digits=True)
         en = normalize_for_speech("3.5", "en", expand_digits=True)
-        self.assertEqual(hi["normalized_text"], "₹दो पाँच")
+        self.assertEqual(hi["normalized_text"], "रुपये दो पाँच")
         self.assertEqual(mr["normalized_text"], "दोन शून्य दोन सहा")
         self.assertEqual(en["normalized_text"], "three point five")
         self.assertEqual(hi["numeric_expansion"], "digit_by_digit")
