@@ -27,6 +27,8 @@ class PronunciationNormalizerTests(unittest.TestCase):
         self.assertEqual(hi["normalized_text"], "रुपये दो पाँच")
         self.assertEqual(mr["normalized_text"], "दोन शून्य दोन सहा")
         self.assertEqual(en["normalized_text"], "three point five")
+        date = normalize_for_speech("12/11/2026", "mr", expand_digits=True)
+        self.assertEqual(date["normalized_text"], "एक दोन स्लॅश एक एक स्लॅश दोन शून्य दोन सहा")
         self.assertEqual(hi["numeric_expansion"], "digit_by_digit")
 
     def test_glossary_longest_match_and_case_insensitive(self):
