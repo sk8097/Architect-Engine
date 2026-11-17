@@ -22,6 +22,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
   late String _bhk;
   late String _floors;
   late String _facing;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -43,16 +44,20 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
     super.dispose();
   }
 
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      final name = _nameController.text.trim();
-      final length = double.parse(_lengthController.text);
-      final width = double.parse(_widthController.text);
-      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-      final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
 
+    final name = _nameController.text.trim();
+    final length = double.parse(_lengthController.text);
+    final width = double.parse(_widthController.text);
+    final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
+    final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _saving = true);
+
+    try {
       if (widget.existingProject != null) {
-        projectProvider.updateProject(
+        await projectProvider.updateProject(
           id: widget.existingProject!.id,
           name: name,
           length: length,
@@ -63,7 +68,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
         );
         notifProvider.addNotification('success', 'Project Updated', '$name has been updated.');
       } else {
-        projectProvider.addProject(
+        await projectProvider.addProject(
           name: name,
           length: length,
           width: width,
@@ -71,13 +76,23 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
           floors: _floors,
           facing: _facing,
         );
-        notifProvider.addNotification('success', 'New Project Created', '$name ($_bhk, ${length * width} sqft) was created.');
+        notifProvider.addNotification(
+          'success',
+          'New Project Created',
+          '$name ($_bhk, ${length * width} sqft) was created.',
+        );
       }
 
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      messenger.showSnackBar(
         SnackBar(content: Text(widget.existingProject != null ? 'Project updated!' : 'Project created!')),
       );
+      Navigator.of(context).pop();
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('Project could not be saved: $error')));
+    } finally {
+      if (mounted) setState(() => _saving = false);
     }
   }
 
@@ -225,9 +240,9 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                   child: Text(
-                    isEditing ? 'UPDATE PROJECT' : 'SAVE PROJECT',
+                    _saving ? 'SAVING...' : (isEditing ? 'UPDATE PROJECT' : 'SAVE PROJECT'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.5),
                   ),
                 ),
