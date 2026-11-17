@@ -64,12 +64,16 @@ def _ledger():
         data.setdefault("sent_total", 0)
         data.pop("sent", None)            # legacy keys from the old quota ledger
         data.pop("cooldown_until", None)
-        yield data
-        fh.seek(0)
-        fh.truncate()
-        fh.write(json.dumps(data))
-        fh.flush()
-        fcntl.flock(fh, fcntl.LOCK_UN)
+        try:
+            yield data
+        finally:
+            # Persist the ledger and release the platform-specific lock on every
+            # exit path (including exceptions raised by callers).
+            fh.seek(0)
+            fh.truncate()
+            fh.write(json.dumps(data))
+            fh.flush()
+            _unlock(fh)
 
 
 def check(n=1):
