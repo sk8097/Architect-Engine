@@ -19,11 +19,13 @@ app = MCPServer(name="cartesia-mcp", version="2.0.0",
 @app.tool()
 def cartesia_generate_voice(transcript: str, voice: str = "rohan",
     emotion: str = "neutral", language: str = "hi", output_path: str = "VO.wav",
-    model: str = DEFAULT_MODEL, use_cache: bool = True, force: bool = False) -> str:
+    model: str = DEFAULT_MODEL, use_cache: bool = True, force: bool = False,
+    speed: float = 1.0, volume: float = 1.0) -> str:
     """Generate speech. Cache hits reuse audio without a Cartesia synthesis request."""
     try:
         result = generate_voiceover(transcript, voice, language, emotion,
-            output_path, model, use_cache=use_cache, force=force)
+            output_path, model, use_cache=use_cache, force=force,
+            speed=speed, volume=volume)
         return json.dumps(result, ensure_ascii=False, indent=2)
     except Exception as exc:
         return json.dumps({"status": "error", "error": str(exc)}, ensure_ascii=False, indent=2)
