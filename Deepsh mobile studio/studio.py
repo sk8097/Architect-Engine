@@ -176,6 +176,13 @@ def main():
     if cmd == "new":
         new(rest[0] if rest else "my_video")
     elif cmd == "voice":
+        review_state = os.path.join("vo_parts", "review_pending.json")
+        if os.path.isfile(review_state):
+            import json
+            with open(review_state, encoding="utf-8") as stream:
+                pending_review = json.load(stream)
+            if pending_review.get("status") == "pending":
+                sys.exit("A retake is awaiting review. Run `studio.py voice-review compare`, then approve or reject before another voice render.")
         run(os.path.join(CORE, "voice.py"), *rest)
         if os.path.exists("VO.wav"):
             quality_check("VO.wav", strict=strict_quality)
