@@ -170,13 +170,15 @@ def main():
     if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help", "help"):
         sys.exit(__doc__)
     cmd, rest = sys.argv[1], sys.argv[2:]
+    strict_quality = "--strict-quality" in rest
+    rest = [arg for arg in rest if arg != "--strict-quality"]
     eng = os.path.join(CORE, "engine", "render.py")
     if cmd == "new":
         new(rest[0] if rest else "my_video")
     elif cmd == "voice":
         run(os.path.join(CORE, "voice.py"), *rest)
         if os.path.exists("VO.wav"):
-            quality_check("VO.wav", strict="--strict-quality" in rest)
+            quality_check("VO.wav", strict=strict_quality)
     elif cmd == "plan":
         run(os.path.join(CORE, "asset_planner.py"), *rest)
     elif cmd == "lint":
