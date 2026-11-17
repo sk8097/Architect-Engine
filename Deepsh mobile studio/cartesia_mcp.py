@@ -10,7 +10,7 @@ from core.cartesia_tts import (
     generate_voiceover, list_voices, DEFAULT_API_KEY, resolve_voice_id,
     POPULAR_VOICES, EMOTION_MAP, API_VERSION, DEFAULT_MODEL
 )
-from core.voice_direction_engine import load_profiles, build_direction_plan, generate_directed_voiceover
+from core.voice_direction_engine import load_profiles, build_direction_plan, generate_directed_voiceover\nfrom core.audio_quality import analyze_wav
 from mcp.server.mcpserver import MCPServer
 
 app = MCPServer(name="cartesia-mcp", version="2.0.0",
