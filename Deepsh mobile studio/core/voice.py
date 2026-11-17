@@ -15,28 +15,37 @@ reads as sloppy. So word times are never guessed here:
 usage:  CARTESIA_API_KEY=sk_car_... python core/voice.py [--voice anuj] [--lang hi] [--speed 1.0] [--force]
 Per-line results are cached in vo_parts/ (audio + timestamps), so re-runs only fetch missing lines.
 """
-import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.request
+import argparse, base64, csv, json, os, re, subprocess, sys, time, urllib.request, urllib.error
 
 import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from cartesia_tts import resolve_emotions, resolve_voice_id, API_VERSION, BASE_URL  # noqa: E402
+from cartesia_tts import resolve_emotion, resolve_voice_id, API_VERSION, BASE_URL  # noqa: E402
 
 SR = 44100
 
 
 def synth_line(text, voice_id, lang, emotion, key, model="sonic-3.6"):
     """Returns (float32 mono audio, [(word, start, end), ...]) for one line."""
-    vd = {"mode": "id", "id": voice_id}
-    em = resolve_emotions(emotion)
-    if em:
-        vd["__experimental_controls"] = {"emotion": em}
-    payload = {"model_id": model, "transcript": text.strip(), "voice": vd, "language": lang,
+    language_code = (lang or "").split("-")[0].lower()
+    generation_config = {"speed": 1.0, "volume": 1.0}
+    # Cartesia documents emotion guidance for English only.
+    if language_code == "en" and emotion and emotion.lower() != "neutral":
+        generation_config["emotion"] = resolve_emotion(emotion)
+    payload = {"model_id": model, "transcript": text.strip(), "voice": voice_id,
                "output_format": {"container": "raw", "encoding": "pcm_f32le", "sample_rate": SR},
-               "add_timestamps": True}
-    req = urllib.request.Request(f"{BASE_URL}/tts/sse", data=json.dumps(payload).encode(), headers={
-        "X-API-Key": key, "Cartesia-Version": API_VERSION, "Content-Type": "application/json"})
-    raw = urllib.request.urlopen(req, timeout=90).read().decode("utf-8")
+               "add_timestamps": True, "generation_config": generation_config}
+    if lang:
+        payload["locale"] = lang
+    req = urllib.request.Request(BASE_URL + "/tts/sse", data=json.dumps(payload).encode(), headers={
+        "Authorization": "Bearer " + key, "Cartesia-Version": API_VERSION,
+        "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=90) as response:
+            raw = response.read().decode("utf-8")
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")[:1200]
+        raise RuntimeError("Cartesia SSE HTTP {}: {}".format(exc.code, detail)) from exc
     audio, words = bytearray(), []
     for line in raw.splitlines():
         if not line.startswith("data:"):
@@ -97,6 +106,7 @@ def main():
                     and cached_meta.get("emotion") == a.emotion
                     and cached_meta.get("model") == "sonic-3.6"
                     and cached_meta.get("sample_rate") == SR
+                    and cached_meta.get("api_version") == API_VERSION
                 )
                 if cache_matches:
                     return None
@@ -110,7 +120,8 @@ def main():
                     json.dump({
                         "text": r["text"], "words": words, "voice_id": vid,
                         "language": a.lang, "emotion": a.emotion,
-                        "model": "sonic-3.6", "sample_rate": SR
+                        "model": "sonic-3.6", "sample_rate": SR,
+                        "api_version": API_VERSION
                     }, meta_file, ensure_ascii=False)
                 print(f"  ✓ line {r['id']}  {len(audio) / SR:.1f}s  {len(words)} timed words", flush=True)
                 return None
