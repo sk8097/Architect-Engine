@@ -60,7 +60,7 @@ def analyze_performance(audio_path="VO.wav", vo_lines_path="VO.tsv",
                     gap_item["recommendation"] = "Listen for a rushed transition; add a pause only if the sentence boundary needs it."
                 elif gap > long_pause_seconds:
                     gap_item["status"] = "long"
-                    gap_item["recommendation"] = "Check whether this gap is intentional or unintended dead air."
+                    gap_item["recommendation"] = "Listen to confirm whether this gap is intentional or unintended dead air."
                 else:
                     gap_item["status"] = "normal"
                 gaps.append(gap_item)
