@@ -1,0 +1,30 @@
+name: Cartesia Voice Engine Checks
+on:
+  push:
+    branches:
+      - feature/cartesia-human-voice-direction-engine
+    paths:
+      - "Deepsh mobile studio/core/**"
+      - "Deepsh mobile studio/cartesia_mcp.py"
+      - "Deepsh mobile studio/tests/**"
+      - ".github/workflows/cartesia-voice-engine.yml"
+  pull_request:
+    paths:
+      - "Deepsh mobile studio/core/**"
+      - "Deepsh mobile studio/cartesia_mcp.py"
+      - "Deepsh mobile studio/tests/**"
+      - ".github/workflows/cartesia-voice-engine.yml"
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile Cartesia modules
+        working-directory: Deepsh mobile studio
+        run: python -m py_compile core/cartesia_tts.py core/voice_direction_engine.py cartesia_mcp.py
+      - name: Run offline tests (no Cartesia API calls)
+        working-directory: Deepsh mobile studio
+        run: python -m unittest discover -s tests -p "test_cartesia*.py" -v
