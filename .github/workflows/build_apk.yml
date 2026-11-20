@@ -76,7 +76,19 @@ jobs:
           exit 1
 
       - name: Build Android Release APK
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        shell: bash
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/flutter-apk.log"
+          if flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          details=$(grep -E -A 6 -m 3 'Error:|What went wrong:|Execution failed for task' "$log" | head -c 2400 || true)
+          details=${details//'%'/'%25'}
+          details=${details//$'\n'/'%0A'}
+          details=${details//$'\r'/'%0D'}
+          echo "::error title=Flutter APK build failure::$details"
+          exit 1
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4

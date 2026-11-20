@@ -34,7 +34,12 @@ void main() {
     await tester.enterText(find.byType(TextField), 'Area Calculator');
     await tester.pumpAndSettle();
     expect(find.text('Length & Distance'), findsNothing);
-    await tester.tap(find.text('Area Calculator'));
+    final result = find.descendant(
+      of: find.byType(SliverGrid),
+      matching: find.text('Area Calculator'),
+    );
+    expect(result, findsOneWidget);
+    await tester.tap(result);
     await tester.pumpAndSettle();
     expect(tester.widget<CalculatorDialog>(find.byType(CalculatorDialog)).tool.id, 2);
   });
