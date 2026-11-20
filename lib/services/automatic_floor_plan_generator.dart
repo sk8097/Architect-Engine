@@ -34,19 +34,23 @@ class AutomaticFloorPlanGenerator {
   static bool supportsProfile(String? category, String? group, String? type, String? config) =>
       scenarioFor(category, group, type, config)?.generator != null;
 
-  static bool supportsBrief(ProjectBrief? brief) {
-    final type = brief?.taxonomy;
-    return type != null && supportsProfile(type.categoryId, type.subcategoryId, type.typeId, type.configurationId);
+  static ProjectScenario? _scenarioForBrief(ProjectBrief? brief) {
+    final selection = brief?.taxonomy;
+    if (selection == null) return null;
+    return scenarioForRequirements(selection.categoryId, selection.subcategoryId,
+      selection.typeId, selection.configurationId, brief?.requirements?.answers['bedrooms']);
   }
+
+  static bool supportsBrief(ProjectBrief? brief) => _scenarioForBrief(brief)?.generator != null;
 
   FloorPlanResult generate({required ProjectBrief brief, required double frontageFt,
     required double depthFt, required String facing}) {
     FloorPlanResult blocked(List<String> issues) => FloorPlanResult(null, issues, const []);
     final taxonomy = brief.taxonomy;
-    if (!supportsBrief(brief) || taxonomy == null) {
+    final scenario = _scenarioForBrief(brief);
+    if (scenario == null || scenario.generator == null || taxonomy == null) {
       return blocked(['Automatic plans are available for: $availability']);
     }
-    final scenario = scenarioFor(taxonomy.categoryId, taxonomy.subcategoryId, taxonomy.typeId, taxonomy.configurationId)!;
     final bedrooms = scenario.generator == ScenarioGenerator.house2Bhk ? 2 : 1;
     final two = bedrooms == 2;
     final rooms = {..._rooms, if (two) _bed2: 'Bedroom 2'};
@@ -87,7 +91,11 @@ class AutomaticFloorPlanGenerator {
         (values['building_count'] as num? ?? 1) > 1 || (values['wing_count'] as num? ?? 1) > 1) {
       issues.add('Enter one floor above grade. Only one building without a basement or mezzanine is supported.');
     }
-    if (brief.parking != ProjectParking.none) issues.add('Select No parking; parking layouts are not supported in this profile.');
+    if (brief.parking == null) {
+      issues.add('Tell us whether parking is needed.');
+    } else if (brief.parking != ProjectParking.none) {
+      issues.add('Your parking requirement is saved, but this generator cannot draw it yet.');
+    }
     final houseForm = values['house_form'];
     if (houseForm != null && houseForm != 'single_floor') issues.add('Only the single-floor house form is supported.');
     final kitchen = values['kitchen_type'];

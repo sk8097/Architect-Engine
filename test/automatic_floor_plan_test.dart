@@ -6,7 +6,7 @@ import 'package:architect_engine/models/project_requirements_snapshot.dart';
 import 'package:architect_engine/services/automatic_floor_plan_generator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-ProjectBrief brief({String shape = 'rectangular', String type = 'independent_house', String config = '1_bhk',
+ProjectBrief brief({String shape = 'rectangular', String type = 'independent_house', String? config = '1_bhk',
     int? floors = 1, ProjectParking? parking = ProjectParking.none,
     Map<String, Object> answers = const {}, Map<String, int> spaces = const {},
     Map<String, Map<String, Object>> details = const {}}) => ProjectBrief(
@@ -43,6 +43,18 @@ void main() {
         plan.openings.singleWhere((o) => o.kind == PlanOpeningKind.door && o.from == AutomaticFloorPlan.entry).bounds,
       ], openings: plan.openings.where((o) => o.kind != PlanOpeningKind.door || o.from != AutomaticFloorPlan.entry));
     expect(validateAutomaticFloorPlan(withoutEntry), contains('entrance'));
+  });
+
+  test('bedroom count drives generation without a BHK preset', () {
+    final input = brief(config: null, answers: {'bedrooms': 2});
+    expect(AutomaticFloorPlanGenerator.supportsBrief(input), isTrue);
+    expect(run(input).plan?.bedrooms, 2);
+    expect(input.taxonomy!.configurationId, isNull);
+    expect(run(brief(config: null)).plan, isNull);
+    expect(run(brief(config: null, answers: {'bedrooms': 3})).plan, isNull);
+    expect(run(brief(config: 'custom', answers: {'bedrooms': 2})).plan, isNull);
+    expect(run(brief(config: '1_bhk', answers: {'bedrooms': 2})).plan, isNull);
+    expect(run(brief(config: null, answers: {'bedrooms': 2}, parking: ProjectParking.car)).plan, isNull);
   });
 
   test('cardinal frontage and supplied setbacks transform with the plot', () {
@@ -95,7 +107,7 @@ void main() {
   test('unsupported profile, missing inputs, and infeasible requests do not generate', () {
     expect(run(brief(type: 'row_house')).plan, isNull);
     expect(run(brief(floors: null), facing: 'Not decided', frontage: 0).issues, hasLength(3));
-    expect(run(brief(parking: ProjectParking.car)).issues.join(' '), contains('No parking'));
+    expect(run(brief(parking: ProjectParking.car)).issues.join(' '), contains('Your parking requirement is saved'));
     expect(run(brief(answers: {'road_sides': ['n']})).issues.join(' '), contains('matching'));
     expect(run(brief(answers: {'front_setback': 12, 'rear_setback': 1})).issues.join(' '), contains('consume'));
     expect(run(brief(answers: {'coverage_limit': 10})).plan, isNull);

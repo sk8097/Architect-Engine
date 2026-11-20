@@ -113,7 +113,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
     ...technicalFields, ..._designSchema, ...deliveryFields,
   ];
-  ProjectScenario? get _currentScenario => scenarioFor(_category?.id, _group?.id, _type?.id, _configurationId);
+  ProjectScenario? get _currentScenario => scenarioForRequirements(
+    _category?.id, _group?.id, _type?.id, _configurationId,
+    _facilitySchema.any((field) => field.id == 'bedrooms')
+        ? int.tryParse('${_facilityAnswers['bedrooms'] ?? ''}') : null,
+  );
   ProjectScenarioVariant? get _currentVariant {
     final scenario = _currentScenario;
     if (scenario == null) return null;
@@ -346,7 +350,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     final width = _isRectangular ? double.tryParse(_width.text.trim()) : null;
     final length = _shapeId == 'square' ? width : (_isRectangular ? double.tryParse(_depth.text.trim()) : null);
     final facing = _linearSite ? 'Not decided' : _facing ?? 'Not decided';
-    final layout = taxonomyChoice(_program.configurations, _configurationId)?.label ?? '';
+    final layout = _currentScenario?.configuration?.label ?? '';
     final previous = project?.brief;
     final brief = ProjectBrief(
       type: previous?.type,
@@ -540,10 +544,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
             }),
           ),
           const SizedBox(height: 12),
-          if (_canAutoPlan)
-            const Text('Automatic CAD for the ground-floor, no-parking variant. Requires a rectangular or square plot and a cardinal frontage.')
+          if (_facilitySchema.any((field) => field.id == 'bedrooms'))
+            const Text('You can skip this label and enter your bedroom count under Facility requirements. Next, choose the rooms and features you actually want.')
           else
-            const Text('Brief only for this selection. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),
+            const Text('Skip this label if it does not describe what you need. You can specify spaces and requirements on the next pages.'),
         ],
       );
 
@@ -810,7 +814,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         _reviewRow('Project action', taxonomyChoice(projectActions, _actionId)?.label),
         _reviewRow('Project stage', taxonomyChoice(projectStages, _stageId)?.label),
         _reviewRow(_program.configurationLabel, taxonomyChoice(_program.configurations, _configurationId)?.label),
-        if (_currentVariant != null) _reviewRow('Scenario variant', _currentVariant!.label),
+        if (_configurationId == null && _currentScenario?.configuration != null)
+          _reviewRow('Layout label (derived from bedroom count)', _currentScenario!.configuration!.label),
         if (!_linearSite) _reviewRow('Plot geometry', taxonomyChoice(plotShapes, _shapeId)?.label),
         if (!_linearSite && _shapeId == 'square') ...[
           _reviewRow('Measured plot side', width.isEmpty ? null : '$width ft'),
@@ -839,9 +844,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         else if (_canAutoPlan && _currentVariant?.generator == null)
           const Text('Brief only for this floor and parking variant. Saving will explain why a drawing could not be generated.')
         else if (_canAutoPlan)
-          const Text('Saving automatically opens the CAD concept preview or explains why this brief cannot be generated. Select one floor, No parking, measured plot sides and a cardinal frontage.')
+          const Text('Saving checks your requirements and automatically opens the CAD concept if they fit. If they do not, your brief is kept as entered and the app explains why no drawing was created.')
         else
-          const Text('This brief is saved without a drawing. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),
+          const Text('Your requirements will be saved as entered. No automatic drawing is available for this selection yet.'),
         if (_canAutoPlan) const Text('A generated drawing can be saved as DXF. PDF is not available yet.'),
       ],
     );

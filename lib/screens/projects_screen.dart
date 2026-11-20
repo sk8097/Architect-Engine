@@ -44,14 +44,6 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            OutlinedButton.icon(
-              icon: const Icon(Icons.grid_view),
-              label: const Text('Scenario Library'),
-              onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute(
-                builder: (_) => const ScenarioLibraryScreen(),
-              )),
-            ),
-            const SizedBox(height: 12),
             // Search Bar
             TextField(
               decoration: InputDecoration(
@@ -67,6 +59,16 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
               onChanged: (v) => setState(() => _searchQuery = v),
             ),
             const SizedBox(height: 18),
+
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute(
+                  builder: (_) => const ScenarioLibraryScreen(),
+                )),
+                child: const Text('Browse scenario examples'),
+              ),
+            ),
 
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

@@ -76,6 +76,20 @@ ProjectScenario? scenarioFor(String? category, String? group, String? type, Stri
   return _scenariosById[ProjectScenario.key(category, group, type, configuration)];
 }
 
+/// An explicit selection wins. Otherwise resolve a scenario only from an
+/// explicit bedroom count for a program that offers that exact BHK option.
+/// The saved configuration field stays exactly as the user entered it.
+ProjectScenario? scenarioForRequirements(String? category, String? group,
+    String? type, String? configuration, Object? bedroomCount) {
+  if (configuration == null && category == 'residential' && group == 'houses' &&
+      bedroomCount is int && bedroomCount > 0) {
+    final derived = scenarioFor(category, group, type,
+      bedroomCount >= 6 ? '6_plus_bhk' : '${bedroomCount}_bhk');
+    if (derived != null) return derived;
+  }
+  return scenarioFor(category, group, type, configuration);
+}
+
 /// Common named variants appear together in the library. Other floor counts
 /// can be recorded in a brief but are not batch generation capabilities.
 Iterable<ProjectScenarioVariant> libraryVariants(ProjectScenario scenario) => [

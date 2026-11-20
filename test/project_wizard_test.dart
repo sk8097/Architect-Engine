@@ -180,12 +180,11 @@ void main() {
     expect(projects.projects.single.brief!.taxonomy!.plotShapeId, isNull);
   });
 
-  testWidgets('saving the supported brief automatically opens the generated plan', (tester) async {
+  testWidgets('bedroom count with no preset automatically opens the generated plan', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Residential');
     await tap(tester, 'House / low-rise dwelling');
     await tap(tester, 'Independent House');
-    await choose(tester, 'House configuration (optional)', '1 BHK');
     await tap(tester, 'Continue');
     await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, 'Test House');
@@ -198,13 +197,18 @@ void main() {
     await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, '1');
     await choose(tester, 'Parking (optional)', 'No parking');
+    final bedrooms = find.descendant(of: find.byKey(const ValueKey('bedrooms')), matching: find.byType(TextFormField));
+    await tester.ensureVisible(bedrooms);
+    await tester.enterText(bedrooms, '2');
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     expect(projects.projects.single.name, 'Test House');
+    expect(projects.projects.single.brief!.taxonomy!.configurationId, isNull);
+    expect(projects.projects.single.brief!.requirements!.answers['bedrooms'], 2);
     expect(projects.projects.single.brief!.taxonomy!.scenarioId,
-      'residential/houses/independent_house/1_bhk/floors_1/parking_none');
+      'residential/houses/independent_house/2_bhk/floors_1/parking_none');
     expect(find.text('Automatic floor plan'), findsOneWidget);
-    expect(find.text('1 BHK concept • South entry'), findsOneWidget);
+    expect(find.text('2 BHK concept • South entry'), findsOneWidget);
     expect(find.text('Save or share DXF'), findsOneWidget);
     expect(find.text('No plan generated'), findsNothing);
   });

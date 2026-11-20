@@ -53,6 +53,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Configuration'), findsOneWidget);
     expect(find.text('2 BHK'), findsOneWidget);
-    expect(find.textContaining('Automatic CAD for the ground-floor'), findsOneWidget);
+    expect(find.textContaining('enter your bedroom count'), findsOneWidget);
   });
 }
