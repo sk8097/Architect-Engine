@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
@@ -22,6 +24,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
   late String _bhk;
   late String _floors;
   late String _facing;
+  bool _saving = false;
 
   @override
   void initState() {
@@ -43,42 +46,41 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
     super.dispose();
   }
 
-  void _save() {
-    if (_formKey.currentState!.validate()) {
-      final name = _nameController.text.trim();
-      final length = double.parse(_lengthController.text);
-      final width = double.parse(_widthController.text);
-      final projectProvider = Provider.of<ProjectProvider>(context, listen: false);
-      final notifProvider = Provider.of<NotificationProvider>(context, listen: false);
-
-      if (widget.existingProject != null) {
-        projectProvider.updateProject(
-          id: widget.existingProject!.id,
-          name: name,
-          length: length,
-          width: width,
-          bhk: _bhk,
-          floors: _floors,
-          facing: _facing,
-        );
-        notifProvider.addNotification('success', 'Project Updated', '$name has been updated.');
-      } else {
-        projectProvider.addProject(
-          name: name,
-          length: length,
-          width: width,
-          bhk: _bhk,
-          floors: _floors,
-          facing: _facing,
-        );
-        notifProvider.addNotification('success', 'New Project Created', '$name ($_bhk, ${length * width} sqft) was created.');
-      }
-
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(widget.existingProject != null ? 'Project updated!' : 'Project created!')),
-      );
+  Future<void> _save() async {
+    if (_saving || !_formKey.currentState!.validate()) return;
+    final name = _nameController.text.trim();
+    final length = double.parse(_lengthController.text.trim());
+    final width = double.parse(_widthController.text.trim());
+    final provider = context.read<ProjectProvider>();
+    final notifications = context.read<NotificationProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+    final existing = widget.existingProject;
+    if (!(length * width).isFinite) {
+      messenger.showSnackBar(const SnackBar(content: Text('Enter dimensions with a valid plot area.')));
+      return;
     }
+    setState(() => _saving = true);
+    try {
+      if (existing != null) {
+        await provider.updateProject(id: existing.id, name: name, length: length,
+          width: width, bhk: _bhk, floors: _floors, facing: _facing);
+      } else {
+        await provider.addProject(name: name, length: length, width: width,
+          bhk: _bhk, floors: _floors, facing: _facing);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _saving = false);
+      messenger.showSnackBar(const SnackBar(content: Text('Could not save the project. Please try again.')));
+      return;
+    }
+    if (!mounted) return;
+    final title = existing == null ? 'New Project Created' : 'Project Updated';
+    unawaited(notifications.addNotification('success', title, name).catchError(
+      (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
+    ));
+    Navigator.of(context).pop();
+    messenger.showSnackBar(SnackBar(content: Text(existing == null ? 'Project created!' : 'Project updated!')));
   }
 
   @override
@@ -107,7 +109,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: _saving ? null : () => Navigator.pop(context),
                     ),
                   ],
                 ),
@@ -137,7 +139,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
                         ),
                         validator: (v) {
                           final num = double.tryParse(v ?? '');
-                          if (num == null || num <= 0) return 'Valid length';
+                          if (num == null || !num.isFinite || num <= 0) return 'Valid length';
                           return null;
                         },
                       ),
@@ -153,7 +155,7 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
                         ),
                         validator: (v) {
                           final num = double.tryParse(v ?? '');
-                          if (num == null || num <= 0) return 'Valid width';
+                          if (num == null || !num.isFinite || num <= 0) return 'Valid width';
                           return null;
                         },
                       ),
@@ -225,9 +227,9 @@ class _ProjectFormDialogState extends State<ProjectFormDialog> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  onPressed: _save,
+                  onPressed: _saving ? null : _save,
                   child: Text(
-                    isEditing ? 'UPDATE PROJECT' : 'SAVE PROJECT',
+                    _saving ? 'Saving…' : (isEditing ? 'UPDATE PROJECT' : 'SAVE PROJECT'),
                     style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, letterSpacing: 0.5),
                   ),
                 ),
