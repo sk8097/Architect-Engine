@@ -12,6 +12,8 @@ import '../models/project_requirements_snapshot.dart';
 import '../providers/notification_provider.dart';
 import '../providers/project_provider.dart';
 import '../widgets/requirement_fields.dart';
+import '../services/automatic_floor_plan_generator.dart';
+import 'automatic_floor_plan_screen.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
   const ProjectWizardScreen({super.key, this.existingProject});
@@ -107,6 +109,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
     ...technicalFields, ..._designSchema, ...deliveryFields,
   ];
+  bool get _canAutoPlan => AutomaticFloorPlanGenerator.supportsProfile(
+    _category?.id, _group?.id, _type?.id, _configurationId,
+  );
   bool get _isReview => _step == _steps.length - 1;
   bool get _showsContinue => _step >= 3;
   String get _selectionPath => [
@@ -378,8 +383,15 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    Navigator.of(context).pop();
-    messenger.showSnackBar(const SnackBar(content: Text('Project brief saved.')));
+    if (AutomaticFloorPlanGenerator.supportsBrief(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => AutomaticFloorPlanScreen(projectName: name, brief: brief,
+          frontageFt: width ?? 0, depthFt: length ?? 0, facing: facing),
+      ));
+    } else {
+      Navigator.of(context).pop();
+      messenger.showSnackBar(const SnackBar(content: Text('Project brief saved.')));
+    }
   }
 
   @override
@@ -672,7 +684,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           const Text('Record survey dimensions below. Boundary notes are not converted to plan geometry yet.'),
           const SizedBox(height: 12),
         ],
-        _dropdown('Site orientation (optional)', _facing, [
+        _dropdown('Front-facing side (optional)', _facing, [
           for (final direction in _directions)
             TaxonomyChoice(direction, direction == 'Not decided' ? 'Unknown / survey required' : direction),
         ], (value) => setState(() => _facing = value)),
@@ -788,7 +800,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        const Text('In this workflow: floor plan generation and PDF, DXF, DWG, IFC and preview exports are unavailable.'),
+        if (_canAutoPlan)
+          const Text('Saving automatically opens the 1 BHK concept preview or explains why this brief cannot be generated. Select one floor, No parking, measured plot sides and a cardinal frontage.')
+        else
+          const Text('This brief can be saved. Automatic plans are currently limited to Residential → Independent House → 1 BHK.'),
+        const Text('Drawing export is unavailable in this preview release.'),
       ],
     );
   }

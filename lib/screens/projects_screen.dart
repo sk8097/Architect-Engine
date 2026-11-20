@@ -6,6 +6,8 @@ import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';
 import 'project_form_dialog.dart';
 import 'project_wizard_screen.dart';
+import 'automatic_floor_plan_screen.dart';
+import '../services/automatic_floor_plan_generator.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -140,6 +142,15 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             ),
                             PopupMenuButton<String>(
                               onSelected: (val) async {
+                                if (val == 'plan' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(
+                                    builder: (_) => AutomaticFloorPlanScreen(
+                                      projectName: project.name, brief: project.brief!,
+                                      frontageFt: project.width, depthFt: project.length,
+                                      facing: project.facing),
+                                  ));
+                                  return;
+                                }
                                 if (val == 'edit') {
                                   if (project.brief != null) {
                                     ProjectWizardScreen.open(context, project: project);
@@ -160,6 +171,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 }
                               },
                               itemBuilder: (ctx) => [
+                                if (AutomaticFloorPlanGenerator.supportsBrief(project.brief))
+                                  const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),
                                 const PopupMenuItem(value: 'del', child: Text('Delete', style: TextStyle(color: Colors.red))),

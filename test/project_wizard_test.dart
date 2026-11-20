@@ -180,6 +180,32 @@ void main() {
     expect(projects.projects.single.brief!.taxonomy!.plotShapeId, isNull);
   });
 
+  testWidgets('saving the supported brief automatically opens the generated plan', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Residential');
+    await tap(tester, 'House / low-rise dwelling');
+    await tap(tester, 'Independent House');
+    await choose(tester, 'House configuration (optional)', '1 BHK');
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Test House');
+    await tap(tester, 'Continue');
+    await choose(tester, 'Plot geometry (optional)', 'Rectangular');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (ft)')), '30');
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (ft)')), '40');
+    await choose(tester, 'Front-facing side (optional)', 'South');
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, '1');
+    await choose(tester, 'Parking (optional)', 'No parking');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.name, 'Test House');
+    expect(find.text('Automatic floor plan'), findsOneWidget);
+    expect(find.text('1 BHK concept • South entry'), findsOneWidget);
+    expect(find.text('No plan generated'), findsNothing);
+  });
+
 }
 
 Future<void> goToReview(WidgetTester tester) async {
