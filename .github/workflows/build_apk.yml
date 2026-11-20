@@ -59,11 +59,36 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Run project brief tests
-        run: flutter test test/project_provider_test.dart test/project_requirements_test.dart test/project_wizard_test.dart
+      - name: Run app regression tests
+        shell: bash
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/flutter-tests.log"
+          if flutter test --reporter expanded test/project_provider_test.dart test/project_requirements_test.dart test/project_wizard_test.dart test/tools_navigation_test.dart 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          # Surface the failing assertion in the check annotation as well as the log.
+          details=$(grep -E -A 7 -m 2 'EXCEPTION CAUGHT|\[E\]|Error:' "$log" | head -c 2400 || true)
+          details=${details//'%'/'%25'}
+          details=${details//$'\n'/'%0A'}
+          details=${details//$'\r'/'%0D'}
+          echo "::error title=Flutter regression failure::$details"
+          exit 1
 
       - name: Build Android Release APK
-        run: flutter build apk --release --android-skip-build-dependency-validation
+        shell: bash
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/flutter-apk.log"
+          if flutter build apk --release --android-skip-build-dependency-validation 2>&1 | tee "$log"; then
+            exit 0
+          fi
+          details=$(grep -E -A 6 -m 3 'Error:|What went wrong:|Execution failed for task' "$log" | head -c 2400 || true)
+          details=${details//'%'/'%25'}
+          details=${details//$'\n'/'%0A'}
+          details=${details//$'\r'/'%0D'}
+          echo "::error title=Flutter APK build failure::$details"
+          exit 1
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
