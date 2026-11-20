@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import '../data/project_requirements.dart';
+import '../data/project_scenarios.dart';
 import '../data/project_taxonomy.dart';
 import '../models/automatic_floor_plan.dart';
 import '../models/project_brief.dart';
@@ -20,7 +21,9 @@ class AutomaticFloorPlanGenerator {
   static const _kitchen = 'closed_kitchen';
   static const _bath = 'shared_bathroom';
   static const _hall = 'internal_passage';
-  static const supportedTypes = {'independent_house', 'detached_house', 'villa', 'bungalow', 'farmhouse'};
+  static final supportedTypes = Set<String>.unmodifiable(
+    projectScenarios.where((s) => s.generator != null).map((s) => s.type.id),
+  );
   static const availability = 'Single-floor 1 BHK and 2 BHK: Independent House, Detached House, Villa, Bungalow and residential Farmhouse.';
   static const _rooms = {
     _bed: 'Bedroom', _living: 'Living room', _kitchen: 'Kitchen',
@@ -29,8 +32,7 @@ class AutomaticFloorPlanGenerator {
   static const wall = 150;
 
   static bool supportsProfile(String? category, String? group, String? type, String? config) =>
-      category == 'residential' && group == 'houses' && supportedTypes.contains(type) &&
-      (config == '1_bhk' || config == '2_bhk');
+      scenarioFor(category, group, type, config)?.generator != null;
 
   static bool supportsBrief(ProjectBrief? brief) {
     final type = brief?.taxonomy;
@@ -44,7 +46,8 @@ class AutomaticFloorPlanGenerator {
     if (!supportsBrief(brief) || taxonomy == null) {
       return blocked(['Automatic plans are available for: $availability']);
     }
-    final bedrooms = taxonomy.configurationId == '2_bhk' ? 2 : 1;
+    final scenario = scenarioFor(taxonomy.categoryId, taxonomy.subcategoryId, taxonomy.typeId, taxonomy.configurationId)!;
+    final bedrooms = scenario.generator == ScenarioGenerator.house2Bhk ? 2 : 1;
     final two = bedrooms == 2;
     final rooms = {..._rooms, if (two) _bed2: 'Bedroom 2'};
     final snapshot = brief.requirements;

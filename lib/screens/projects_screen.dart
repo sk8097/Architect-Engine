@@ -6,6 +6,7 @@ import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';
 import 'project_form_dialog.dart';
 import 'project_wizard_screen.dart';
+import 'scenario_library_screen.dart';
 import 'automatic_floor_plan_screen.dart';
 import '../services/automatic_floor_plan_generator.dart';
 
@@ -43,6 +44,14 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            OutlinedButton.icon(
+              icon: const Icon(Icons.grid_view),
+              label: const Text('Scenario Library'),
+              onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute(
+                builder: (_) => const ScenarioLibraryScreen(),
+              )),
+            ),
+            const SizedBox(height: 12),
             // Search Bar
             TextField(
               decoration: InputDecoration(

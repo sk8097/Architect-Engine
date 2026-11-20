@@ -4,6 +4,8 @@ The New Project wizard captures a project brief. Selectable types and requested 
 
 ## How choices are organized
 
+See the [Scenario Library](scenario-library.md) for separately identified catalogue entries and generation status.
+
 - [`project_taxonomy.dart`](../lib/data/project_taxonomy.dart) contains the eight categories, scoped type IDs, known configurations and space catalogues. New options are added under the existing relevant parent where possible. Farmhouse as a dwelling and farmhouse as an operating farm are intentionally separate scopes.
 - [`project_requirements.dart`](../lib/data/project_requirements.dart) defines typed fields, units, validation, applicability, and explicit option IDs. Facility inputs inherit a shared profile and can add type-specific prompts. For example, a multiplex asks for screens and seats; cold storage asks for chambers and temperature zones; roads and bridges use alignment data and do not ask for a building footprint.
 - Custom type and configuration require a description; custom spaces require a distinct name. Known options should be added to the registry rather than handled solely through Custom.

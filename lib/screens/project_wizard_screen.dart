@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
+import '../data/project_scenarios.dart';
 import '../models/project_brief.dart';
 import '../models/project_model.dart';
 import '../models/project_requirements_snapshot.dart';
@@ -16,13 +17,16 @@ import '../services/automatic_floor_plan_generator.dart';
 import 'automatic_floor_plan_screen.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
-  const ProjectWizardScreen({super.key, this.existingProject});
+  const ProjectWizardScreen({super.key, this.existingProject, this.scenario, this.variant});
 
   final ProjectModel? existingProject;
+  final ProjectScenario? scenario;
+  final ProjectScenarioVariant? variant;
 
-  static Future<void> open(BuildContext context, {ProjectModel? project}) async {
+  static Future<void> open(BuildContext context, {ProjectModel? project,
+    ProjectScenario? scenario, ProjectScenarioVariant? variant}) async {
     await Navigator.of(context).push<void>(MaterialPageRoute(
-      builder: (_) => ProjectWizardScreen(existingProject: project),
+      builder: (_) => ProjectWizardScreen(existingProject: project, scenario: scenario, variant: variant),
     ));
   }
 
@@ -109,9 +113,14 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
     ...technicalFields, ..._designSchema, ...deliveryFields,
   ];
-  bool get _canAutoPlan => AutomaticFloorPlanGenerator.supportsProfile(
-    _category?.id, _group?.id, _type?.id, _configurationId,
-  );
+  ProjectScenario? get _currentScenario => scenarioFor(_category?.id, _group?.id, _type?.id, _configurationId);
+  ProjectScenarioVariant? get _currentVariant {
+    final scenario = _currentScenario;
+    if (scenario == null) return null;
+    return scenarioVariantFor(scenario, int.tryParse(_floors.text.trim()), _parking?.name);
+  }
+  bool get _canAutoPlan => _currentScenario?.generator != null;
+  bool get _needsScenarioInputs => int.tryParse(_floors.text.trim()) == null || _parking == null;
   bool get _isReview => _step == _steps.length - 1;
   bool get _showsContinue => _step >= 3;
   String get _selectionPath => [
@@ -124,7 +133,22 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   void initState() {
     super.initState();
     final project = widget.existingProject;
-    if (project == null) return;
+    if (project == null) {
+      final variant = widget.variant;
+      final preset = variant?.scenario ?? widget.scenario;
+      if (preset != null) {
+        _category = preset.category;
+        _group = preset.group;
+        _type = preset.type;
+        _configurationId = preset.configuration?.id;
+        if (variant != null) {
+          _floors.text = '${variant.floors}';
+          _parking = ProjectParking.values.byName(variant.parkingId);
+        }
+        _step = 3;
+      }
+      return;
+    }
     final brief = project.brief;
     final saved = brief?.taxonomy;
     _name.text = project.name;
@@ -337,6 +361,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         actionId: _actionId,
         stageId: _stageId,
         plotShapeId: _linearSite ? null : _shapeId,
+        scenarioId: _currentVariant?.id ?? _currentScenario?.id,
         spaceQuantities: activeSpaceQuantities(_spaces, _spaceDetails),
       ),
       requirements: ProjectRequirementsSnapshot(
@@ -516,7 +541,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           ),
           const SizedBox(height: 12),
           if (_canAutoPlan)
-            const Text('Automatic CAD plan available. Use one floor, a rectangular or square plot, cardinal frontage and No parking.')
+            const Text('Automatic CAD for the ground-floor, no-parking variant. Requires a rectangular or square plot and a cardinal frontage.')
           else
             const Text('Brief only for this selection. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),
         ],
@@ -785,6 +810,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         _reviewRow('Project action', taxonomyChoice(projectActions, _actionId)?.label),
         _reviewRow('Project stage', taxonomyChoice(projectStages, _stageId)?.label),
         _reviewRow(_program.configurationLabel, taxonomyChoice(_program.configurations, _configurationId)?.label),
+        if (_currentVariant != null) _reviewRow('Scenario variant', _currentVariant!.label),
         if (!_linearSite) _reviewRow('Plot geometry', taxonomyChoice(plotShapes, _shapeId)?.label),
         if (!_linearSite && _shapeId == 'square') ...[
           _reviewRow('Measured plot side', width.isEmpty ? null : '$width ft'),
@@ -808,7 +834,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_canAutoPlan)
+        if (_canAutoPlan && _needsScenarioInputs)
+          const Text('Input needed for CAD: confirm the floor count and parking on the facility page.')
+        else if (_canAutoPlan && _currentVariant?.generator == null)
+          const Text('Brief only for this floor and parking variant. Saving will explain why a drawing could not be generated.')
+        else if (_canAutoPlan)
           const Text('Saving automatically opens the CAD concept preview or explains why this brief cannot be generated. Select one floor, No parking, measured plot sides and a cardinal frontage.')
         else
           const Text('This brief is saved without a drawing. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),

@@ -201,6 +201,8 @@ void main() {
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     expect(projects.projects.single.name, 'Test House');
+    expect(projects.projects.single.brief!.taxonomy!.scenarioId,
+      'residential/houses/independent_house/1_bhk/floors_1/parking_none');
     expect(find.text('Automatic floor plan'), findsOneWidget);
     expect(find.text('1 BHK concept • South entry'), findsOneWidget);
     expect(find.text('Save or share DXF'), findsOneWidget);

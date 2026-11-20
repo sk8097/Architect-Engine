@@ -99,6 +99,7 @@ class TaxonomySelection {
     this.actionId,
     this.stageId,
     this.plotShapeId,
+    this.scenarioId,
     Map<String, int> spaceQuantities = const {},
   }) : spaceQuantities = Map.unmodifiable(spaceQuantities);
 
@@ -110,6 +111,7 @@ class TaxonomySelection {
   final String? actionId;
   final String? stageId;
   final String? plotShapeId;
+  final String? scenarioId;
   final Map<String, int> spaceQuantities;
 
   String get typeLabel {
@@ -126,6 +128,7 @@ class TaxonomySelection {
         'actionId': actionId,
         'stageId': stageId,
         'plotShapeId': plotShapeId,
+        if (scenarioId != null) 'scenarioId': scenarioId,
         'spaceQuantities': spaceQuantities,
       };
 
@@ -147,6 +150,7 @@ class TaxonomySelection {
       actionId: id('actionId'),
       stageId: id('stageId'),
       plotShapeId: id('plotShapeId'),
+      scenarioId: id('scenarioId'),
       spaceQuantities: {
         if (spaces is Map<String, dynamic>)
           for (final entry in spaces.entries)
