@@ -30,15 +30,17 @@ class PlanOpening {
 
 class AutomaticFloorPlan {
   AutomaticFloorPlan({required this.plot, required this.footprint,
-    required this.facing, required Iterable<PlanRoom> rooms,
+    required this.facing, this.bedrooms = 1, required Iterable<PlanRoom> rooms,
     required Iterable<PlanRect> walls, required Iterable<PlanOpening> openings})
       : rooms = List.unmodifiable(rooms), walls = List.unmodifiable(walls),
         openings = List.unmodifiable(openings);
 
-  static const generatorVersion = '1bhk-concept-v1';
+  static const generatorVersion = 'house-concept-v2';
   static const entry = 'outside';
   final PlanRect plot, footprint;
   final String facing;
+  final int bedrooms;
+  String get configurationLabel => '$bedrooms BHK';
   final List<PlanRoom> rooms;
   final List<PlanRect> walls;
   final List<PlanOpening> openings;

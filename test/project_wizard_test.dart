@@ -203,6 +203,7 @@ void main() {
     expect(projects.projects.single.name, 'Test House');
     expect(find.text('Automatic floor plan'), findsOneWidget);
     expect(find.text('1 BHK concept • South entry'), findsOneWidget);
+    expect(find.text('Save or share DXF'), findsOneWidget);
     expect(find.text('No plan generated'), findsNothing);
   });
 

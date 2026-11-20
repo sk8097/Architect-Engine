@@ -11,14 +11,17 @@ class FloorPlanResult {
   final List<String> issues, warnings;
 }
 
-/// A deterministic, local concept generator for one explicit supported profile.
+/// A deterministic, local concept generator for supported low-rise house profiles.
 /// Its dimensions are template heuristics, never statutory minimums.
 class AutomaticFloorPlanGenerator {
   static const _bed = 'master_bedroom';
+  static const _bed2 = 'secondary_bedroom';
   static const _living = 'family_living_room';
   static const _kitchen = 'closed_kitchen';
   static const _bath = 'shared_bathroom';
   static const _hall = 'internal_passage';
+  static const supportedTypes = {'independent_house', 'detached_house', 'villa', 'bungalow', 'farmhouse'};
+  static const availability = 'Single-floor 1 BHK and 2 BHK: Independent House, Detached House, Villa, Bungalow and residential Farmhouse.';
   static const _rooms = {
     _bed: 'Bedroom', _living: 'Living room', _kitchen: 'Kitchen',
     _bath: 'Shared bathroom', _hall: 'Entry / passage',
@@ -26,7 +29,8 @@ class AutomaticFloorPlanGenerator {
   static const wall = 150;
 
   static bool supportsProfile(String? category, String? group, String? type, String? config) =>
-      category == 'residential' && group == 'houses' && type == 'independent_house' && config == '1_bhk';
+      category == 'residential' && group == 'houses' && supportedTypes.contains(type) &&
+      (config == '1_bhk' || config == '2_bhk');
 
   static bool supportsBrief(ProjectBrief? brief) {
     final type = brief?.taxonomy;
@@ -38,8 +42,11 @@ class AutomaticFloorPlanGenerator {
     FloorPlanResult blocked(List<String> issues) => FloorPlanResult(null, issues, const []);
     final taxonomy = brief.taxonomy;
     if (!supportsBrief(brief) || taxonomy == null) {
-      return blocked(['Automatic plans are currently available only for Residential → Independent House → 1 BHK.']);
+      return blocked(['Automatic plans are available for: $availability']);
     }
+    final bedrooms = taxonomy.configurationId == '2_bhk' ? 2 : 1;
+    final two = bedrooms == 2;
+    final rooms = {..._rooms, if (two) _bed2: 'Bedroom 2'};
     final snapshot = brief.requirements;
     if (taxonomy.version != projectTaxonomyVersion ||
         (snapshot != null && snapshot.version != requirementsSchemaVersion)) {
@@ -48,6 +55,13 @@ class AutomaticFloorPlanGenerator {
     final values = snapshot?.answers ?? const <String, Object>{};
     final roomDetails = snapshot?.spaceDetails ?? const <String, Map<String, Object>>{};
     final issues = <String>[];
+    if (taxonomy.actionId != null && !const {'new_design', 'concept_design', 'feasibility'}.contains(taxonomy.actionId)) {
+      issues.add('This generator is for a new standalone concept, not work on an existing design or an approval drawing.');
+    }
+    if (const {'existing', 'partial_demolition', 'brownfield'}.contains(values['build_status']) ||
+        const {'existing', 'partial', 'renovation', 'demolish'}.contains(values['construction_status'])) {
+      issues.add('Existing structures or demolition need a surveyed layout. They are not supported by this generator.');
+    }
     const sides = {'North': 'n', 'East': 'e', 'South': 's', 'West': 'w'};
     const supportedShapes = {'rectangular', 'square'};
     if (!supportedShapes.contains(taxonomy.plotShapeId)) issues.add('Choose a rectangular or square plot.');
@@ -74,28 +88,28 @@ class AutomaticFloorPlanGenerator {
     final houseForm = values['house_form'];
     if (houseForm != null && houseForm != 'single_floor') issues.add('Only the single-floor house form is supported.');
     final kitchen = values['kitchen_type'];
-    if (kitchen != null && kitchen != 'closed') issues.add('Only a closed kitchen is supported in this first layout.');
-    if ((values['bedrooms'] != null && values['bedrooms'] != 1) ||
+    if (kitchen != null && kitchen != 'closed') issues.add('Open or specialist kitchen layouts are not supported yet. This template has a closed kitchen.');
+    if ((values['bedrooms'] != null && values['bedrooms'] != bedrooms) ||
         (values['attached_toilets'] as num? ?? 0) > 0 ||
         (values['common_toilets'] != null && values['common_toilets'] != 1)) {
-      issues.add('This layout has exactly one bedroom and one shared bathroom.');
+      issues.add('This layout has $bedrooms bedroom(s) and one shared bathroom.');
     }
     final customSpaces = snapshot?.customSpaces ?? const <String, String>{};
     final profile = taxonomyProgram(taxonomyGroup(taxonomyCategory('residential'), 'houses')!,
       const TaxonomyChoice('independent_house', 'Independent House'));
     for (final entry in taxonomy.spaceQuantities.entries) {
-      if (!_rooms.containsKey(entry.key) || entry.value != 1) {
+      if (!rooms.containsKey(entry.key) || entry.value != 1) {
         final label = customSpaces[entry.key] ?? taxonomyChoice(profile.spaces, entry.key)?.label ?? entry.key;
         issues.add('This layout cannot place ${entry.value} × $label.');
       }
     }
     for (final entry in roomDetails.entries) {
-      if (_rooms.containsKey(entry.key) && isExcludedSpace(entry.value)) {
-        issues.add('${_rooms[entry.key]} is essential to this profile and cannot be excluded.');
+      if (rooms.containsKey(entry.key) && isExcludedSpace(entry.value)) {
+        issues.add('${rooms[entry.key]} is essential to this profile and cannot be excluded.');
       }
       final floor = entry.value['floor_level'];
       if (floor is String && !const {'ground', 'ground floor', 'g', '0'}.contains(floor.trim().toLowerCase())) {
-        issues.add('${_rooms[entry.key] ?? entry.key} requests another floor. Only ground floor is supported.');
+        issues.add('${rooms[entry.key] ?? entry.key} requests another floor. Only ground floor is supported.');
       }
     }
     if (issues.isNotEmpty) return blocked(issues);
@@ -116,9 +130,9 @@ class AutomaticFloorPlanGenerator {
     final maxWidth = w - left - right, maxDepth = d - front - rear;
     if (maxWidth <= 0 || maxDepth <= 0) return blocked(['The supplied setbacks consume the entire plot.']);
 
-    final picks = _search(roomDetails, values, maxWidth, maxDepth, w * d);
+    final picks = _search(roomDetails, values, maxWidth, maxDepth, w * d, two);
     if (picks == null) return blocked([
-      'No supported 1 BHK layout fits this plot envelope and the selected room constraints. '
+      'No supported $bedrooms BHK layout fits this plot envelope and the selected room constraints. '
       'Check plot size, supplied setbacks, requested areas, clear dimensions and adjacency. '
       'This is not a finding that the site cannot be developed.',
     ]);
@@ -135,7 +149,7 @@ class AutomaticFloorPlanGenerator {
     }
     final plan = AutomaticFloorPlan(
       plot: (facing == 'East' || facing == 'West') ? PlanRect(0, 0, d, w) : PlanRect(0, 0, w, d),
-      footprint: orient(local.footprint), facing: facing,
+      footprint: orient(local.footprint), facing: facing, bedrooms: bedrooms,
       rooms: local.rooms.map((r) => PlanRoom(r.id, r.label, orient(r.bounds))),
       walls: local.walls.map(orient),
       openings: local.openings.map((o) => PlanOpening(o.kind, orient(o.bounds), o.from, o.to)),
@@ -143,7 +157,7 @@ class AutomaticFloorPlanGenerator {
     final validation = validateAutomaticFloorPlan(plan);
     if (validation != null) return blocked(['The model did not pass geometry checks: $validation']);
     const applied = {'road_sides', 'access', 'basements', 'mezzanines', 'building_count', 'wing_count',
-      'house_form', 'kitchen_type', 'bedrooms', 'attached_toilets', 'common_toilets',
+      'build_status', 'construction_status', 'house_form', 'kitchen_type', 'bedrooms', 'attached_toilets', 'common_toilets',
       'front_setback', 'rear_setback', 'left_setback', 'right_setback', 'target_builtup_area',
       'coverage_limit', 'fsi_limit'};
     const appliedRoom = {'priority', 'area_unit', 'area_min', 'area_target', 'area_max', 'width', 'length',
@@ -160,8 +174,10 @@ class AutomaticFloorPlanGenerator {
 }
 
 class _Candidate {
-  const _Candidate(this.a, this.b, this.front, this.back, this.hall, this.missedPreference);
+  const _Candidate(this.a, this.b, this.front, this.back, this.hall, this.bathSplit, this.missedPreference);
   final int a, b, front, back, hall;
+  final int? bathSplit;
+  bool get two => bathSplit != null;
   final bool missedPreference;
   int get width => a + b + hall + 4 * AutomaticFloorPlanGenerator.wall;
   int get depth => front + back + 3 * AutomaticFloorPlanGenerator.wall;
@@ -169,28 +185,30 @@ class _Candidate {
 
 const _roomGrid = {
   'family_living_room': (0, 0), 'master_bedroom': (0, 1),
-  'closed_kitchen': (2, 0), 'shared_bathroom': (2, 1), 'internal_passage': (1, -1),
+  'closed_kitchen': (2, 0), 'shared_bathroom': (2, 1),
+  'internal_passage': (1, -1), 'secondary_bedroom': (2, 2),
 };
 
-bool _adjacent(String a, String b) {
-  final x = _roomGrid[a], y = _roomGrid[b];
-  if (x == null || y == null || a == b) return false;
-  return x.$1 == 1 || y.$1 == 1 || x.$1 == y.$1;
-}
-
 _Candidate? _search(Map<String, Map<String, Object>> details, Map<String, Object> values,
-    int maxWidth, int maxDepth, int plotArea) {
-  final geometryFields = details.entries.where((e) => _roomGrid.containsKey(e.key)).toList();
+    int maxWidth, int maxDepth, int plotArea, bool two) {
+  final grid = {..._roomGrid};
+  if (!two) grid.remove('secondary_bedroom');
+  bool adjacent(String a, String b) {
+    final x = grid[a], y = grid[b];
+    if (x == null || y == null || a == b) return false;
+    return x.$1 == 1 || y.$1 == 1 || (x.$1 == y.$1 && (x.$2 - y.$2).abs() == 1);
+  }
+  final geometryFields = details.entries.where((e) => grid.containsKey(e.key)).toList();
   for (final e in geometryFields) {
     for (final key in ['adjacent_required', 'separate_from']) {
       final choices = e.value[key];
       if (choices is Iterable && choices.whereType<String>().any((b) =>
-          !_roomGrid.containsKey(b) || _adjacent(e.key, b) != (key == 'adjacent_required'))) return null;
+          !grid.containsKey(b) || adjacent(e.key, b) != (key == 'adjacent_required'))) return null;
     }
   }
   final preferredAdjacencyMiss = geometryFields.any((e) {
     final options = e.value['adjacent_preferred'];
-    return options is Iterable && options.whereType<String>().any((b) => !_adjacent(e.key, b));
+    return options is Iterable && options.whereType<String>().any((b) => !adjacent(e.key, b));
   });
   int? exact(String id, String field) {
     final value = details[id]?[field];
@@ -201,9 +219,15 @@ _Candidate? _search(Map<String, Map<String, Object>> details, Map<String, Object
       ? {min, ideal, for (var i = min; i <= math.max(min, ideal + 1000); i += 250) i}.toList()
       : (exact < min ? [] : [exact]);
   final lefts = sizes(3000, 3450, sharedExact('width', 'family_living_room', 'master_bedroom'));
-  final rights = sizes(2300, 2500, sharedExact('width', 'closed_kitchen', 'shared_bathroom'));
+  final rights = sizes(two ? 2800 : 2300, two ? 3100 : 2500,
+      sharedExact('width', 'closed_kitchen', 'shared_bathroom') ?? (two ? exact('secondary_bedroom', 'width') : null));
   final fronts = sizes(3000, 3400, sharedExact('length', 'family_living_room', 'closed_kitchen'));
-  final backs = sizes(3000, 3300, sharedExact('length', 'master_bedroom', 'shared_bathroom'));
+  const wall = AutomaticFloorPlanGenerator.wall;
+  final idealBack = two ? 5350 : 3300;
+  final bathSplits = two ? sizes(1650, 1850, exact('shared_bathroom', 'length')) : const [0];
+  final secondDepth = two ? exact('secondary_bedroom', 'length') : null;
+  final backExact = two ? exact('master_bedroom', 'length') : sharedExact('length', 'master_bedroom', 'shared_bathroom');
+
   final halls = sizes(1050, 1100, exact('internal_passage', 'width'));
   final coverage = values['coverage_limit'] as num?, fsi = values['fsi_limit'] as num?;
   final target = values['target_builtup_area'] as num?;
@@ -212,36 +236,42 @@ _Candidate? _search(Map<String, Map<String, Object>> details, Map<String, Object
   for (final a in lefts) {
     for (final b in rights) {
       for (final front in fronts) {
-        for (final back in backs) {
-          for (final hall in halls) {
-            final candidate = _Candidate(a, b, front, back, hall, false);
-            if (candidate.width > maxWidth || candidate.depth > maxDepth) continue;
-            final footprint = candidate.width * candidate.depth;
-            if (coverage != null && footprint * 100 > plotArea * coverage) continue;
-            if (fsi != null && footprint > plotArea * fsi) continue;
-            final sizes = {
-              'family_living_room': (a, front), 'master_bedroom': (a, back),
-              'closed_kitchen': (b, front), 'shared_bathroom': (b, back),
-              'internal_passage': (hall, front + back + AutomaticFloorPlanGenerator.wall),
-            };
-            var totalError = target == null ? 0.0 : (footprint / 1000000 - target).abs();
-            var valid = true;
-            for (final e in geometryFields) {
-              final (width, depth) = sizes[e.key]!;
-              final input = e.value;
-              if ((input['width'] != null && exact(e.key, 'width') != width) ||
-                  (input['length'] != null && exact(e.key, 'length') != depth)) { valid = false; break; }
-              final area = width * depth / (input['area_unit'] == 'sqft' ? 92903.04 : 1000000);
-              final min = input['area_min'] as num?, max = input['area_max'] as num?, targetArea = input['area_target'] as num?;
-              if ((min != null && area < min) || (max != null && area > max)) { valid = false; break; }
-              if (targetArea != null) totalError += (targetArea - area).abs().toDouble() * (input['area_unit'] == 'sqft' ? 0.09290304 : 1);
-            }
-            if (!valid) continue;
-            final score = totalError * 10 + ((a - 3450).abs() + (b - 2500).abs() +
-                (front - 3400).abs() + (back - 3300).abs() + (hall - 1100).abs()) / 1000;
-            if (score < bestScore) {
-              bestScore = score;
-              best = _Candidate(a, b, front, back, hall, totalError > 0.1 || preferredAdjacencyMiss);
+        for (final bath in bathSplits) {
+          final minBack = two ? bath + wall + 2850 : 3000;
+          final backs = sizes(minBack, math.max(idealBack, minBack),
+              backExact ?? (secondDepth != null ? bath + wall + secondDepth : null));
+          for (final back in backs) {
+            for (final hall in halls) {
+              final candidate = _Candidate(a, b, front, back, hall, two ? bath : null, false);
+              if (candidate.width > maxWidth || candidate.depth > maxDepth) continue;
+              final footprint = candidate.width * candidate.depth;
+              if (coverage != null && footprint * 100 > plotArea * coverage) continue;
+              if (fsi != null && footprint > plotArea * fsi) continue;
+              final sizes = {
+                'family_living_room': (a, front), 'master_bedroom': (a, back),
+                'closed_kitchen': (b, front), 'shared_bathroom': (b, two ? bath : back),
+                if (two) 'secondary_bedroom': (b, back - bath - wall),
+                'internal_passage': (hall, front + back + AutomaticFloorPlanGenerator.wall),
+              };
+              var totalError = target == null ? 0.0 : (footprint / 1000000 - target).abs();
+              var valid = true;
+              for (final e in geometryFields) {
+                final (width, depth) = sizes[e.key]!;
+                final input = e.value;
+                if ((input['width'] != null && exact(e.key, 'width') != width) ||
+                    (input['length'] != null && exact(e.key, 'length') != depth)) { valid = false; break; }
+                final area = width * depth / (input['area_unit'] == 'sqft' ? 92903.04 : 1000000);
+                final min = input['area_min'] as num?, max = input['area_max'] as num?, targetArea = input['area_target'] as num?;
+                if ((min != null && area < min) || (max != null && area > max)) { valid = false; break; }
+                if (targetArea != null) totalError += (targetArea - area).abs().toDouble() * (input['area_unit'] == 'sqft' ? 0.09290304 : 1);
+              }
+              if (!valid) continue;
+              final score = totalError * 10 + ((a - 3450).abs() + (b - (two ? 3100 : 2500)).abs() +
+                  (front - 3400).abs() + (back - idealBack).abs() + (two ? (bath - 1850).abs() : 0) + (hall - 1100).abs()) / 1000;
+              if (score < bestScore) {
+                bestScore = score;
+                best = _Candidate(a, b, front, back, hall, two ? bath : null, totalError > 0.1 || preferredAdjacencyMiss);
+              }
             }
           }
         }
@@ -261,12 +291,15 @@ AutomaticFloorPlan _layout(_Candidate c, int x, int y) {
   final backStart = frontEnd + t, backEnd = top - t;
   const outside = AutomaticFloorPlan.entry;
   const hall = 'internal_passage', living = 'family_living_room', bed = 'master_bedroom';
-  const kitchen = 'closed_kitchen', bath = 'shared_bathroom';
+  const kitchen = 'closed_kitchen', bath = 'shared_bathroom', bed2 = 'secondary_bedroom';
+  final bathEnd = c.two ? backStart + c.bathSplit! : backEnd;
+  final secondStart = bathEnd + t;
   final rooms = [
     PlanRoom(living, 'Living room', PlanRect(aLeft, frontStart, aRight, frontEnd)),
-    PlanRoom(bed, 'Bedroom', PlanRect(aLeft, backStart, aRight, backEnd)),
+    PlanRoom(bed, c.two ? 'Bedroom 1' : 'Bedroom', PlanRect(aLeft, backStart, aRight, backEnd)),
     PlanRoom(kitchen, 'Kitchen', PlanRect(bLeft, frontStart, bRight, frontEnd)),
-    PlanRoom(bath, 'Shared bathroom', PlanRect(bLeft, backStart, bRight, backEnd)),
+    PlanRoom(bath, 'Shared bathroom', PlanRect(bLeft, backStart, bRight, bathEnd)),
+    if (c.two) PlanRoom(bed2, 'Bedroom 2', PlanRect(bLeft, secondStart, bRight, backEnd)),
     PlanRoom(hall, 'Entry / passage', PlanRect(hallLeft, frontStart, hallRight, backEnd)),
   ];
   final walls = <PlanRect>[], openings = <PlanOpening>[];
@@ -292,7 +325,8 @@ AutomaticFloorPlan _layout(_Candidate c, int x, int y) {
   ]);
   strip(false, r - t, frontStart, backEnd, [
     (center(frontStart, c.front, 1100), 1100, window, outside, kitchen),
-    (center(backStart, c.back, 600), 600, window, outside, bath),
+    (center(backStart, bathEnd - backStart, 600), 600, window, outside, bath),
+    if (c.two) (center(secondStart, backEnd - secondStart, 1200), 1200, window, outside, bed2),
   ]);
   strip(false, aRight, frontStart, backEnd, [
     (center(frontStart, c.front, 900), 900, door, hall, living),
@@ -300,13 +334,15 @@ AutomaticFloorPlan _layout(_Candidate c, int x, int y) {
   ]);
   strip(false, hallRight, frontStart, backEnd, [
     (center(frontStart, c.front, 850), 850, door, hall, kitchen),
-    (center(backStart, c.back, 800), 800, door, hall, bath),
+    (center(backStart, bathEnd - backStart, 800), 800, door, hall, bath),
+    if (c.two) (center(secondStart, backEnd - secondStart, 900), 900, door, hall, bed2),
   ]);
   strip(true, frontEnd, aLeft, aRight, []);
   strip(true, frontEnd, bLeft, bRight, []);
+  if (c.two) strip(true, bathEnd, bLeft, bRight, []);
   final footprint = PlanRect(x, y, r, top);
   return AutomaticFloorPlan(plot: footprint, footprint: footprint, facing: 'South',
-    rooms: rooms, walls: walls, openings: openings);
+    rooms: rooms, walls: walls, openings: openings, bedrooms: c.two ? 2 : 1);
 }
 
 String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) {
@@ -329,7 +365,7 @@ String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) {
       ((a.bottom == b.top || a.top == b.bottom) && a.left < b.right && a.right > b.left);
   final rooms = {for (final r in plan.rooms) r.id: r.bounds};
   const outside = AutomaticFloorPlan.entry;
-  if (rooms.length != plan.rooms.length || rooms.containsKey(outside) || rooms.length != 5) return 'Invalid room program.';
+  if (rooms.length != plan.rooms.length || rooms.containsKey(outside) || rooms.length != 4 + plan.bedrooms) return 'Invalid room program.';
   final adjacent = <String, Set<String>>{};
   var entranceCount = 0;
   for (final opening in plan.openings) {

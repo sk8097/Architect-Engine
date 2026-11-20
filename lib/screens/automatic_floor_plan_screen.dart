@@ -1,10 +1,14 @@
+import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/automatic_floor_plan.dart';
 import '../models/project_brief.dart';
 import '../services/automatic_floor_plan_generator.dart';
+import '../services/floor_plan_cad.dart';
 
 class AutomaticFloorPlanScreen extends StatefulWidget {
   const AutomaticFloorPlanScreen({super.key, required this.projectName,
@@ -23,6 +27,29 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
     brief: widget.brief, frontageFt: widget.frontageFt, depthFt: widget.depthFt,
     facing: widget.facing,
   );
+
+  late final _drawing = _result.plan == null ? null : FloorPlanCad.fromPlan(_result.plan!);
+  bool _sharing = false;
+
+  Future<void> _shareDxf(BuildContext buttonContext, FloorPlanCad drawing) async {
+    if (_sharing) return;
+    final box = buttonContext.findRenderObject();
+    final origin = box is RenderBox ? box.localToGlobal(Offset.zero) & box.size : null;
+    final filename = widget.projectName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_');
+    final name = '${filename.isEmpty ? 'floor_plan' : filename}_concept.dxf';
+    setState(() => _sharing = true);
+    try {
+      await Share.shareXFiles([
+        XFile.fromData(Uint8List.fromList(ascii.encode(drawing.toDxf())), mimeType: 'application/dxf'),
+      ], fileNameOverrides: [name], sharePositionOrigin: origin);
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not share the DXF. Please try again.')),
+      );
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,8 +70,17 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
                 ListTile(contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.error_outline), title: Text(issue)),
             ] else ...[
-              Text('1 BHK concept • ${plan.facing} entry', style: theme.textTheme.titleLarge),
-              const Text('Not for construction. Dimensions are shown in metres.'),
+              Text('${plan.configurationLabel} concept • ${plan.facing} entry', style: theme.textTheme.titleLarge),
+              const Text('Not for construction. Drawing units: millimetres.'),
+              const SizedBox(height: 8),
+              Builder(builder: (buttonContext) => Align(
+                alignment: Alignment.centerLeft,
+                child: FilledButton.icon(
+                  onPressed: _sharing ? null : () => _shareDxf(buttonContext, _drawing!),
+                  icon: const Icon(Icons.ios_share),
+                  label: Text(_sharing ? 'Preparing DXF…' : 'Save or share DXF'),
+                ),
+              )),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(color: const Color(0xfff5f7fa),
@@ -52,11 +88,11 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
                 clipBehavior: Clip.antiAlias,
                 child: SizedBox(height: 340, child: InteractiveViewer(
                   maxScale: 6,
-                  child: CustomPaint(painter: _PlanPainter(plan), child: const SizedBox.expand()),
+                  child: CustomPaint(painter: _PlanPainter(plan, _drawing!), child: const SizedBox.expand()),
                 )),
               ),
               const SizedBox(height: 8),
-              const Text('Black: walls • Blue: windows • Green: entrance • N: north. Pinch to zoom.'),
+              const Text('Black: walls • Blue: windows • Green: door swings • N: north. Pinch to zoom.'),
               const SizedBox(height: 10),
               Text('Room schedule', style: theme.textTheme.titleLarge),
               for (final room in plan.rooms)
@@ -68,7 +104,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
               for (final warning in _result.warnings)
                 ListTile(contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.info_outline), title: Text(warning)),
-              const Text('DXF and PDF export are not part of this preview release.'),
+              const Text('DXF opens as editable CAD geometry. PDF export is not available yet.'),
             ],
           ],
         ),
@@ -80,55 +116,58 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
 }
 
 class _PlanPainter extends CustomPainter {
-  const _PlanPainter(this.plan);
+  const _PlanPainter(this.plan, this.drawing);
   final AutomaticFloorPlan plan;
+  final FloorPlanCad drawing;
 
   @override
   void paint(Canvas canvas, Size size) {
-    const margin = 22.0;
+    const margin = 10.0;
     if (size.width <= margin * 2 || size.height <= margin * 2) return;
-    final scale = math.min((size.width - margin * 2) / plan.plot.width,
-      (size.height - margin * 2) / plan.plot.depth);
-    final left = (size.width - plan.plot.width * scale) / 2;
-    final top = (size.height - plan.plot.depth * scale) / 2;
-    Rect rect(PlanRect r) => Rect.fromLTRB(left + r.left * scale,
-      top + (plan.plot.top - r.top) * scale, left + r.right * scale,
-      top + (plan.plot.top - r.bottom) * scale);
-    final stroke = Paint()..color = const Color(0xff6b778c)..style = PaintingStyle.stroke;
-    canvas.drawRect(rect(plan.plot), stroke);
-    final roomFill = Paint()..color = const Color(0xffdbe8f4);
-    for (final room in plan.rooms) { canvas.drawRect(rect(room.bounds), roomFill); }
-    final wallFill = Paint()..color = const Color(0xff172333);
-    for (final wall in plan.walls) { canvas.drawRect(rect(wall), wallFill); }
-    final window = Paint()..color = const Color(0xff0074bd)..strokeWidth = 2;
-    for (final opening in plan.openings) {
-      final r = rect(opening.bounds);
-      if (opening.kind == PlanOpeningKind.window) {
-        if (r.width >= r.height) {
-          canvas.drawLine(Offset(r.left, r.center.dy), Offset(r.right, r.center.dy), window);
-        } else {
-          canvas.drawLine(Offset(r.center.dx, r.top), Offset(r.center.dx, r.bottom), window);
-        }
-      } else if (opening.from == AutomaticFloorPlan.entry) {
-        canvas.drawRect(r.inflate(2), Paint()..color = const Color(0xff19834c));
-      }
+    final bounds = drawing.bounds;
+    final scale = math.min((size.width - margin * 2) / bounds.width,
+      (size.height - margin * 2) / bounds.depth);
+    final left = (size.width - bounds.width * scale) / 2;
+    final top = (size.height - bounds.depth * scale) / 2;
+    Offset point(num x, num y) => Offset(left + (x.toDouble() - bounds.left) * scale,
+      top + (bounds.top - y.toDouble()) * scale);
+    Offset xy(CadPoint p) => point(p.x, p.y);
+    Color color(String layer) => switch (layer) {
+      'PLOT' => const Color(0xff7c8798),
+      'DOORS' => const Color(0xff127d4d),
+      'WINDOWS' => const Color(0xff0072a7),
+      'DIMENSIONS' => const Color(0xff455977),
+      _ => const Color(0xff182537),
+    };
+    final wallFill = Paint()..color = const Color(0xffa8b6c6);
+    for (final wall in plan.walls) {
+      canvas.drawRect(Rect.fromPoints(point(wall.left, wall.top), point(wall.right, wall.bottom)), wallFill);
     }
-    void label(String value, Offset center, double maxWidth) {
-      if (maxWidth < 22) return;
-      final text = TextPainter(text: TextSpan(text: value,
-        style: const TextStyle(color: Color(0xff172333), fontSize: 10, fontWeight: FontWeight.w600)),
-        textAlign: TextAlign.center, textDirection: TextDirection.ltr, maxLines: 2, ellipsis: '…')
-        ..layout(maxWidth: maxWidth);
-      text.paint(canvas, center - Offset(text.width / 2, text.height / 2));
+    for (final line in drawing.lines) {
+      canvas.drawLine(xy(line.start), xy(line.end), Paint()
+        ..color = color(line.layer)..strokeWidth = line.layer == 'WALLS' ? 1.25 : 0.7);
+    }
+    for (final arc in drawing.arcs) {
+      canvas.drawArc(Rect.fromCircle(center: xy(arc.center), radius: arc.radius.toDouble() * scale),
+        -arc.end * math.pi / 180, (arc.end - arc.start) * math.pi / 180, false,
+        Paint()..style = PaintingStyle.stroke..color = color(arc.layer)..strokeWidth = 0.8);
+    }
+    for (final label in drawing.labels) {
+      final font = label.height.toDouble() * scale;
+      // Keep the full plot visible; tiny room/dimension text can be zoomed.
+      final text = TextPainter(text: TextSpan(text: label.text,
+        style: TextStyle(color: color(label.layer), fontSize: math.max(1.0, font), fontWeight: FontWeight.w600)),
+        textDirection: TextDirection.ltr, textAlign: TextAlign.center)..layout();
+      final anchor = xy(label.at);
+      canvas.save();
+      canvas.translate(anchor.dx, anchor.dy);
+      canvas.rotate(-label.angle * math.pi / 180);
+      text.paint(canvas, Offset(-text.width / 2, -text.height * 0.83));
+      canvas.restore();
       text.dispose();
     }
-    for (final room in plan.rooms) {
-      final r = rect(room.bounds);
-      if (r.height >= 30) label(room.label, r.center, r.width - 5);
-    }
-    label('↑ N', const Offset(25, 12), 42);
   }
 
   @override
-  bool shouldRepaint(_PlanPainter oldDelegate) => oldDelegate.plan != plan;
+  bool shouldRepaint(_PlanPainter oldDelegate) => oldDelegate.drawing != drawing;
 }

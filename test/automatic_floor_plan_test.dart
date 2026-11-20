@@ -6,12 +6,12 @@ import 'package:architect_engine/models/project_requirements_snapshot.dart';
 import 'package:architect_engine/services/automatic_floor_plan_generator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-ProjectBrief brief({String shape = 'rectangular', String type = 'independent_house',
+ProjectBrief brief({String shape = 'rectangular', String type = 'independent_house', String config = '1_bhk',
     int? floors = 1, ProjectParking? parking = ProjectParking.none,
     Map<String, Object> answers = const {}, Map<String, int> spaces = const {},
     Map<String, Map<String, Object>> details = const {}}) => ProjectBrief(
   taxonomy: TaxonomySelection(version: projectTaxonomyVersion, categoryId: 'residential',
-    subcategoryId: 'houses', typeId: type, configurationId: '1_bhk',
+    subcategoryId: 'houses', typeId: type, configurationId: config,
     plotShapeId: shape, spaceQuantities: spaces),
   requirements: ProjectRequirementsSnapshot(version: requirementsSchemaVersion,
     answers: answers, spaceDetails: details),
@@ -76,8 +76,24 @@ void main() {
     expect(run(brief(details: {'master_bedroom': {'area_unit': 'sqm', 'area_min': 60}})).plan, isNull);
   });
 
+  test('each supported house can generate 1 BHK and a distinct two-bedroom layout', () {
+    for (final type in AutomaticFloorPlanGenerator.supportedTypes) {
+      expect(run(brief(type: type)).plan!.bedrooms, 1, reason: type);
+      final two = run(brief(type: type, config: '2_bhk', spaces: {'secondary_bedroom': 1}));
+      expect(two.issues, isEmpty, reason: type);
+      expect(two.plan!.bedrooms, 2);
+      expect(two.plan!.rooms, hasLength(6));
+      expect(two.plan!.rooms.where((room) => room.id == 'secondary_bedroom'), hasLength(1));
+      expect(two.plan!.openings.where((o) => o.kind == PlanOpeningKind.door), hasLength(6));
+      expect(validateAutomaticFloorPlan(two.plan!), isNull);
+    }
+    expect(run(brief(config: '3_bhk')).plan, isNull);
+    expect(run(brief(config: '2_bhk', details: {'secondary_bedroom': {'length': 3.2}})).plan!
+        .rooms.singleWhere((r) => r.id == 'secondary_bedroom').bounds.depth, 3200);
+  });
+
   test('unsupported profile, missing inputs, and infeasible requests do not generate', () {
-    expect(run(brief(type: 'villa')).plan, isNull);
+    expect(run(brief(type: 'row_house')).plan, isNull);
     expect(run(brief(floors: null), facing: 'Not decided', frontage: 0).issues, hasLength(3));
     expect(run(brief(parking: ProjectParking.car)).issues.join(' '), contains('No parking'));
     expect(run(brief(answers: {'road_sides': ['n']})).issues.join(' '), contains('matching'));

@@ -504,14 +504,22 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     ]);
   }
 
-  Widget _buildConfiguration() => _dropdown(
-        '${_program.configurationLabel} (optional)',
-        _configurationId,
-        _program.configurations,
-        (value) => setState(() {
-          if (_configurationId != value) _answers.remove(customConfigurationField.id);
-          _configurationId = value;
-        }),
+  Widget _buildConfiguration() => Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _dropdown('${_program.configurationLabel} (optional)',
+            _configurationId, _program.configurations,
+            (value) => setState(() {
+              if (_configurationId != value) _answers.remove(customConfigurationField.id);
+              _configurationId = value;
+            }),
+          ),
+          const SizedBox(height: 12),
+          if (_canAutoPlan)
+            const Text('Automatic CAD plan available. Use one floor, a rectangular or square plot, cardinal frontage and No parking.')
+          else
+            const Text('Brief only for this selection. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),
+        ],
       );
 
   Widget _buildSpaces() => Form(
@@ -801,10 +809,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
         if (_canAutoPlan)
-          const Text('Saving automatically opens the 1 BHK concept preview or explains why this brief cannot be generated. Select one floor, No parking, measured plot sides and a cardinal frontage.')
+          const Text('Saving automatically opens the CAD concept preview or explains why this brief cannot be generated. Select one floor, No parking, measured plot sides and a cardinal frontage.')
         else
-          const Text('This brief can be saved. Automatic plans are currently limited to Residential → Independent House → 1 BHK.'),
-        const Text('Drawing export is unavailable in this preview release.'),
+          const Text('This brief is saved without a drawing. Automatic CAD plans: ${AutomaticFloorPlanGenerator.availability}'),
+        if (_canAutoPlan) const Text('A generated drawing can be saved as DXF. PDF is not available yet.'),
       ],
     );
   }
