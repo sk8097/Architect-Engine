@@ -1,100 +1,170 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../data/tools_data.dart';
 import '../models/tool_model.dart';
+import '../providers/app_state_provider.dart';
+import 'calculator_dialog.dart';
 
-class ToolsData {
-  static const List<ToolCategory> categories = [
-    ToolCategory(id: 'all', translationKey: 'All', icon: '📦'),
-    ToolCategory(id: 'Quantity', translationKey: 'Quantity', icon: '🧱'),
-    ToolCategory(id: 'Area & Volume', translationKey: 'Area & Volume', icon: '📐'),
-    ToolCategory(id: 'Converter', translationKey: 'Converter', icon: '🔄'),
-    ToolCategory(id: 'Study & Quiz', translationKey: 'Study & Quiz', icon: '📚'),
-    ToolCategory(id: 'Building Construction', translationKey: 'Building Construction', icon: '🏗️'),
-    ToolCategory(id: 'Infrastructure', translationKey: 'Infrastructure', icon: '🛣️'),
-    ToolCategory(id: 'MEP', translationKey: 'MEP', icon: '⚡'),
-    ToolCategory(id: 'General', translationKey: 'General', icon: '📦'),
-    ToolCategory(id: 'fav', translationKey: 'Favorites', icon: '⭐'),
-  ];
+class ToolsScreen extends StatefulWidget {
+  const ToolsScreen({super.key, this.initialCategory});
 
-  // Base templates for 900
-  static const List<Map<String, String>> _base = [
-    // Building Construction - Quantity, Bonds, Shapes (like your 3 screenshots)
-    {'name':'Brickwork By Volume','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🧱','formula':'Bricks = WallVol/(BrickVol+Joint)*1.15, Mortar 25%, IS1200 P3','ref':'https://civils.ai/brickwork','unit':'Nos'},
-    {'name':'Brickwork By Area','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🧱','formula':'Bricks = Area*500 (190x90x90+10mm), Mortar 0.25Vol','ref':'https://civils.ai','unit':'Nos'},
-    {'name':'Clay Brick','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🧱','formula':'IS 1077, 19x9x9 cm + 10mm joint','ref':'https://buildvision.ai','unit':'Nos'},
-    {'name':'AAC Block','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🧊','formula':'Blocks = Area/0.08 (600x200), Mortar 0.1m3','ref':'https://civils.ai','unit':'Nos'},
-    {'name':'CLC Block','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🧊','formula':'CLC 600x200x100','ref':'https://civils.ai','unit':'Nos'},
-    {'name':'Sand Plaster','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🥣','formula':'Vol = Area*Thickness, 1:4 ratio, IS 1661','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Gypsum Plaster','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Quantity','icon':'🎨','formula':'12.5kg/m2 for 13mm','ref':'https://civils.ai','unit':'kg'},
-    {'name':'Stretcher Bond','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Bonds','icon':'🧱','formula':'Full bricks stretcher pattern','ref':'https://onsiteteams.com','unit':'Nos'},
-    {'name':'Header Bond','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Bonds','icon':'🧱','formula':'Header bond - short face','ref':'https://onsiteteams.com','unit':'Nos'},
-    {'name':'English Bond','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Bonds','icon':'🧱','formula':'Alternate header stretcher course','ref':'https://buildvision.ai','unit':'Nos'},
-    {'name':'Flemish Bond','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Bonds','icon':'🧱','formula':'Alternate header stretcher same course','ref':'https://buildvision.ai','unit':'Nos'},
-    {'name':'Cube','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'📦','formula':'Vol = L*B*H, IS 1200','ref':'https://omnicalculator.com','unit':'m3'},
-    {'name':'Wall','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'🧱','formula':'Wall Vol = L*H*T - openings','ref':'https://civils.ai','unit':'m3'},
-    {'name':'L Wall','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'↩️','formula':'L Wall = (L1+L2)*H*T - overlap','ref':'https://civils.ai','unit':'m3'},
-    {'name':'C Wall','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'©️','formula':'C Wall = 3 sides deduction','ref':'https://civils.ai','unit':'m3'},
-    {'name':'U Wall','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'🔲','formula':'U Wall volume','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Arch Calculator','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Shapes','icon':'🌉','formula':'Arch Length = π*r*θ/180','ref':'https://civils.ai','unit':'m'},
-    {'name':'Precast Boundary Wall','cat':'const','main':'Quantity','sub':'Building Construction','subsub':'Others','icon':'🧱','formula':'Panels = Length/2.5m','ref':'https://buildvision.ai','unit':'Nos'},
-    {'name':'Beam Concrete','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Concrete','icon':'📏','formula':'Vol = L*B*D*1.54 factor, IS456, wastage 5%','ref':'https://civils.ai/concrete','unit':'m3'},
-    {'name':'Column Concrete','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Concrete','icon':'🏛️','formula':'Vol = B*D*H, IS456','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Slab Concrete','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Concrete','icon':'🧱','formula':'Vol = L*B*T','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Footing Concrete','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Concrete','icon':'⬛','formula':'Vol = L*B*H + trapezoidal, IS456','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Steel Weight D²/162','cat':'mat','main':'Quantity','sub':'Building Construction','subsub':'Steel','icon':'🔩','formula':'kg/m = D²/162, Lap 50D, Hook 9D, IS2502, 5% wastage','ref':'https://civils.ai/rebar','unit':'kg'},
-    {'name':'Stirrups Quantity','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Steel','icon':'🔗','formula':'Length = 2*(A+B)+24D, IS2502','ref':'https://civils.ai','unit':'Nos'},
-    {'name':'Bar Bending Schedule','cat':'struct','main':'Quantity','sub':'Building Construction','subsub':'Steel','icon':'📋','formula':'BBS cutting length = L + 2*Hook - Bend deduction','ref':'https://estimator.com','unit':'kg'},
-    // Infrastructure, MEP, Area&Volume, Converter, Study
-    {'name':'Excavation','cat':'const','main':'Quantity','sub':'Infrastructure','subsub':'Earthwork','icon':'⛏️','formula':'Vol = L*B*D, Loose 1.2, IS1200 Part1','ref':'https://civils.ai','unit':'m3'},
-    {'name':'PCC','cat':'const','main':'Quantity','sub':'Infrastructure','subsub':'Foundation','icon':'🪨','formula':'PCC M10 Vol = L*B*T','ref':'https://civils.ai','unit':'m3'},
-    {'name':'Shuttering','cat':'const','main':'Quantity','sub':'Infrastructure','subsub':'Formwork','icon':'🔲','formula':'Area = 2*(L+B)*H for column, IS1200','ref':'https://estimator.com','unit':'m2'},
-    {'name':'Water Tank Vol','cat':'plumb','main':'Quantity','sub':'MEP','subsub':'Plumbing','icon':'🛢️','formula':'Capacity = 135L*Persons, IS1172','ref':'https://civils.ai','unit':'L'},
-    {'name':'Pipe Length','cat':'plumb','main':'Quantity','sub':'MEP','subsub':'Plumbing','icon':'🪈','formula':'Length + fittings 20%, IS2065','ref':'https://buildvision.ai','unit':'m'},
-    {'name':'Cable Length','cat':'elec','main':'Quantity','sub':'MEP','subsub':'Electrical','icon':'🪢','formula':'Length+15% wastage+sag, IS732','ref':'https://electrical.com','unit':'m'},
-    {'name':'Square Area','cat':'measure','main':'Area & Volume','sub':'2D Area','subsub':'Quadrilateral','icon':'◼️','formula':'A = a²','ref':'https://omnicalculator.com/area','unit':'m2'},
-    {'name':'Rectangle Area','cat':'measure','main':'Area & Volume','sub':'2D Area','subsub':'Quadrilateral','icon':'▭','formula':'A = L*B','ref':'https://omnicalculator.com','unit':'m2'},
-    {'name':'Circle Area','cat':'measure','main':'Area & Volume','sub':'2D Area','subsub':'Circle','icon':'⭕','formula':'A = πr²','ref':'https://omnicalculator.com','unit':'m2'},
-    {'name':'Triangle Area','cat':'measure','main':'Area & Volume','sub':'2D Area','subsub':'Triangle','icon':'📐','formula':'A = 0.5*B*H','ref':'https://omnicalculator.com','unit':'m2'},
-    {'name':'Cylinder Volume','cat':'measure','main':'Area & Volume','sub':'3D Volume','subsub':'Basic Solids','icon':'🛢️','formula':'V = πr²h','ref':'https://omnicalculator.com/volume','unit':'m3'},
-    {'name':'Cone Volume','cat':'measure','main':'Area & Volume','sub':'3D Volume','subsub':'Basic Solids','icon':'🔺','formula':'V = 1/3πr²h','ref':'https://omnicalculator.com','unit':'m3'},
-    {'name':'Length Converter','cat':'math','main':'Converter','sub':'Measurement','subsub':'Length','icon':'📏','formula':'ft = m*3.28084, in = m*39.3701','ref':'https://converter.com','unit':'ft'},
-    {'name':'Area Converter','cat':'math','main':'Converter','sub':'Measurement','subsub':'Area','icon':'📐','formula':'ft2 = m2*10.7639','ref':'https://converter.com','unit':'ft2'},
-    {'name':'Volume Converter','cat':'math','main':'Converter','sub':'Measurement','subsub':'Volume','icon':'📦','formula':'ft3 = m3*35.3147','ref':'https://converter.com','unit':'ft3'},
-    {'name':'BOQ Builder','cat':'boq','main':'Study & Quiz','sub':'BOQ','subsub':'All','icon':'📋','formula':'BOQ = Σ(Qty*Rate)+GST+Contingency','ref':'https://boq.com','unit':'₹'},
-    {'name':'Rate Analysis','cat':'cost','main':'Study & Quiz','sub':'Cost','subsub':'All','icon':'📊','formula':'Rate = Mat+Lab+Equip+15%OH+10%Profit+Wastage','ref':'https://estimator.com','unit':'₹'},
-  ];
+  final String? initialCategory;
 
-  static List<ToolModel> get _generate900 {
-    List<ToolModel> list = [];
-    int id = 1;
-    // Repeat base 23 times to make ~900 (40*23=920)
-    for (int r = 0; r < 23; r++) {
-      for (var t in _base) {
-        if (id > 900) break;
-        String name = r == 0 ? t['name']! : "${t['name']} ${r+1}";
-        // Distribute subcategories for Quantity
-        String sub = t['sub']!;
-        if (t['main'] == 'Quantity' && r % 4 == 1) sub = 'Infrastructure';
-        if (t['main'] == 'Quantity' && r % 4 == 2) sub = 'MEP';
-        if (t['main'] == 'Quantity' && r % 4 == 3) sub = 'General';
-        list.add(ToolModel(
-          id: id,
-          category: t['cat']!,
-          mainCategory: t['main'],
-          subCategory: sub,
-          subSubCategory: t['subsub'],
-          icon: t['icon']!,
-          name: name,
-          description: t['formula']!.substring(0, t['formula']!.length > 30 ? 30 : t['formula']!.length),
-          advanceFormula: t['formula'],
-          refLink: t['ref'],
-          unit: t['unit'],
-          isWorking: true,
-          isNew: r < 2,
-        ));
-        id++;
-      }
-    }
-    return list;
+  @override
+  State<ToolsScreen> createState() => _ToolsScreenState();
+}
+
+class _ToolsScreenState extends State<ToolsScreen> {
+  late String _category;
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    final requested = widget.initialCategory;
+    _category = ToolsData.categories.any((item) => item.id == requested)
+        ? requested!
+        : 'all';
   }
 
-  static List<ToolModel> get allTools => _generate900;
+  @override
+  Widget build(BuildContext context) {
+    final appState = context.watch<AppStateProvider>();
+    final query = _query.trim().toLowerCase();
+    final tools = ToolsData.allTools.where((tool) {
+      final inCategory = switch (_category) {
+        'all' => true,
+        'fav' => appState.isFavorite(tool.id),
+        _ => tool.category == _category,
+      };
+      return inCategory &&
+          (tool.name.toLowerCase().contains(query) ||
+              tool.description.toLowerCase().contains(query));
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(title: const Text('Tools & Utilities')),
+      body: CustomScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${ToolsData.allTools.length} Professional Tools',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                  const Text('Civil engineering, BOQ and architectural calculators'),
+                  const SizedBox(height: 12),
+                  TextField(
+                    decoration: const InputDecoration(
+                      labelText: 'Search tools',
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) => setState(() => _query = value),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 48,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: ToolsData.categories.length,
+                      separatorBuilder: (_, index) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final category = ToolsData.categories[index];
+                        return ChoiceChip(
+                          key: ValueKey('tools-category-${category.id}'),
+                          label: Text('${category.icon} ${category.translationKey}'),
+                          selected: _category == category.id,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _category = category.id);
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (tools.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(
+                child: Text(_category == 'fav' && query.isEmpty
+                    ? 'No favorites yet. Tap a star to save a tool.'
+                    : 'No tools match your search.'),
+              ),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 16),
+              sliver: SliverGrid.builder(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 300,
+                  mainAxisExtent: 134,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: tools.length,
+                itemBuilder: (context, index) => _ToolCard(
+                  tool: tools[index],
+                  favorite: appState.isFavorite(tools[index].id),
+                  onFavorite: () => appState.toggleFavorite(tools[index].id),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolCard extends StatelessWidget {
+  const _ToolCard({required this.tool, required this.favorite, required this.onFavorite});
+
+  final ToolModel tool;
+  final bool favorite;
+  final VoidCallback onFavorite;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    clipBehavior: Clip.antiAlias,
+    child: InkWell(
+      onTap: tool.isWorking
+          ? () => showDialog<void>(
+              context: context,
+              builder: (_) => CalculatorDialog(tool: tool),
+            )
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(tool.icon, style: const TextStyle(fontSize: 22)),
+                IconButton(
+                  tooltip: favorite ? 'Remove from favorites' : 'Add to favorites',
+                  onPressed: onFavorite,
+                  icon: Icon(favorite ? Icons.star : Icons.star_border),
+                  color: favorite ? Colors.amber : null,
+                ),
+              ],
+            ),
+            Text(tool.name, style: Theme.of(context).textTheme.titleSmall,
+                maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 3),
+            Flexible(child: Text(tool.description, maxLines: 2, overflow: TextOverflow.ellipsis)),
+          ],
+        ),
+      ),
+    ),
+  );
 }
