@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'project_brief.dart';
 
 class ProjectModel {
   final String id;
@@ -8,6 +9,7 @@ class ProjectModel {
   String bhk;
   String floors;
   String facing;
+  ProjectBrief? brief;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -19,21 +21,32 @@ class ProjectModel {
     required this.bhk,
     required this.floors,
     required this.facing,
+    this.brief,
     required this.createdAt,
     required this.updatedAt,
   });
 
+  bool get hasPlotDimensions => width > 0 && length > 0;
+
   double get areaSqFt => length * width;
+
+  String get description => [
+        if (brief?.typeLabel != null) brief!.typeLabel!,
+        if (bhk.isNotEmpty) bhk,
+        floors,
+        if (facing != 'Not decided') '$facing Facing',
+      ].join(' • ');
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'name': name,
-      'length': length,
-      'width': width,
+      'length': brief?.taxonomy != null && !hasPlotDimensions ? null : length,
+      'width': brief?.taxonomy != null && !hasPlotDimensions ? null : width,
       'bhk': bhk,
       'floors': floors,
       'facing': facing,
+      if (brief != null) 'brief': brief!.toMap(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -48,6 +61,7 @@ class ProjectModel {
       bhk: map['bhk'] ?? '2 BHK',
       floors: map['floors'] ?? 'Ground floor',
       facing: map['facing'] ?? 'North',
+      brief: ProjectBrief.fromMap(map['brief']),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
     );

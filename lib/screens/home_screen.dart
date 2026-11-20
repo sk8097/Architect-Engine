@@ -5,7 +5,7 @@ import '../constants/app_colors.dart';
 import '../providers/project_provider.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';
-import 'project_form_dialog.dart';
+import 'project_wizard_screen.dart';
 import 'projects_screen.dart';
 import 'design_screen.dart';
 import 'tools_screen.dart';
@@ -70,7 +70,7 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 8),
                         const Text(
-                          'Start your next architectural project today with automated spatial planning and Vastu rules.',
+                          'Choose a project type, enter plot dimensions, and save your design requirements.',
                           style: TextStyle(fontSize: 12, color: Color(0xFFB0C4DE), height: 1.4),
                         ),
                         const SizedBox(height: 18),
@@ -81,12 +81,7 @@ class HomeScreen extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              builder: (_) => const ProjectFormDialog(),
-                            );
-                          },
+                          onPressed: () => ProjectWizardScreen.open(context),
                           icon: const Icon(Icons.add, size: 18),
                           label: const Text(
                             'Create New Project',
@@ -141,9 +136,7 @@ class HomeScreen extends StatelessWidget {
                         side: const BorderSide(color: AppColors.darkPrimary),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       ),
-                      onPressed: () {
-                        showDialog(context: context, builder: (_) => const ProjectFormDialog());
-                      },
+                      onPressed: () => ProjectWizardScreen.open(context),
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text('New Project'),
                     ),
@@ -187,14 +180,14 @@ class HomeScreen extends StatelessWidget {
                                 children: [
                                   Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15)),
                                   Text(
-                                    '${project.bhk} • ${project.floors} • ${project.facing} Facing',
+                                    project.description,
                                     style: const TextStyle(fontSize: 11, color: Colors.grey),
                                   ),
                                 ],
                               ),
                             ),
                             Text(
-                              '${project.areaSqFt.toStringAsFixed(0)} sq.ft',
+                              project.hasPlotDimensions ? '${project.areaSqFt.toStringAsFixed(0)} sq.ft' : 'Area pending',
                               style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkPrimary, fontSize: 12),
                             ),
                           ],

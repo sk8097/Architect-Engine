@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../constants/app_colors.dart';
-import '../models/project_model.dart';
 import '../providers/project_provider.dart';
 import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';
 import 'project_form_dialog.dart';
+import 'project_wizard_screen.dart';
 
 class ProjectsScreen extends StatefulWidget {
   const ProjectsScreen({super.key});
@@ -23,8 +23,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
     final projects = projectProvider.projects.where((p) {
       final q = _searchQuery.toLowerCase();
       return p.name.toLowerCase().contains(q) ||
-          p.bhk.toLowerCase().contains(q) ||
-          p.facing.toLowerCase().contains(q);
+          p.description.toLowerCase().contains(q);
     }).toList();
 
     return Scaffold(
@@ -35,12 +34,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         foregroundColor: const Color(0xFF0A1128),
         icon: const Icon(Icons.add),
         label: const Text('NEW PROJECT', style: TextStyle(fontWeight: FontWeight.bold)),
-        onPressed: () {
-          showDialog(
-            context: context,
-            builder: (_) => const ProjectFormDialog(),
-          );
-        },
+        onPressed: () => ProjectWizardScreen.open(context),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(18),
@@ -50,7 +44,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
             // Search Bar
             TextField(
               decoration: InputDecoration(
-                hintText: 'Search projects by name, BHK, facing...',
+                hintText: 'Search by name, project type or layout...',
                 prefixIcon: const Icon(Icons.search, size: 20),
                 filled: true,
                 fillColor: Theme.of(context).cardColor,
@@ -94,9 +88,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                         foregroundColor: const Color(0xFF0A1128),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      onPressed: () {
-                        showDialog(context: context, builder: (_) => const ProjectFormDialog());
-                      },
+                      onPressed: () => ProjectWizardScreen.open(context),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Create New Project'),
                     ),
@@ -140,20 +132,31 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 children: [
                                   Text(project.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                                   Text(
-                                    '${project.bhk} • ${project.floors} • ${project.facing} Facing',
+                                    project.description,
                                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                                   ),
                                 ],
                               ),
                             ),
                             PopupMenuButton<String>(
-                              onSelected: (val) {
+                              onSelected: (val) async {
                                 if (val == 'edit') {
-                                  showDialog(context: context, builder: (_) => ProjectFormDialog(existingProject: project));
-                                } else if (val == 'dup') {
-                                  projectProvider.duplicateProject(project.id);
-                                } else if (val == 'del') {
-                                  projectProvider.deleteProject(project.id);
+                                  if (project.brief != null) {
+                                    ProjectWizardScreen.open(context, project: project);
+                                  } else {
+                                    showDialog(context: context, builder: (_) => ProjectFormDialog(existingProject: project));
+                                  }
+                                  return;
+                                }
+                                final messenger = ScaffoldMessenger.of(context);
+                                try {
+                                  if (val == 'dup') await projectProvider.duplicateProject(project.id);
+                                  if (val == 'del') await projectProvider.deleteProject(project.id);
+                                } catch (_) {
+                                  if (!mounted || !messenger.mounted) return;
+                                  messenger.showSnackBar(const SnackBar(
+                                    content: Text('Could not save the project change. Please try again.'),
+                                  ));
                                 }
                               },
                               itemBuilder: (ctx) => [
@@ -165,7 +168,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                           ],
                         ),
                         const SizedBox(height: 14),
-                        Row(
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
                           children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -173,10 +178,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 color: AppColors.darkIconBg,
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: Text('Plot: ${project.length} × ${project.width} ft', style: const TextStyle(fontSize: 11)),
+                              child: Text(project.hasPlotDimensions ? 'Plot: ${project.length} × ${project.width} ft' : 'Plot dimensions pending', style: const TextStyle(fontSize: 11)),
                             ),
-                            const SizedBox(width: 8),
-                            Container(
+                            if (project.hasPlotDimensions) Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
                                 color: AppColors.darkIconBg,
