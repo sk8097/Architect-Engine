@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
 import '../data/detailed_cad_fields.dart';
+import '../data/warehouse_cad_fields.dart';
 import '../data/project_scenarios.dart';
 import '../data/space_planning.dart';
 import '../models/project_brief.dart';
@@ -20,6 +21,8 @@ import 'automatic_floor_plan_screen.dart';
 import 'tower_planner_screen.dart';
 import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
+import 'warehouse_loading_screen.dart';
+import '../services/warehouse_loading_generator.dart';
 import '../services/enclosed_cad_generator.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
@@ -104,7 +107,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   String _levelName(int n) => n == 0 ? 'Ground floor' : 'Floor $n';
   List<RequirementField> get _essential => [
     for (final field in _facilitySchema)
-      if ((planningEssentialIds[_programId] ?? const <String>{}).contains(field.id)) asRequired(field),
+      if ((planningEssentialIds[_programId] ?? const <String>{}).contains(field.id) || (_warehouseCad && field.id == 'dock_count')) asRequired(field),
     if (_home) ...[
       for (final field in _facilitySchema)
         if (const {'bedrooms', 'common_toilets', 'attached_toilets', 'kitchen_type'}.contains(field.id)) field,
@@ -131,8 +134,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   String _dimensionInSelectedUnit(double feet) => _plotUnit == 'm'
       ? (feet * .3048).toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '') : feet.toString();
   bool get _enclosedCad => !_linearSite && _answers['cad_output'] == 'building';
+  bool get _warehouseEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && warehouseLoadingTypes.contains(_type?.id);
+  bool get _warehouseCad => _warehouseEligible && _answers['cad_output'] == 'warehouse_loading';
   List<RequirementField> get _cadFields => [
-    if (!_linearSite) cadOutputField,
+    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible),
+    if (_warehouseCad) ...warehouseLoadingFields,
     if (_enclosedCad) ...[...enclosedCadFields, cadWidthMode],
   ];
   List<RequirementField> get _frontPlanning => [
@@ -442,7 +448,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -491,6 +497,15 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_shapeId == null) return 'Select the geometry of your site.';
     if (_budget(0).total <= 0) return 'Enter the measured site size before continuing.';
     if (_vastu && (_facing == null || _facing == 'Not decided')) return 'Enter the measured frontage direction for Vastu suggestions.';
+    if (_warehouseCad) {
+      if (_floorCount != 1) return 'Warehouse loading CAD requires a single ground floor.';
+      if (!const {'South','North','East','West'}.contains(_facing)) return 'Choose the cardinal vehicle frontage.';
+      final dockCount = int.tryParse('${_facilityAnswers['dock_count'] ?? ''}');
+      if (dockCount == null || dockCount < 1 || dockCount > 30) return 'Enter a dock count between 1 and 30.';
+      if (checkRooms && activeSpaceQuantities(_spaces, _spaceDetails).isNotEmpty) {
+        return 'Warehouse loading CAD already draws measured staging, storage and loading areas. Remove additional room selections or choose a different drawing type.';
+      }
+    }
     if (_enclosedCad && _floorCount != 1) return 'Measured enclosed CAD requires one floor. The high-rise planner is separate.';
     if (_enclosedCad && !const {'South','North','East','West'}.contains(_facing)) return 'Choose the cardinal frontage for the measured enclosed plan.';
     if (_home && (_floorCount < 1 || _floorCount > 100)) return 'Enter the total floor count, including the ground floor.';
@@ -660,7 +675,12 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    if (EnclosedCadGenerator.requested(brief)) {
+    if (WarehouseLoadingGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => WarehouseLoadingScreen(name: name, brief: brief, widthFt: width ?? 0,
+          depthFt: length ?? 0, facing: facing),
+      ));
+    } else if (EnclosedCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
         builder: (_) => EnclosedCadScreen(name: name, brief: brief, widthFt: width ?? 0,
           depthFt: length ?? 0, facing: facing),
@@ -810,7 +830,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       ],
       _fieldPanel(_frontPlanning.where((f) =>
         const {'surveyed_plot_area', 'route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
-      if ((_home || _vastu || _enclosedCad) && !_linearSite) ...[
+      if ((_home || _vastu || _enclosedCad || _warehouseCad) && !_linearSite) ...[
         _facingPicker(required: true),
         if (_vastu && _facing != null && _facing != 'Not decided')
           const Text('Vastu review: consider northeast for puja, southeast for kitchen and southwest for the main bedroom when feasible. These are preferences, not layout or approval checks.'),
@@ -898,7 +918,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('Select spaces or components, then configure each one. This is not a code-required room schedule.'),
+            Text(_warehouseCad ? 'The measured loading plan already draws its staging, storage, bays and routes. Do not add separate rooms for this drawing.' :
+              'Select spaces or components, then configure each one. This is not a code-required room schedule.'),
             const SizedBox(height: 8),
             OutlinedButton.icon(onPressed: _addCustomSpace, icon: const Icon(Icons.add), label: const Text('Add an unlisted space')),
             for (final space in _allSpaces)
@@ -1051,7 +1072,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
-      if (!_linearSite && !_vastu && !_home && !_enclosedCad) _facingPicker(),
+      if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad) _facingPicker(),
       _fieldPanel(_siteSchema),
     ]),
   );
@@ -1149,7 +1170,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_enclosedCad)
+        if (_warehouseCad)
+          const Text('Saving checks the measured warehouse shell, loading bays and separate approach routes. A blocked drawing will not fall back to zoning.')
+        else if (_enclosedCad)
           const Text('Saving attempts a measured floor plan with walls, doors and connected passage. A blocked drawing will not fall back to zoning.')
         else if (_answers['cad_output'] != 'zones' && _canAutoPlan && _needsScenarioInputs)
           const Text('Input needed for CAD: confirm the floor count and parking on the facility page.')

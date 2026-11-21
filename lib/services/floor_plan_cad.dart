@@ -28,7 +28,7 @@ class CadLabel {
 
 /// One set of drawing entities for the interactive preview and DXF export.
 class FloorPlanCad {
-  FloorPlanCad.fromPlan(AutomaticFloorPlan plan) {
+  FloorPlanCad.fromPlan(AutomaticFloorPlan plan, {Iterable<MeasuredZone> siteZones = const []}) {
     void line(String layer, num x1, num y1, num x2, num y2) =>
         _lines.add(CadLine(layer, CadPoint(x1, y1), CadPoint(x2, y2)));
     void box(String layer, PlanRect bounds) {
@@ -40,10 +40,23 @@ class FloorPlanCad {
     final plot = plan.plot, building = plan.footprint;
     box('PLOT', plot);
     _wallPerimeter(plan.walls, line);
+    for (final zone in siteZones) {
+      final b = zone.bounds;
+      box(zone.layer, b);
+      final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
+      final height = (b.width / ((zone.name.length + 2) * .72)).clamp(1, 350).toDouble();
+      _labels.add(CadLabel(zone.layer, CadPoint(x, y + height / 2), zone.name.toUpperCase(), height));
+      _labels.add(CadLabel('DIMENSIONS', CadPoint(x, y - height), '${b.width} x ${b.depth}', height * .75));
+    }
     final rooms = {for (final room in plan.rooms) room.id: room.bounds};
     for (final opening in plan.openings) {
       final b = opening.bounds;
       final horizontal = b.width > b.depth;
+      if (opening.kind == PlanOpeningKind.loadingDoor) {
+        if (horizontal) { line('DOCK_OPENINGS', b.left, (b.bottom + b.top) / 2, b.right, (b.bottom + b.top) / 2); }
+        else { line('DOCK_OPENINGS', (b.left + b.right) / 2, b.bottom, (b.left + b.right) / 2, b.top); }
+        continue;
+      }
       if (opening.kind == PlanOpeningKind.window) {
         for (final fraction in [1 / 3, 2 / 3]) {
           if (horizontal) {
@@ -250,7 +263,8 @@ class FloorPlanCad {
     }
     const layers = {'0': 7, 'PLOT': 8, 'WALLS': 7, 'DOORS': 3, 'WINDOWS': 5,
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
-      'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3};
+      'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
+      'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

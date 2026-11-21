@@ -362,9 +362,8 @@ String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) => validatePlanGeome
   expectedRoomCount: 4 + plan.bedrooms,
 );
 
-/// Shared geometric validation, not fire/egress or engineering certification.
-String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
-  String? indoorSeed, Set<String> sealedRooms = const {}}) {
+/// Checks containment and exact non-overlapping coverage of the shell.
+String? validatePlanPartition(AutomaticFloorPlan plan) {
   bool positive(PlanRect r) => r.width > 0 && r.depth > 0;
   if (!positive(plan.plot) || !positive(plan.footprint) || !plan.plot.contains(plan.footprint)) return 'Footprint outside the plot.';
   final parts = [...plan.rooms.map((r) => r.bounds), ...plan.walls, ...plan.openings.map((o) => o.bounds)];
@@ -378,6 +377,15 @@ String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
     }
   }
   if (area != plan.footprint.area) return 'Open spaces in the wall and room partition.';
+
+  return null;
+}
+
+/// Shared geometric validation, not fire/egress or engineering certification.
+String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
+  String? indoorSeed, Set<String> sealedRooms = const {}}) {
+  final partitionIssue = validatePlanPartition(plan);
+  if (partitionIssue != null) return partitionIssue;
 
   bool touches(PlanRect a, PlanRect b) =>
       ((a.left == b.right || a.right == b.left) && a.bottom < b.top && a.top > b.bottom) ||

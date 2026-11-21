@@ -1,10 +1,13 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-final cadOutputField = planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (warehouseLoading) 'warehouse_loading': 'Warehouse loading and staff routes',
   'building': 'Measured enclosed floor plan (walls and doors)',
   'zones': 'Site / open-space zoning only',
 }, required: false);
+
+final cadOutputField = cadOutputOptions(warehouseLoading: false);
 
 const enclosedCadFields = <RequirementField>[
   RequirementField('cad_plate_width', 'Building width along frontage', kind: RequirementKind.decimal, unit: 'm', min: .001, required: true),

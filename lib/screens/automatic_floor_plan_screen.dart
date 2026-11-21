@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/automatic_floor_plan.dart';
+import '../models/concept_zoning.dart';
 import '../models/project_brief.dart';
 import '../services/automatic_floor_plan_generator.dart';
 import '../services/floor_plan_cad.dart';
@@ -13,12 +14,13 @@ import '../services/floor_plan_cad.dart';
 class AutomaticFloorPlanScreen extends StatefulWidget {
   const AutomaticFloorPlanScreen({super.key, required this.projectName,
     required this.brief, required this.frontageFt, required this.depthFt, required this.facing,
-    this.customResult, this.title = 'Automatic floor plan'});
+    this.customResult, this.title = 'Automatic floor plan', this.siteZones = const []});
 
   final String projectName, facing;
   final ProjectBrief brief;
   final FloorPlanResult? customResult;
   final String title;
+  final List<MeasuredZone> siteZones;
   final double frontageFt, depthFt;
 
   @override
@@ -31,7 +33,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
     facing: widget.facing,
   );
 
-  late final _drawing = _result.plan == null ? null : FloorPlanCad.fromPlan(_result.plan!);
+  late final _drawing = _result.plan == null ? null : FloorPlanCad.fromPlan(_result.plan!, siteZones: widget.siteZones);
   bool _sharing = false;
 
   Future<void> _shareDxf(BuildContext buttonContext, FloorPlanCad drawing) async {
@@ -87,7 +89,9 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
               const SizedBox(height: 12),
               CadPlanPreview(plan: plan, drawing: _drawing!),
               const SizedBox(height: 8),
-              const Text('Black: walls • Blue: windows • Green: door swings • N: north. Pinch to zoom.'),
+              if (widget.siteZones.isNotEmpty)
+                const Text('Orange: vehicle route • Green: staff route • Blue: dock bays. Pinch to zoom.')
+              else const Text('Black: walls • Blue: windows • Green: door swings • N: north. Pinch to zoom.'),
               const SizedBox(height: 10),
               Text('Room schedule', style: theme.textTheme.titleLarge),
               for (final room in plan.rooms)
@@ -148,6 +152,9 @@ class _PlanPainter extends CustomPainter {
       'DOORS' => const Color(0xff127d4d),
       'WINDOWS' => const Color(0xff0072a7),
       'DIMENSIONS' => const Color(0xff455977),
+      'VEHICLE_ROUTE' => const Color(0xffac4d0b),
+      'WALK_ROUTE' => const Color(0xff237e44),
+      'DOCK_BAYS' || 'DOCK_OPENINGS' => const Color(0xff1666a5),
       'ZONES_PUBLIC' => const Color(0xff007d87),
       'ZONES_SERVICE' => const Color(0xff8f4b10),
       'PLANNING_ENVELOPE' => const Color(0xff775ea4),

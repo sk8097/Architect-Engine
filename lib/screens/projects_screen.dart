@@ -9,6 +9,8 @@ import 'project_wizard_screen.dart';
 import 'tower_planner_screen.dart';
 import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
+import 'warehouse_loading_screen.dart';
+import '../services/warehouse_loading_generator.dart';
 import '../services/enclosed_cad_generator.dart';
 import '../services/concept_zoning_generator.dart';
 import 'scenario_library_screen.dart';
@@ -167,6 +169,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     TowerPlanScreen(projectName: project.name, brief: project.tower!)));
                                   return;
                                 }
+                                if (val == 'warehouse_loading' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => WarehouseLoadingScreen(
+                                    name: project.name, brief: project.brief!, widthFt: project.width,
+                                    depthFt: project.length, facing: project.facing)));
+                                  return;
+                                }
                                 if (val == 'enclosed' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => EnclosedCadScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -214,6 +222,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'tower', child: Text('High-rise CAD')),
                                 if (AutomaticFloorPlanGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
+                                if (WarehouseLoadingGenerator.requested(project.brief))
+                                  const PopupMenuItem(value: 'warehouse_loading', child: Text('Warehouse loading CAD')),
                                 if (EnclosedCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'enclosed', child: Text('Measured floor plan CAD')),
                                 if (ConceptZoningGenerator.supportsBrief(project.brief))
