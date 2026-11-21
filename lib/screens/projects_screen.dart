@@ -29,6 +29,7 @@ import 'windrow_yard_cad_screen.dart';
 import 'gallery_panel_cad_screen.dart';
 import 'angled_parking_cad_screen.dart';
 import 'cold_rack_cad_screen.dart';
+import 'shelter_canopy_cad_screen.dart';
 import 'public_toilet_cad_screen.dart';
 import 'vehicle_lift_cad_screen.dart';
 import 'athletics_track_cad_screen.dart';
@@ -37,6 +38,7 @@ import 'bicycle_rack_cad_screen.dart';
 import 'memorial_niche_cad_screen.dart';
 import 'tennis_cad_screen.dart';
 import 'twin_tank_cad_screen.dart';
+import '../services/shelter_canopy_cad_generator.dart';
 import '../services/public_toilet_cad_generator.dart';
 import '../services/vehicle_lift_cad_generator.dart';
 import '../services/athletics_track_cad_generator.dart';
@@ -432,6 +434,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
                                   return;
                                 }
+                                if (val == 'shelter_measured_canopy' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => ShelterCanopyCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length)));
+                                  return;
+                                }
                                 if (val == 'public_toilet_measured_bank' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => PublicToiletCadScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length)));
@@ -658,6 +665,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'warehouse_cross_dock',child:Text('Warehouse cross-dock CAD')),
                                 if (PairedApartmentGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'paired_apartments',child:Text('Paired apartment CAD')),
+                                if (ShelterCanopyCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'shelter_measured_canopy',child:Text('Passenger shelter canopy CAD')),
                                 if (PublicToiletCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'public_toilet_measured_bank',child:Text('Public toilet block CAD')),
                                 if (VehicleLiftCadGenerator.requested(project.brief))
@@ -742,7 +751,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value:'survey_profile',child:Text('Longitudinal profile CAD')),
                                 if (SurveyCorridorGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'survey_polyline', child: Text('Survey corridor CAD')),
-                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !CrossJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !CorridorSectionGenerator.requested(project.brief) && !CorridorEarthworkGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && !OpenDrainCadGenerator.requested(project.brief) && !BusLaybyCadGenerator.requested(project.brief) && !CulvertCadGenerator.requested(project.brief) && !PromenadeCadGenerator.requested(project.brief) && !RailPlatformCadGenerator.requested(project.brief) && !FootbridgeCadGenerator.requested(project.brief) && !TruckSweepGenerator.requested(project.brief) && !SolarFarmGenerator.requested(project.brief) && !DetentionBasinGenerator.requested(project.brief) && !EvHubGenerator.requested(project.brief) && !OrchardCadGenerator.requested(project.brief) && !SwitchbackRampGenerator.requested(project.brief) && !TeachingLabGenerator.requested(project.brief) && !HotelWingGenerator.requested(project.brief) && !BasketballCadGenerator.requested(project.brief) && !RainwaterCadGenerator.requested(project.brief) && !LapPoolCadGenerator.requested(project.brief) && !PublicMarketCadGenerator.requested(project.brief) && !RaisedBedCadGenerator.requested(project.brief) && !AmphitheatreCadGenerator.requested(project.brief) && !ParkLoopCadGenerator.requested(project.brief) && !WindrowYardCadGenerator.requested(project.brief) && !GalleryPanelCadGenerator.requested(project.brief) && !AngledParkingCadGenerator.requested(project.brief) && !ColdRackCadGenerator.requested(project.brief) && !PublicToiletCadGenerator.requested(project.brief) && !VehicleLiftCadGenerator.requested(project.brief) && !AthleticsTrackCadGenerator.requested(project.brief) && !PlaygroundCadGenerator.requested(project.brief) && !BicycleRackCadGenerator.requested(project.brief) && !MemorialNicheCadGenerator.requested(project.brief) && !TennisCadGenerator.requested(project.brief) && !TwinTankCadGenerator.requested(project.brief) && !PairedApartmentGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
+                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !CrossJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !CorridorSectionGenerator.requested(project.brief) && !CorridorEarthworkGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && !OpenDrainCadGenerator.requested(project.brief) && !BusLaybyCadGenerator.requested(project.brief) && !CulvertCadGenerator.requested(project.brief) && !PromenadeCadGenerator.requested(project.brief) && !RailPlatformCadGenerator.requested(project.brief) && !FootbridgeCadGenerator.requested(project.brief) && !TruckSweepGenerator.requested(project.brief) && !SolarFarmGenerator.requested(project.brief) && !DetentionBasinGenerator.requested(project.brief) && !EvHubGenerator.requested(project.brief) && !OrchardCadGenerator.requested(project.brief) && !SwitchbackRampGenerator.requested(project.brief) && !TeachingLabGenerator.requested(project.brief) && !HotelWingGenerator.requested(project.brief) && !BasketballCadGenerator.requested(project.brief) && !RainwaterCadGenerator.requested(project.brief) && !LapPoolCadGenerator.requested(project.brief) && !PublicMarketCadGenerator.requested(project.brief) && !RaisedBedCadGenerator.requested(project.brief) && !AmphitheatreCadGenerator.requested(project.brief) && !ParkLoopCadGenerator.requested(project.brief) && !WindrowYardCadGenerator.requested(project.brief) && !GalleryPanelCadGenerator.requested(project.brief) && !AngledParkingCadGenerator.requested(project.brief) && !ColdRackCadGenerator.requested(project.brief) && !ShelterCanopyCadGenerator.requested(project.brief) && !PublicToiletCadGenerator.requested(project.brief) && !VehicleLiftCadGenerator.requested(project.brief) && !AthleticsTrackCadGenerator.requested(project.brief) && !PlaygroundCadGenerator.requested(project.brief) && !BicycleRackCadGenerator.requested(project.brief) && !MemorialNicheCadGenerator.requested(project.brief) && !TennisCadGenerator.requested(project.brief) && !TwinTankCadGenerator.requested(project.brief) && !PairedApartmentGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'zones', child: Text('Concept zoning CAD')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),

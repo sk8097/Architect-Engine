@@ -181,6 +181,40 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('passenger shelter mode saves the roof inputs and opens the plan', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Institutional & Public Utility');
+    await tap(tester, 'Sports / recreation / public amenities');
+    await tap(tester, 'Passenger Shelter');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '12');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '18');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Passenger shelter: measured canopy and headroom');
+    for (final entry in const {
+      'sh_bays': '3', 'sh_pitch': '3.2', 'sh_span': '3.6', 'sh_post': '0.2', 'sh_oh_w': '1', 'sh_oh_e': '0.8',
+      'sh_oh_end': '0.6', 'sh_w_z': '3.1', 'sh_e_z': '2.5', 'sh_roof_d': '0.18', 'sh_min_walk': '3.4',
+      'sh_min_head': '2.6', 'sh_min_eave': '2.5', 'sh_west': '2', 'sh_south': '3',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Passenger canopy');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['sh_bays'], 3);
+    expect(find.text('Passenger shelter canopy CAD'), findsOneWidget);
+    expect(find.text('Share canopy plan DXF'), findsOneWidget);
+  });
+
   testWidgets('surveyed promenade saves limit and pad records without a building footprint', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
