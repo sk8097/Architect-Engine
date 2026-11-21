@@ -248,6 +248,39 @@ void main() {
     expect(find.text('Share paving plan DXF'), findsOneWidget);
   });
 
+  testWidgets('telecom duct bank saves levels and crossings without generic equipment inputs', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Energy / utilities / communications');
+    await tap(tester, 'Telecom Network');
+    final mode = find.descendant(of: find.byKey(const ValueKey('duct_bank_mode')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Surveyed duct bank: cover and utility crossings');
+    expect(find.byKey(const ValueKey('route_length')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Telecom run');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    for (final entry in const {
+      'db_grid': 'Example grid', 'db_datum': 'Local RL', 'db_axis': '500000,2000000;500060,2000080',
+      'db_levels': '10,102,100;40,101.1,100.2;90,103,100.7', 'db_width': '1.2', 'db_depth': '0.6',
+      'db_cover': '0.9', 'db_gap': '0.3', 'db_crossings': 'U1,25,98.9,99.2;U2,70,100.9,101.05',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['db_gap'], .3);
+    expect(find.text('Surveyed telecom duct bank CAD'), findsOneWidget);
+    expect(find.text('Share duct-bank plan DXF'), findsOneWidget);
+  });
+
   testWidgets('separated cycle track saves survey fields and opens the specialist preview', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
