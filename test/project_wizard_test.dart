@@ -215,6 +215,39 @@ void main() {
     expect(find.text('Share canopy plan DXF'), findsOneWidget);
   });
 
+  testWidgets('measured plaza paving saves without generic landscape survey fields', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Urban Plaza');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '12');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '8');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Urban plaza: centred paving grid and cut schedule');
+    for (final entry in const {
+      'pav_w': '7.04', 'pav_l': '4.23', 'pav_west': '2', 'pav_south': '1', 'pav_unit_x': '0.6',
+      'pav_unit_y': '0.4', 'pav_joint': '0.005', 'pav_min_x': '0.2', 'pav_min_y': '0.12',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Paved plaza');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['pav_joint'], .005);
+    expect(find.text('Urban plaza paving CAD'), findsOneWidget);
+    expect(find.text('Share paving plan DXF'), findsOneWidget);
+  });
+
   testWidgets('separated cycle track saves survey fields and opens the specialist preview', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
