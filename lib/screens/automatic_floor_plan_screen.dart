@@ -154,6 +154,7 @@ class _PlanPainter extends CustomPainter {
       'DOORS' => const Color(0xff127d4d),
       'WINDOWS' => const Color(0xff0072a7),
       'DIMENSIONS' => const Color(0xff455977),
+      'STAIRS' => const Color(0xff354ba0),
       'PATIENT_ROUTE' => const Color(0xff006f91),
       'SERVICE_ROUTE' => const Color(0xffa65f17),
       'CUSTOMER_ROUTE' => const Color(0xff007d87),

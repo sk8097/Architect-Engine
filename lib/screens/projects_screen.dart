@@ -12,6 +12,8 @@ import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
 import 'retail_cad_screen.dart';
+import 'dwelling_g1_screen.dart';
+import '../services/dwelling_g1_generator.dart';
 import '../services/retail_cad_generator.dart';
 import '../services/healthcare_cad_generator.dart';
 import '../services/warehouse_loading_generator.dart';
@@ -173,6 +175,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     TowerPlanScreen(projectName: project.name, brief: project.tower!)));
                                   return;
                                 }
+                                if (val == 'dwelling_g1' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => DwellingG1Screen(
+                                    name: project.name, brief: project.brief!, widthFt: project.width,
+                                    depthFt: project.length, facing: project.facing)));
+                                  return;
+                                }
                                 if (val == 'retail_fixtures' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => RetailCadScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -238,6 +246,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'tower', child: Text('High-rise CAD')),
                                 if (AutomaticFloorPlanGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
+                                if (DwellingG1Generator.requested(project.brief))
+                                  const PopupMenuItem(value: 'dwelling_g1', child: Text('G+1 house CAD')),
                                 if (RetailCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
                                 if (HealthcareCadGenerator.requested(project.brief))

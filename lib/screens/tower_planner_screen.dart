@@ -280,9 +280,15 @@ String _spaceSize(TowerSpace space) => '${_metric(space.width)} m min. width × 
 String _sqft(int squareMm) => (squareMm / (304.8 * 304.8)).toStringAsFixed(0);
 
 class TowerPlanScreen extends StatefulWidget {
-  const TowerPlanScreen({super.key, required this.projectName, required this.brief, this.generated});
-  final String projectName;
-  final TowerBrief brief;
+  const TowerPlanScreen({super.key, required this.projectName, required TowerBrief this.brief, this.generated})
+    : title = 'High-rise CAD', note = null, areaSqft = null;
+  const TowerPlanScreen.dwelling({super.key, required this.projectName, required TowerResult this.generated, required double this.areaSqft})
+    : brief = null, title = 'G+1 house CAD', note =
+      'Plan-view stair only. Verify the stair section, headroom, floor opening, handrails and local code before construction.';
+  final String projectName, title;
+  final String? note;
+  final double? areaSqft;
+  final TowerBrief? brief;
   final TowerResult? generated;
 
   @override
@@ -290,7 +296,7 @@ class TowerPlanScreen extends StatefulWidget {
 }
 
 class _TowerPlanScreenState extends State<TowerPlanScreen> {
-  late final _result = widget.generated ?? TowerPlanGenerator().generate(widget.brief);
+  late final _result = widget.generated ?? TowerPlanGenerator().generate(widget.brief!);
   final _drawings = <int, FloorPlanCad>{};
   var _selected = 0;
   var _sharing = false;
@@ -319,10 +325,10 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
     final theme = Theme.of(context);
     final sheet = _result.sheets.isEmpty ? null : _result.sheets[_selected];
     final drawing = sheet == null ? null : _drawings.putIfAbsent(_selected, () => FloorPlanCad.fromPlan(sheet.plan));
-    return Scaffold(appBar: AppBar(title: const Text('High-rise CAD')), body: SafeArea(child: Center(child:
+    return Scaffold(appBar: AppBar(title: Text(widget.title)), body: SafeArea(child: Center(child:
       ConstrainedBox(constraints: const BoxConstraints(maxWidth: 710), child: ListView(padding: const EdgeInsets.all(16), children: [
         Text(widget.projectName, style: theme.textTheme.headlineSmall),
-        Text('${widget.brief.floors} levels · Plot ${_sqft(widget.brief.plotWidth * widget.brief.plotDepth)} sqft'),
+        Text('${widget.brief?.floors ?? 2} levels · Plot ${widget.areaSqft?.toStringAsFixed(0) ?? _sqft(widget.brief!.plotWidth * widget.brief!.plotDepth)} sqft'),
         const SizedBox(height: 12),
         if (sheet == null) ...[
           const Text('No drawing generated. Edit the saved brief before exporting.'),
@@ -349,6 +355,9 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           const Text('Concept preview · Specialist review pending'),
           const SizedBox(height: 8),
           CadPlanPreview(plan: sheet.plan, drawing: drawing!),
+          for (final stair in sheet.plan.stairs)
+            Text('${stair.up ? 'UP' : 'DOWN'}: ${stair.risers} risers × ${stair.riseMm.toStringAsFixed(1)} mm · '
+              '${stair.goingMm} mm going · ${stair.floorHeightMm} mm floor-to-floor'),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [
             Builder(builder: (button) => FilledButton.icon(icon: const Icon(Icons.ios_share),
@@ -357,8 +366,8 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
               child: const Text('Share all sheets DXF'))),
           ]),
           const SizedBox(height: 8),
-          const Text('Not for construction. Core reserves are not detailed stair or lift designs. No egress, structure, accessibility, setbacks or local-code compliance verified.'),
-          Text('Supplied dimension reference: ${widget.brief.basis}'),
+          Text(widget.note ?? 'Not for construction. Core reserves are not detailed stair or lift designs. No egress, structure, accessibility, setbacks or local-code compliance verified.'),
+          if (widget.brief != null) Text('Supplied dimension reference: ${widget.brief!.basis}'),
           ExpansionTile(title: const Text('Floor schedule'), children: [
             for (final item in _result.sheets) ListTile(dense: true, title: Text(item.range), subtitle: Text(item.name)),
           ]),

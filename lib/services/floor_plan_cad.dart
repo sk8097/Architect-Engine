@@ -86,18 +86,27 @@ class FloorPlanCad {
           inward == 1 ? 0 : 90, inward == 1 ? 90 : 180));
       }
     }
+    for (final stair in plan.stairs) {
+      for (final (from, to) in stair.strokes) { line('STAIRS', from.$1, from.$2, to.$1, to.$2); }
+    }
     for (final room in plan.rooms) {
       final b = room.bounds;
       final center = (b.left + b.right) / 2;
       final y = (b.bottom + b.top) / 2;
       final core = room.id.startsWith('stair_') || room.id.startsWith('lift_') || room.id.startsWith('shaft_');
-      if (core) {
+      final measured = plan.stairs.where((stair) => stair.roomId == room.id).firstOrNull;
+      if (core && measured == null) {
         // Reserve marker only; never present invented stair treads or lift equipment.
         final ix = b.width / 10, iy = b.depth / 10;
         line('CORE_RESERVES', b.left + ix, b.bottom + iy, b.right - ix, b.bottom + iy);
         line('CORE_RESERVES', b.left + ix, b.top - iy, b.right - ix, b.top - iy);
       }
-      if (room.id == 'patient_internal_passage' || room.id == 'service_internal_passage') {
+      if (measured != null) {
+        final vertical = b.depth >= b.width;
+        final offset = vertical ? b.width / 3 : b.depth / 3;
+        _labels.add(CadLabel('STAIRS', CadPoint(center + (vertical ? offset : 0), y + (vertical ? 0 : offset)),
+          '${measured.up ? 'UP' : 'DOWN'} - ${measured.risers} RISERS', 145, angle: vertical ? 90 : 0));
+      } else if (room.id == 'patient_internal_passage' || room.id == 'service_internal_passage') {
         final layer = room.id.startsWith('patient_') ? 'PATIENT_ROUTE' : 'SERVICE_ROUTE';
         final vertical = b.heightLongerThanWidth;
         final edge = vertical ? b.left + b.width / 4 : b.bottom + b.depth / 4;
@@ -274,7 +283,7 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
-      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3};
+      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

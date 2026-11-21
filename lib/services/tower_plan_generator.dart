@@ -17,6 +17,15 @@ class TowerResult {
   final List<String> issues;
 }
 
+/// User-supplied straight flight and identical end landings. Riser height is
+/// derived from the supplied floor-to-floor height, not from a code default.
+class StraightStairSpec {
+  const StraightStairSpec({required this.risers, required this.going, required this.landing, required this.height});
+  final int risers, going, landing, height;
+  int get run => (risers - 1) * going;
+  int get depth => run + 2 * landing;
+}
+
 /// Fixed rectangular plate, single straight circulation spine, two room lanes.
 /// This is space planning using supplied assumptions, not a structural solver.
 class TowerPlanGenerator {
@@ -25,7 +34,11 @@ class TowerPlanGenerator {
   static const maxCoreSpaces = 12;
   static const maxLevels = 100;
 
-  TowerResult generate(TowerBrief input) {
+  TowerResult generate(TowerBrief input) => _generate(input);
+
+  TowerResult generateDwelling(TowerBrief input, StraightStairSpec stair) => _generate(input, stair: stair);
+
+  TowerResult _generate(TowerBrief input, {StraightStairSpec? stair}) {
     TowerResult block(String message) => TowerResult(const [], [message]);
     bool valid(int n) => n > 0 && n <= maxDimension;
     if (input.floors < 2 || input.floors > maxLevels) return block('Enter 2 to 100 levels, including ground.');
@@ -37,7 +50,14 @@ class TowerPlanGenerator {
       input.westOffset + input.plateWidth, input.southOffset + input.plateDepth);
     final plot = PlanRect(0, 0, input.plotWidth, input.plotDepth);
     if (!plot.contains(plate)) return block('The plate and offsets put part of the building outside the plot.');
-    if (input.stairs.isEmpty || input.lifts.isEmpty || input.shafts.isEmpty) return block('Supply at least one stair, lift and service-shaft reserve. These are not code minima.');
+    if (stair == null && (input.stairs.isEmpty || input.lifts.isEmpty || input.shafts.isEmpty)) {
+      return block('Supply at least one stair, lift and service-shaft reserve. These are not code minima.');
+    }
+    if (stair != null && (input.floors != 2 || input.stairs.length != 1 || input.lifts.isNotEmpty || input.shafts.isNotEmpty ||
+        stair.risers < 2 || stair.risers > 50 || stair.going <= 0 || stair.landing < input.door || stair.height <= 0 ||
+        input.stairs.single.depth != stair.depth || input.stairs.single.width <= input.door)) {
+      return block('The dwelling plan needs two levels and one measured straight flight. The stair and each landing must fit the supplied door swing.');
+    }
     if (input.stairs.length + input.lifts.length + input.shafts.length > maxCoreSpaces) return block('Use up to $maxCoreSpaces core reserves in this planner.');
     if (input.groups.isEmpty || input.groups.length > input.floors) return block('Add floor groups covering every level.');
     final groups = [...input.groups]..sort((a, b) => a.first.compareTo(b.first));
@@ -65,9 +85,14 @@ class TowerPlanGenerator {
       for (var i = 0; i < input.lifts.length; i++) (id: 'lift_$i', space: input.lifts[i], sealed: false),
       for (var i = 0; i < input.shafts.length; i++) (id: 'shaft_$i', space: input.shafts[i], sealed: true),
     ];
+    bool widthFits(TowerSpace space, int lane) {
+      if (stair == null) return space.width <= lane;
+      final extra = lane - space.width;
+      return (extra == 0 || extra >= t) && (space.window == null || extra == 0);
+    }
     String? check(TowerSpace space, bool sealed) {
       if (space.name.trim().isEmpty || !valid(space.width) || !valid(space.depth)) return 'Enter a space name and valid dimensions.';
-      if (space.width > right || (!sealed && right <= input.door)) return '${space.name}: clear width or door swing exceeds both available room lanes.';
+      if ((!widthFits(space, left) && !widthFits(space, right)) || (!sealed && (right <= input.door || (stair != null && space.width <= input.door)))) return '${space.name}: clear width or door swing exceeds both available room lanes.';
       if ((!sealed && space.depth <= input.door) || space.depth > d - 2 * t) return '${space.name}: depth does not fit the door opening or plate.';
       if (space.window != null && (space.window! <= t || space.window! >= space.depth)) return '${space.name}: window width must exceed the wall thickness and be less than the room depth.';
       return null;
@@ -87,10 +112,11 @@ class TowerPlanGenerator {
         final item = items[i];
         final cost = item.space.depth + t;
         prefix += cost;
-        final canLeft = item.space.width <= left && (item.sealed || left > input.door);
+        final canLeft = widthFits(item.space, left) && (item.sealed || left > input.door);
+        final canRight = widthFits(item.space, right) && (item.sealed || right > input.door);
         final next = <int, int>{};
         for (final state in states.entries) {
-          if (prefix - state.key <= capRight) next[state.key] = state.value;
+          if (canRight && prefix - state.key <= capRight) next[state.key] = state.value;
           if (canLeft && state.key + cost <= capLeft) next[state.key + cost] = state.value | (1 << i);
           if (next.length > maxSearchStates) return null;
         }
@@ -120,9 +146,10 @@ class TowerPlanGenerator {
       final placements = [...core, ...rooms];
       final sides = [...assignedCore, ...assignment];
       void addSheet(int first, int last, bool ground) {
-        final range = ground ? 'Ground (Level 1)' : first == last ? 'Level $first' : 'Levels $first-$last';
+        final range = stair != null ? (ground ? 'Ground floor' : 'First floor') :
+          ground ? 'Ground (Level 1)' : first == last ? 'Level $first' : 'Levels $first-$last';
         final result = _layout(input, plot, plate, w, d, left, right, placements, sides,
-          ground, '${group.name} / $range');
+          ground, '${group.name} / $range', exactWidths: stair != null, stair: stair);
         sheets.add(TowerSheet(group.name, range, first, last, result.plan, result.unallocated));
       }
       if (group.first == 1) addSheet(1, 1, true);
@@ -209,7 +236,7 @@ class TowerPlanGenerator {
 
   ({AutomaticFloorPlan plan, int unallocated}) _layout(TowerBrief input, PlanRect plot,
       PlanRect plate, int w, int d, int left, int right,
-      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false}) {
+      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false, StraightStairSpec? stair}) {
     final t = input.wall;
     final corridor = input.corridor;
     final door = input.door;
@@ -232,6 +259,7 @@ class TowerPlanGenerator {
       wall(0, 0, w, t);
     }
     var unused = 0;
+    PlanRect? stairRoom;
     for (final side in [true, false]) {
       final x1 = side ? t : ce + t;
       final x2 = side ? t + left : ce + t + right;
@@ -248,7 +276,10 @@ class TowerPlanGenerator {
           : item.id.startsWith('shaft_') ? 'Shaft: ' : '';
         final roomLeft = exactWidths && side ? x2 - item.space.width : x1;
         final roomRight = exactWidths && !side ? x1 + item.space.width : x2;
-        rooms.add(PlanRoom(item.id, '$prefix${item.space.name}', PlanRect(roomLeft, y, roomRight, end)));
+        final straight = stair != null && item.id == 'stair_0' ? stair : null;
+        final bounds = PlanRect(roomLeft, y, roomRight, end);
+        if (straight != null) stairRoom = bounds;
+        rooms.add(PlanRoom(item.id, straight == null ? '$prefix${item.space.name}' : 'Straight stair', bounds));
         if (roomLeft > x1 || roomRight < x2) {
           final divider = side ? roomLeft - t : roomRight;
           wall(divider, y, divider + t, end);
@@ -261,7 +292,8 @@ class TowerPlanGenerator {
         if (item.sealed) {
           wall(wx1, y, wx2, end);
         } else {
-          final dy = y + (item.space.depth - door) ~/ 2;
+          final dy = straight == null ? y + (item.space.depth - door) ~/ 2 :
+            (ground ? y : end - straight.landing) + (straight.landing - door) ~/ 2;
           wall(wx1, y, wx2, dy); wall(wx1, dy + door, wx2, end);
           openings.add(PlanOpening(PlanOpeningKind.door, PlanRect(wx1, dy, wx2, dy + door), hall, item.id));
         }
@@ -293,8 +325,30 @@ class TowerPlanGenerator {
       return PlanRect(local.left + plate.left, local.bottom + plate.bottom,
         local.right + plate.left, local.top + plate.bottom);
     }
+    final stairGraphics = <StairDrawing>[];
+    final stairBounds = stairRoom;
+    if (stair != null && stairBounds != null) {
+      final first = stairBounds.bottom + stair.landing;
+      final last = first + stair.run;
+      final centre = (stairBounds.left + stairBounds.right) ~/ 2;
+      (int, int) point(int x, int y) {
+        final transformed = orient(PlanRect(x,y,x,y));
+        return (transformed.left, transformed.bottom);
+      }
+      final graphics = <((int,int),(int,int))>[
+        for (var i=0; i<stair.risers; i++)
+          (point(stairBounds.left,first+i*stair.going), point(stairBounds.right,first+i*stair.going)),
+      ];
+      final start = ground ? first : last, end = ground ? last : first;
+      final head = (stairBounds.width < stair.going ? stairBounds.width : stair.going) ~/ 4;
+      final back = ground ? end - head : end + head;
+      graphics.addAll([(point(centre,start),point(centre,end)),
+        (point(centre-head,back),point(centre,end)), (point(centre+head,back),point(centre,end))]);
+      stairGraphics.add(StairDrawing(roomId: 'stair_0', up: ground, risers: stair.risers,
+        riseMm: stair.height / stair.risers, goingMm: stair.going, floorHeightMm: stair.height, strokes: graphics));
+    }
     return (plan: AutomaticFloorPlan(plot: plot, footprint: plate, facing: input.frontage,
-      sheetTitle: title, rooms: rooms.map((r) => PlanRoom(r.id, r.label, orient(r.bounds))),
+      sheetTitle: title, stairs: stairGraphics, rooms: rooms.map((r) => PlanRoom(r.id, r.label, orient(r.bounds))),
       walls: walls.map(orient), openings: openings.map((o) => PlanOpening(o.kind, orient(o.bounds), o.from, o.to))),
       unallocated: unused);
   }

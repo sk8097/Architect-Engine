@@ -28,12 +28,25 @@ class PlanOpening {
   final String from, to;
 }
 
+/// Plan-view stair linework in the same millimetre coordinates as the rooms.
+class StairDrawing {
+  StairDrawing({required this.roomId, required this.up, required this.risers,
+    required this.riseMm, required this.goingMm, required this.floorHeightMm,
+    required Iterable<((int, int), (int, int))> strokes}) : strokes = List.unmodifiable(strokes);
+  final String roomId;
+  final bool up;
+  final int risers, goingMm, floorHeightMm;
+  final double riseMm;
+  final List<((int, int), (int, int))> strokes;
+}
+
 class AutomaticFloorPlan {
   AutomaticFloorPlan({required this.plot, required this.footprint,
     required this.facing, this.bedrooms = 1, this.sheetTitle, required Iterable<PlanRoom> rooms,
-    required Iterable<PlanRect> walls, required Iterable<PlanOpening> openings})
+    required Iterable<PlanRect> walls, required Iterable<PlanOpening> openings,
+    Iterable<StairDrawing> stairs = const []})
       : rooms = List.unmodifiable(rooms), walls = List.unmodifiable(walls),
-        openings = List.unmodifiable(openings);
+        openings = List.unmodifiable(openings), stairs = List.unmodifiable(stairs);
 
   static const generatorVersion = 'house-concept-v2';
   static const entry = 'outside';
@@ -45,4 +58,5 @@ class AutomaticFloorPlan {
   final List<PlanRoom> rooms;
   final List<PlanRect> walls;
   final List<PlanOpening> openings;
+  final List<StairDrawing> stairs;
 }

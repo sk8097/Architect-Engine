@@ -10,6 +10,7 @@ import '../data/detailed_cad_fields.dart';
 import '../data/warehouse_cad_fields.dart';
 import '../data/healthcare_cad_fields.dart';
 import '../data/retail_cad_fields.dart';
+import '../data/dwelling_cad_fields.dart';
 import '../data/project_scenarios.dart';
 import '../data/space_planning.dart';
 import '../models/project_brief.dart';
@@ -26,6 +27,8 @@ import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
 import 'retail_cad_screen.dart';
+import 'dwelling_g1_screen.dart';
+import '../services/dwelling_g1_generator.dart';
 import '../services/retail_cad_generator.dart';
 import '../services/healthcare_cad_generator.dart';
 import '../services/warehouse_loading_generator.dart';
@@ -146,8 +149,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _clinicCad => _clinicEligible && _answers['cad_output'] == 'clinic_separated';
   bool get _retailEligible => _category?.id == 'commercial' && _group?.id == 'retail' && retailFixtureTypes.contains(_type?.id);
   bool get _retailCad => _retailEligible && _answers['cad_output'] == 'retail_fixtures';
+  bool get _g1Eligible => _category?.id == 'residential' && _group?.id == 'houses' && dwellingG1Types.contains(_type?.id);
+  bool get _g1Cad => _g1Eligible && _answers['cad_output'] == 'dwelling_g1';
   List<RequirementField> get _cadFields => [
-    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible),
+    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible),
+    if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
     if (_clinicCad) ...clinicCadFields,
     if (_retailCad) ...[...enclosedCadFields.take(5), ...retailCadFields],
     if (_warehouseCad) ...warehouseLoadingFields,
@@ -174,12 +180,12 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           planningArea('terrace_area_$zone', 'Area for $zone terrace zone'),
   ];
   List<RequirementField> _levelFields(int level) => [
-    if (level > 0) ...[
+    if (level > 0 && !_g1Cad) ...[
       planningArea('level_area_$level', 'Available floor area'),
       RequirementField('zoning_width_$level', 'Zoning envelope width', kind: RequirementKind.decimal, min: .01, unit: 'm'),
       RequirementField('zoning_depth_$level', 'Zoning envelope depth', kind: RequirementKind.decimal, min: .01, unit: 'm'),
     ],
-    if (_floorCount > 1) planningArea('level_access_$level', 'Stair, landing and lift allowance'),
+    if (_floorCount > 1 && !_g1Cad) planningArea('level_access_$level', 'Stair, landing and lift allowance'),
     if (_home && _floorCount > 1) ...[
       RequirementField('level_bedrooms_$level', 'Bedrooms on this floor', kind: RequirementKind.integer, min: 0, required: true),
       RequirementField('level_baths_$level', 'Bathrooms on this floor', kind: RequirementKind.integer, min: 0, required: true),
@@ -226,6 +232,26 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   AreaBudget _budget(int level) {
     final width = _isRectangular ? _measuredFeet(_width) : null;
     final depth = _shapeId == 'square' ? width : (_isRectangular ? _measuredFeet(_depth) : null);
+    if (_g1Cad) {
+      final plateW = positiveNumber(_answers['cad_plate_width']), plateD = positiveNumber(_answers['cad_plate_depth']);
+      final stairW = positiveNumber(_answers['g1_width']) ?? 0.0;
+      final risers = positiveNumber(_answers['g1_risers']) ?? 1.0;
+      final run = (risers - 1) * (positiveNumber(_answers['g1_going']) ?? 0.0) + 2 * (positiveNumber(_answers['g1_landing']) ?? 0.0);
+      var areaM2 = stairW * run;
+      var unknown = false;
+      for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
+        final detail = _spaceDetails[entry.key] ?? const <String,Object>{};
+        if (_spaceLevel(detail) != level) continue;
+        final w = positiveNumber(detail['width']), d = positiveNumber(detail['length']);
+        if (w == null || d == null) { unknown = true; continue; }
+        areaM2 += w * d * entry.value;
+      }
+      final plate = (plateW ?? 0.0) * (plateD ?? 0.0) * sqftPerSqm;
+      return AreaBudget(width: plateW == null ? null : plateW / .3048,
+        depth: plateD == null ? null : plateD / .3048,
+        total: level == 0 ? ((width ?? 0) * (depth ?? 0)) : plate, available: plate,
+        minimum: areaM2 * sqftPerSqm, typical: areaM2 * sqftPerSqm, unknown: unknown);
+    }
     final area = positiveNumber(_answers['surveyed_plot_area']);
     final intNumber = (String key) => int.tryParse('${_answers[key] ?? ''}') ?? 0;
     final home = !_home ? (minimum: 0.0, typical: 0.0) : _floorCount > 1
@@ -460,7 +486,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -509,6 +535,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_shapeId == null) return 'Select the geometry of your site.';
     if (_budget(0).total <= 0) return 'Enter the measured site size before continuing.';
     if (_vastu && (_facing == null || _facing == 'Not decided')) return 'Enter the measured frontage direction for Vastu suggestions.';
+    if (_g1Cad && (_floorCount != 2 || !const {'South','North','East','West'}.contains(_facing))) {
+      return 'Measured G+1 CAD needs two floors including ground and a cardinal frontage.';
+    }
     if (_retailCad) {
       if (_floorCount != 1 || int.tryParse('${_facilityAnswers['shop_count'] ?? ''}') != 1) {
         return 'Retail fixture CAD requires one ground-floor shop. Enter 1 for both floor and shop count.';
@@ -550,14 +579,14 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     for (final level in {0, ..._levels}) {
       final area = _budget(level);
       if (area.remaining < -0.001) return '${_levelName(level)} needs more area than you have entered. Review the budget and your selections.';
-      if (_home && area.width != null && area.depth != null &&
+      if (_home && !_g1Cad && area.width != null && area.depth != null &&
           (_floorCount <= 1 || _answers['main_kitchen_floor'] == '$level') &&
           !homeRoomSizes['family_living_room']!.fits(area.width!, area.depth!)) {
         return 'The measured width and depth cannot fit the concept living-room allowance.';
       }
     }
     if (checkRooms) {
-      if ((_enclosedCad || _clinicCad) && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) return 'Add at least one measured interior room.';
+      if ((_enclosedCad || _clinicCad || _g1Cad) && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) return 'Add at least one measured interior room.';
       for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
         final label = _customSpaces[entry.key] ?? taxonomyChoice(_program.spaces, entry.key)?.label ?? entry.key;
         final detail = _spaceDetails[entry.key] ?? const <String, Object>{};
@@ -566,7 +595,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         if (_clinicCad && !const {'patient','service'}.contains(detail['hc_route'])) {
           return '$label: choose the patient or staff/service route in Space details.';
         }
-        if ((_enclosedCad || _clinicCad) && (positiveNumber(detail['width']) == null || positiveNumber(detail['length']) == null)) {
+        if (_g1Cad && !const {'0','1'}.contains(detail['floor_level'])) return '$label: choose Ground or First floor in Space details.';
+        if ((_enclosedCad || _clinicCad || _g1Cad) && (positiveNumber(detail['width']) == null || positiveNumber(detail['length']) == null)) {
           return '$label: measured enclosed CAD needs clear width and length in Space details.';
         }
         if (_coveredByCore(entry.key)) continue;
@@ -598,7 +628,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           style: Theme.of(context).textTheme.labelSmall),
       ])),
       if ({0, ..._levels}.any((n) => _budget(n).unknown)) const Text('Not counted: spaces without size inputs.'),
-      if (_step == 3 || _step == 4)
+      if (_g1Cad) const Text('Draft counts measured rooms and stair; walls and passages are checked in the final CAD fit.')
+      else if (_step == 3 || _step == 4)
         Text('Ground floor typical: ${number(ground.typical)} sqft • Concept estimates only',
           style: Theme.of(context).textTheme.labelSmall),
     ]);
@@ -703,7 +734,12 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    if (RetailCadGenerator.requested(brief)) {
+    if (DwellingG1Generator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => DwellingG1Screen(name: name, brief: brief, widthFt: width ?? 0,
+          depthFt: length ?? 0, facing: facing),
+      ));
+    } else if (RetailCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
         builder: (_) => RetailCadScreen(name: name, brief: brief, widthFt: width ?? 0,
           depthFt: length ?? 0, facing: facing),
@@ -1058,8 +1094,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           if (!isExcludedSpace(_spaceDetails[space.id])) space
           else if (referenced.contains(space.id))
             TaxonomyChoice(space.id, '${space.label} (excluded)'),
-      ]),
-      if (_enclosedCad || _clinicCad) cadWindowField,
+      ]).where((field) => !_g1Cad || field.id != 'floor_level'),
+      if (_g1Cad) dwellingRoomLevel,
+      if (_enclosedCad || _clinicCad || _g1Cad) cadWindowField,
       if (_clinicCad) clinicRoomRoute,
     ];
   }
@@ -1209,7 +1246,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_retailCad)
+        if (_g1Cad)
+          const Text('Saving attempts two measured floor plans with an aligned straight indoor stair. Unsupported access, terrace and parking requests do not fall back to zoning.')
+        else if (_retailCad)
           const Text('Saving checks the measured shell, sales fixtures, customer aisles and stock access. A blocked drawing does not fall back to zoning.')
         else if (_clinicCad)
           const Text('Saving checks and draws independent patient and staff/service wings. No internal transfer or specialist clinical approval is inferred.')
