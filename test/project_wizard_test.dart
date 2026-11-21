@@ -248,6 +248,41 @@ void main() {
     expect(find.text('Share paving plan DXF'), findsOneWidget);
   });
 
+  testWidgets('long and triple jump runway saves with measured event dimensions', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Institutional & Public Utility');
+    await tap(tester, 'Sports / recreation / public amenities');
+    await tap(tester, 'Sports Complex');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '10');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '75');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Athletics: measured long and triple jump runway');
+    for (final entry in const {
+      'jr_run_l': '55', 'jr_run_w': '1.22', 'jr_pit_l': '9', 'jr_pit_w': '3', 'jr_long_offset': '2',
+      'jr_triple_offset': '11', 'jr_long_run_min': '53', 'jr_triple_run_min': '44', 'jr_long_far_min': '11',
+      'jr_triple_far_min': '20', 'jr_side': '1.5', 'jr_south_reserve': '2', 'jr_north_reserve': '4',
+      'jr_west': '2', 'jr_south': '2',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Jump runway');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['jr_triple_offset'], 11);
+    expect(find.text('Share jump runway DXF'), findsOneWidget);
+    expect(find.text('Share take-off schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('public rain garden saves and draws from measured geometry', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');

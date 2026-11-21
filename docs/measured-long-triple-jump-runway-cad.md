@@ -1,0 +1,11 @@
+# Measured long- and triple-jump runway CAD
+
+Choose **Institutional & Public Utility → Sports / recreation / public amenities → Sports Complex**, Stadium, Sports Club or Training Centre. Under **Automatic drawing**, choose **Athletics: measured long and triple jump runway**. Use Outdoor or leave Activity setting blank. Leave enclosed floors, parking and separate Space selections empty. The existing oval-track drawing remains a separate option.
+
+Use a cardinally aligned rectangular or square plot. The paved runway runs north from its south start directly to the near edge of a centred rectangular sand pit. The clear sand width must be at least the clear runway width. Side reserves are measured out from both sand sides; the south and north reserves extend behind the start and beyond the far sand edge. Place the **full reserve envelope**, not the runway, using west/south plot offsets. Setbacks use west as left and south as front.
+
+Enter the distances from the two take-off **lines** to the near usable sand edge. The triple-jump line must be farther from the sand and both lines must be inside the runway. Approach length is `runway length − near-edge distance`. The distance from each line to the far edge is `near-edge distance + usable sand length`. Enter independent approach and far-edge minima for the two events. These are user requirements, not governing sports rules.
+
+**Example:** On a 10 × 75 m plot, offset the full envelope 2 m west and 2 m south. Use a **55 m × 1.22 m** runway, a **9 m × 3 m** sand pit (length × width), and take-off offsets **2 m** (long jump) and **11 m** (triple jump). The approaches are **53 m** and **44 m** and the lines are **11 m** and **20 m** from the far sand edge respectively. With **1.5 m** per side, **2 m** behind the start and **4 m** beyond the pit, the full envelope is **6 × 70 m** (width × depth).
+
+Export an editable layered **DXF in local millimetres** and a **CSV** of approach, near-edge and far-edge distances by event. Reopen through Projects → **Jump runway CAD**. A failed check preserves the brief and shows the reason without exporting or falling back to generic CAD. The plan does not specify board width or construction, gradient, sand depth, drainage, safety or competition approval.
