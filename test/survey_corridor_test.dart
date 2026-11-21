@@ -117,7 +117,7 @@ void main() {
     expect(dxf,contains('PC 1+020.25'));
     expect(dxf,contains('PT 1+051.67'));
     expect(dxf,contains('345040250.000'));
-    expect(dxf,contains('0\nARC\n8\nSURVEY_AXIS\n'));
+    expect(dxf,contains('0\r\nARC\r\n8\r\nSURVEY_AXIS\r\n'));
   });
 
   test('alternating bends keep distinct radii and do not duplicate a zero-offset band', () {
