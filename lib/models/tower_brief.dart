@@ -13,18 +13,30 @@ class TowerSpace {
     .map((item) => fromMap(item as Map<String, dynamic>)).toList(growable: false);
 }
 
+/// Inward offsets measured from the corresponding edge of the ground plate.
+class TowerPlateInsets {
+  const TowerPlateInsets({this.west = 0,this.south = 0,this.east = 0,this.north = 0});
+  final int west,south,east,north;
+  bool get isZero => west==0 && south==0 && east==0 && north==0;
+  Map<String,int> toMap()=>{'west':west,'south':south,'east':east,'north':north};
+  static TowerPlateInsets fromMap(Map<String,dynamic> map)=>TowerPlateInsets(west:map['west'] as int,
+    south:map['south'] as int,east:map['east'] as int,north:map['north'] as int);
+}
+
 class TowerFloorGroup {
-  TowerFloorGroup(this.name, this.first, this.last, Iterable<TowerSpace> spaces)
+  TowerFloorGroup(this.name, this.first, this.last, Iterable<TowerSpace> spaces, {this.insets = const TowerPlateInsets()})
     : spaces = List.unmodifiable(spaces);
   final String name;
   final int first, last;
   final List<TowerSpace> spaces;
+  final TowerPlateInsets insets;
   String get range => first == last ? 'Level $first' : 'Levels $first-$last';
 
   Map<String, dynamic> toMap() => {'name': name, 'first': first, 'last': last,
-    'spaces': spaces.map((item) => item.toMap()).toList()};
+    'spaces': spaces.map((item) => item.toMap()).toList(), if (!insets.isZero) 'insets': insets.toMap()};
   static TowerFloorGroup fromMap(Map<String, dynamic> map) => TowerFloorGroup(
     map['name'] as String, map['first'] as int, map['last'] as int, TowerSpace.readList(map['spaces']),
+    insets: map['insets'] == null ? const TowerPlateInsets() : TowerPlateInsets.fromMap(map['insets'] as Map<String,dynamic>),
   );
 }
 

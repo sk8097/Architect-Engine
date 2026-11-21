@@ -24,6 +24,14 @@ TowerBrief tower({String frontage = 'South', int floors = 100, int westOffset = 
   ],
 );
 
+List<TowerFloorGroup> steppedGroups() => [
+  TowerFloorGroup('Podium',1,5,const [TowerSpace('Reception',5000,4000)]),
+  TowerFloorGroup('Mid tower',6,25,const [TowerSpace('Workspace',5000,5000,window:1600)],
+    insets:const TowerPlateInsets(west:2000,south:2500,east:1500,north:2800)),
+  TowerFloorGroup('Upper tower',26,100,const [TowerSpace('Study',5000,5000)],
+    insets:const TowerPlateInsets(west:3000,south:4000,east:2200,north:4000)),
+];
+
 void main() {
   final generator = TowerPlanGenerator();
   test('100 levels are covered by individual and typical plans with one fixed core', () {
@@ -52,6 +60,75 @@ void main() {
     expect(dxf, contains('Services / Levels 26-100'));
     expect(dxf, contains('CORE_RESERVES'));
     expect(dxfs.lines.where((line) => line.layer == 'PLOT').map((line) => (line.start.x, line.start.y)).toSet(), hasLength(16));
+  });
+
+  test('100-level podium and inset tower keep exact world-coordinate cores at every frontage', () {
+    for (final side in ['North','East','South','West']) {
+      final input=tower(frontage:side,groups:steppedGroups());
+      final saved=TowerBrief.fromMap(input.toMap())!;
+      expect(saved.groups.last.insets.toMap(),input.groups.last.insets.toMap());
+      expect(saved.groups.first.insets.isZero,isTrue);
+      final result=generator.generate(saved);
+      expect(result.issues,isEmpty,reason:side);
+      expect(result.sheets.map((sheet)=>(sheet.first,sheet.last)),[(1,1),(2,5),(6,25),(26,100)]);
+      final ground=result.sheets.first.plan;
+      (int,int,int,int) bounds(PlanRect b)=>(b.left,b.bottom,b.right,b.top);
+      final upper=result.sheets.last.plan;
+      expect(bounds(upper.footprint),(6000,9000,24800,41000));
+      expect(result.sheets.map((sheet)=>sheet.available),[24000*40000,24000*40000,20500*34700,18800*32000]);
+      final coreIds=['stair_0','stair_1','lift_0','shaft_0'];
+      final rotated=side=='East'||side=='West';
+      for (final sheet in result.sheets) {
+        final plan=sheet.plan;
+        expect(sheet.planned+sheet.unallocated,sheet.available);
+        expect(plan.openings.where((o)=>o.kind==PlanOpeningKind.door && o.from==AutomaticFloorPlan.entry).length,sheet.first==1?1:0);
+        for (var i=0;i<coreIds.length;i++) {
+          final r=plan.rooms.singleWhere((room)=>room.id==coreIds[i]);
+          expect(bounds(r.bounds),bounds(ground.rooms.singleWhere((room)=>room.id==r.id).bounds));
+          expect(rotated?r.bounds.depth:r.bounds.width,[3500,3500,4300,1600][i]);
+          if (i<3) {
+            final door=plan.openings.singleWhere((o)=>o.to==r.id && o.kind==PlanOpeningKind.door);
+            final baseline=ground.openings.singleWhere((o)=>o.to==r.id && o.kind==PlanOpeningKind.door);
+            expect(bounds(door.bounds),bounds(baseline.bounds));
+          }
+        }
+        final corridor=plan.rooms.singleWhere((r)=>r.id=='internal_passage').bounds;
+        final baseline=ground.rooms.singleWhere((r)=>r.id=='internal_passage').bounds;
+        expect(rotated?(corridor.bottom,corridor.top):(corridor.left,corridor.right),
+          rotated?(baseline.bottom,baseline.top):(baseline.left,baseline.right));
+      }
+      expect(ground.rooms.where((r)=>r.id.startsWith('reserve_front_')).length,2);
+      final cad=FloorPlanCad.fromPlan(upper,siteZones:result.sheets.last.siteZones);
+      expect(cad.lines.where((line)=>line.layer=='GROUND_PLATE_REFERENCE').length,4);
+      expect(cad.toDxf(),contains('GROUND_PLATE_REFERENCE'));
+      expect(cad.toDxf(),contains('Upper tower / Levels 26-100'));
+    }
+  });
+
+  test('inset geometry blocks ground insets, expansions and invalid core offsets', () {
+    final groups=steppedGroups();
+    TowerFloorGroup change(int i,TowerPlateInsets insets)=>TowerFloorGroup(groups[i].name,groups[i].first,groups[i].last,
+      groups[i].spaces,insets:insets);
+    for (final (items,reason) in [
+      ([change(0,const TowerPlateInsets(west:100)),...groups.skip(1)],'group including ground'),
+      ([groups[0],groups[1],change(2,const TowerPlateInsets())],'fit entirely inside'),
+      ([groups[0],change(1,const TowerPlateInsets(west:-1)),groups[2]],'nonnegative'),
+      ([groups[0],change(1,const TowerPlateInsets(west:12000,east:12000)),groups[2]],'positive width'),
+      ([groups[0],TowerFloorGroup('Narrow upper',6,100,groups[1].spaces,
+          insets:const TowerPlateInsets(west:8000,east:8000))],'common core'),
+    ]) {
+      final result=generator.generate(tower(groups:items));
+      expect(result.sheets,isEmpty);
+      expect(result.issues.single,contains(reason));
+    }
+  });
+
+  test('a front inset smaller than wall thickness still aligns the core without overlapping geometry', () {
+    final groups=steppedGroups();
+    final result=generator.generate(tower(groups:[groups.first,TowerFloorGroup('Small inset',6,100,groups[1].spaces,
+      insets:const TowerPlateInsets(south:50))]));
+    expect(result.issues,isEmpty);
+    expect(result.sheets.last.plan.footprint.bottom,result.sheets.first.plan.footprint.bottom+50);
   });
 
   test('all ground entry sides validate without changing the physical plate', () {
@@ -108,6 +185,34 @@ void main() {
     expect(find.text('Per floor · Office'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Share all sheets DXF'), 250);
     expect(find.text('Share selected DXF'), findsOneWidget);
+  });
+
+
+  testWidgets('edit an upper inset and save it with the regenerated 100-level plan', (tester) async {
+    final now=DateTime.utc(2026);
+    final saved=ProjectModel(id:'stepped',name:'Stepped tower',length:100,width:60,bhk:'',floors:'100',facing:'South',
+      tower:tower(groups:steppedGroups()),createdAt:now,updatedAt:now);
+    SharedPreferences.setMockInitialValues({'ae_projects_v1':[saved.toJson()]});
+    final provider=ProjectProvider();
+    addTearDown(provider.dispose);
+    await tester.pumpWidget(ChangeNotifierProvider<ProjectProvider>.value(value:provider,
+      child:MaterialApp(home:TowerPlannerScreen(existing:saved))));
+    await tester.pumpAndSettle();
+    for (var i=0;i<2;i++) { await tester.tap(find.text('Continue')); await tester.pumpAndSettle(); }
+    await tester.tap(find.text('Upper tower'));
+    await tester.pumpAndSettle();
+    final field=find.byKey(const ValueKey('tower_inset_west'));
+    await tester.ensureVisible(field);
+    expect(tester.widget<TextFormField>(field).initialValue,'3.0');
+    await tester.enterText(field,'3.5');
+    await tester.ensureVisible(find.text('Save floor group'));
+    await tester.tap(find.text('Save floor group'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Save & generate CAD'));
+    await tester.pumpAndSettle();
+    expect(find.text('High-rise CAD'),findsOneWidget);
+    expect(provider.projects.single.tower!.groups.last.insets.west,3500);
+    expect(generator.generate(provider.projects.single.tower!).sheets.last.plan.footprint.left,6500);
   });
 
 

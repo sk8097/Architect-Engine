@@ -28,7 +28,7 @@ class StraightStairSpec {
   int get depth => run + 2 * landing;
 }
 
-/// Fixed rectangular plate, single straight circulation spine, two room lanes.
+/// Rectangular plates, aligned straight circulation spine and two room lanes.
 /// This is space planning using supplied assumptions, not a structural solver.
 class TowerPlanGenerator {
   static const maxDimension = 300000;
@@ -78,58 +78,99 @@ class TowerPlanGenerator {
     final t = input.wall;
     final passage = input.corridor;
     if (passage <= input.door || d - 2 * t <= input.door) return block('The entry opening and swing must fit inside the circulation spine.');
-    final left = (w - 4 * t - passage) ~/ 2;
-    final right = w - 4 * t - passage - left;
-    final capacity = d - t; // cost is room depth plus separator; final separator may abut exterior
-    if (left <= 0 || right <= 0) return block('The plate is too narrow for the supplied walls and circulation spine.');
+    final baseLeft = (w - 4 * t - passage) ~/ 2;
+    final baseRight = w - 4 * t - passage - baseLeft;
+    if (baseLeft <= 0 || baseRight <= 0) return block('The plate is too narrow for the supplied walls and circulation spine.');
+    final stepped = groups.any((group)=>!group.insets.isZero);
+    if (stepped && stair != null) return block('This dwelling template requires the same plate on both floors.');
+    final local = <(int,int,int,int)>[];
+    final plates = <PlanRect>[];
+    var previous = plate;
+    for (final group in groups) {
+      final i = group.insets;
+      if (group.first==1 && !i.isZero) return block('${group.name}: the group including ground must use the ground plate. Split off the upper levels for a stepped plate.');
+      if (i.toMap().values.any((inset)=>inset<0 || inset>maxDimension)) return block('${group.name}: insets must be nonnegative and no more than 300 m.');
+      final next = PlanRect(plate.left+i.west,plate.bottom+i.south,plate.right-i.east,plate.top-i.north);
+      if (next.width<=0 || next.depth<=0 || !previous.contains(next)) {
+        return block('${group.name}: an upper plate must fit entirely inside the plate below it, with positive width and depth.');
+      }
+      plates.add(next);
+      previous=next;
+      local.add(switch(input.frontage) {
+        'North'=>(i.east,i.north,i.west,i.south), 'East'=>(i.south,i.east,i.north,i.west),
+        'West'=>(i.north,i.west,i.south,i.east), _=>(i.west,i.south,i.east,i.north),
+      });
+    }
+    // Anchor the route spine across the base width and align core entry
+    // positions from the most inset front edge. Lower plates reserve the
+    // extra length beside the extended passage rather than moving the core.
+    final commonStart = local.fold<int>(0,(max,i)=>i.$2>max?i.$2:max);
+    final sections = <({PlanRect plate,int width,int depth,int left,int right,int lead,int capacity})>[];
+    for (var i=0;i<local.length;i++) {
+      final (l,f,r,b)=local[i];
+      final width=w-l-r,depth=d-f-b,lead=commonStart-f;
+      final left=baseLeft-l,right=baseRight-r;
+      final capacity=depth-t-lead;
+      if (left<=0 || right<=0 || depth-2*t-lead<=input.door) {
+        return block('${groups[i].name}: plate insets leave no usable room lanes or depth around the aligned corridor and core.');
+      }
+      sections.add((plate:plates[i],width:width,depth:depth,left:left,right:right,lead:lead,capacity:capacity));
+    }
     final core = [
       for (var i = 0; i < input.stairs.length; i++) (id: 'stair_$i', space: input.stairs[i], sealed: false),
       for (var i = 0; i < input.lifts.length; i++) (id: 'lift_$i', space: input.lifts[i], sealed: false),
       for (var i = 0; i < input.shafts.length; i++) (id: 'shaft_$i', space: input.shafts[i], sealed: true),
     ];
-    bool widthFits(TowerSpace space, int lane) {
-      if (stair == null) return space.width <= lane;
-      final extra = lane - space.width;
-      return (extra == 0 || extra >= t) && (space.window == null || extra == 0);
+    bool widthFits(TowerSpace space, int lane, {required bool exact}) {
+      if (!exact) return space.width<=lane;
+      final extra=lane-space.width;
+      return (extra==0 || extra>=t) && (space.window==null || extra==0);
     }
-    String? check(TowerSpace space, bool sealed) {
+    bool sideFits(TowerSpace space,bool sealed,int lane,{required bool exact}) =>
+      widthFits(space,lane,exact:exact) && (sealed || (exact?space.width:lane)>input.door);
+    String? check(TowerSpace space, bool sealed, int left,int right,int capacity,{required bool exact}) {
       if (space.name.trim().isEmpty || !valid(space.width) || !valid(space.depth)) return 'Enter a space name and valid dimensions.';
-      if ((!widthFits(space, left) && !widthFits(space, right)) || (!sealed && (right <= input.door || (stair != null && space.width <= input.door)))) return '${space.name}: clear width or door swing exceeds both available room lanes.';
-      if ((!sealed && space.depth <= input.door) || space.depth > d - 2 * t) return '${space.name}: depth does not fit the door opening or plate.';
-      if (space.window != null && (space.window! <= t || space.window! >= space.depth)) return '${space.name}: window width must exceed the wall thickness and be less than the room depth.';
+      if (!sideFits(space,sealed,left,exact:exact) && !sideFits(space,sealed,right,exact:exact)) return '${space.name}: clear width or door swing exceeds both available room lanes.';
+      if ((!sealed && space.depth<=input.door) || space.depth>capacity-t) return '${space.name}: depth does not fit the door opening or plate.';
+      if (space.window!=null && (space.window!<=t || space.window!>=space.depth)) return '${space.name}: window width must exceed the wall thickness and be less than the room depth.';
       return null;
     }
-    if (input.door <= t) return block('Opening width must be larger than wall thickness for this drawing model.');
-    for (final space in core) {
-      final reason = check(space.space, space.sealed);
-      if (reason != null) return block('Common core: $reason');
+    if (input.door<=t) return block('Opening width must be larger than wall thickness for this drawing model.');
+    final exactCore = stepped || stair!=null;
+    for (var i=0;i<sections.length;i++) {
+      final section=sections[i];
+      for (final item in core) {
+        final reason=check(item.space,item.sealed,section.left,section.right,section.capacity,exact:exactCore);
+        if (reason!=null) return block('${groups[i].name}, common core: $reason');
+      }
     }
     const maxSearchStates = 32000;
-    List<bool>? pack(List<({String id, TowerSpace space, bool sealed})> items, int capLeft, int capRight) {
-      final total = items.fold(0, (sum, item) => sum + item.space.depth + t);
-      if (total > capLeft + capRight) return null;
-      var states = <int, int>{0: 0}; // depth on left -> bit mask of left items
-      var prefix = 0;
-      for (var i = 0; i < items.length; i++) {
-        final item = items[i];
-        final cost = item.space.depth + t;
-        prefix += cost;
-        final canLeft = widthFits(item.space, left) && (item.sealed || left > input.door);
-        final canRight = widthFits(item.space, right) && (item.sealed || right > input.door);
-        final next = <int, int>{};
+    List<bool>? pack(List<({String id,TowerSpace space,bool sealed})> items,int capLeft,int capRight,
+      bool Function(TowerSpace,bool,bool) fits) {
+      final total=items.fold(0,(sum,item)=>sum+item.space.depth+t);
+      if (total>capLeft+capRight) return null;
+      var states=<int,int>{0:0}; // depth on left -> bit mask of left items
+      var prefix=0;
+      for (var i=0;i<items.length;i++) {
+        final item=items[i];
+        final cost=item.space.depth+t;
+        prefix+=cost;
+        final canLeft=fits(item.space,item.sealed,true),canRight=fits(item.space,item.sealed,false);
+        final next=<int,int>{};
         for (final state in states.entries) {
-          if (canRight && prefix - state.key <= capRight) next[state.key] = state.value;
-          if (canLeft && state.key + cost <= capLeft) next[state.key + cost] = state.value | (1 << i);
-          if (next.length > maxSearchStates) return null;
+          if (canRight && prefix-state.key<=capRight) next[state.key]=state.value;
+          if (canLeft && state.key+cost<=capLeft) next[state.key+cost]=state.value | (1<<i);
+          if (next.length>maxSearchStates) return null;
         }
         if (next.isEmpty) return null;
-        states = next;
+        states=next;
       }
-      final selected = states.entries.reduce((a, b) =>
-        (a.key * 2 - total).abs() <= (b.key * 2 - total).abs() ? a : b).value;
-      return [for (var i = 0; i < items.length; i++) (selected & (1 << i)) != 0];
+      final selected=states.entries.reduce((a,b)=>(a.key*2-total).abs()<=(b.key*2-total).abs()?a:b).value;
+      return [for(var i=0;i<items.length;i++) (selected & (1<<i))!=0];
     }
-    final assignedCore = pack(core, capacity, capacity);
+    final minCapacity=sections.map((s)=>s.capacity).reduce((a,b)=>a<b?a:b);
+    final assignedCore=pack(core,minCapacity,minCapacity,(space,sealed,left)=>sections.every((s)=>
+      sideFits(space,sealed,left?s.left:s.right,exact:exactCore)));
     if (assignedCore == null) return block('The common core could not fit in the two available lanes. Check the supplied core and plate dimensions.');
     var usedLeft = 0, usedRight = 0;
     for (var i = 0; i < core.length; i++) {
@@ -137,27 +178,39 @@ class TowerPlanGenerator {
       else { usedRight += core[i].space.depth + t; }
     }
     final sheets = <TowerSheet>[];
-    for (final group in groups) {
+    for (var i=0;i<groups.length;i++) {
+      final group=groups[i], section=sections[i];
       for (final space in group.spaces) {
-        final reason = check(space, false);
+        final reason=check(space,false,section.left,section.right,section.capacity,exact:stair!=null);
         if (reason != null) return block('${group.name}: $reason');
       }
       final rooms = [for (var i = 0; i < group.spaces.length; i++) (id: 'room_$i', space: group.spaces[i], sealed: false)];
-      final assignment = pack(rooms, capacity - usedLeft, capacity - usedRight);
+      final assignment=pack(rooms,section.capacity-usedLeft,section.capacity-usedRight,(space,sealed,left)=>
+        sideFits(space,sealed,left?section.left:section.right,exact:stair!=null));
       if (assignment == null) return block('${group.name} (${group.range}): requested depths could not be arranged around the fixed core. Check lane width and depth; this does not prove that all layouts are infeasible.');
       final placements = [...core, ...rooms];
       final sides = [...assignedCore, ...assignment];
       void addSheet(int first, int last, bool ground) {
         final range = stair != null ? (ground ? 'Ground floor' : 'First floor') :
           ground ? 'Ground (Level 1)' : first == last ? 'Level $first' : 'Levels $first-$last';
-        final result = _layout(input, plot, plate, w, d, left, right, placements, sides,
-          ground, '${group.name} / $range', exactWidths: stair != null, stair: stair);
-        sheets.add(TowerSheet(group.name, range, first, last, result.plan, result.unallocated));
+        final result=_layout(input,plot,section.plate,section.width,section.depth,section.left,section.right,placements,sides,
+          ground,'${group.name} / $range',exactWidths:stair!=null,exactCoreWidths:stepped,leading:section.lead,stair:stair);
+        sheets.add(TowerSheet(group.name,range,first,last,result.plan,result.unallocated,siteZones:[
+          if (!group.insets.isZero) MeasuredZone('ground_plate','Ground plate reference',plate,'GROUND_PLATE_REFERENCE'),
+        ]));
       }
       if (group.first == 1) addSheet(1, 1, true);
       if (group.last > 1) addSheet(group.first == 1 ? 2 : group.first, group.last, false);
     }
+    final referenceCore={for (final item in core) item.id:
+      sheets.first.plan.rooms.singleWhere((room)=>room.id==item.id).bounds};
     for (final sheet in sheets) {
+      for (final room in sheet.plan.rooms.where((r)=>referenceCore.containsKey(r.id))) {
+        final ref=referenceCore[room.id]!;
+        if (!ref.contains(room.bounds) || !room.bounds.contains(ref)) {
+          return block('${sheet.range}: the shared core is not vertically aligned.');
+        }
+      }
       final issue = validatePlanGeometry(sheet.plan,
         indoorSeed: sheet.first == 1 ? null : 'internal_passage',
         sealedRooms: sheet.plan.rooms.where((room) => room.id.startsWith('shaft_') || room.id.startsWith('reserve_')).map((r) => r.id).toSet());
@@ -238,7 +291,7 @@ class TowerPlanGenerator {
 
   ({AutomaticFloorPlan plan, int unallocated}) _layout(TowerBrief input, PlanRect plot,
       PlanRect plate, int w, int d, int left, int right,
-      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false, StraightStairSpec? stair}) {
+      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false, bool exactCoreWidths = false, int leading = 0, StraightStairSpec? stair}) {
     final t = input.wall;
     final corridor = input.corridor;
     final door = input.door;
@@ -269,15 +322,30 @@ class TowerPlanGenerator {
       final wx2 = wx1 + t;
       final ex1 = side ? 0 : w - t;
       final ex2 = ex1 + t;
-      var y = t;
+      var y=t+leading;
+      if (leading>=t) {
+        // A fully enclosed, unallocated pocket ahead of the core if the
+        // ground plate extends further toward the frontage than upper plates.
+        if (leading>t) {
+          final pocket=PlanRect(x1,t,x2,y-t);
+          unused+=pocket.area;
+          rooms.add(PlanRoom('reserve_front_$side','Unallocated front reserve',pocket));
+        }
+        wall(wx1,t,wx2,y);
+        wall(ex1,t,ex2,y);
+        wall(x1,y-t,x2,y);
+      } else if (leading>0) {
+        wall(side?0:ce,t,side?cx:w,y);
+      }
       for (var i = 0; i < items.length; i++) {
         if (leftSide[i] != side) continue;
         final item = items[i];
         final end = y + item.space.depth;
         final prefix = item.id.startsWith('stair_') ? 'Stair: ' : item.id.startsWith('lift_') ? 'Lift: '
           : item.id.startsWith('shaft_') ? 'Shaft: ' : '';
-        final roomLeft = exactWidths && side ? x2 - item.space.width : x1;
-        final roomRight = exactWidths && !side ? x1 + item.space.width : x2;
+        final exact=exactWidths || (exactCoreWidths && !item.id.startsWith('room_'));
+        final roomLeft=exact && side ? x2-item.space.width : x1;
+        final roomRight=exact && !side ? x1+item.space.width : x2;
         final straight = stair != null && item.id == 'stair_0' ? stair : null;
         final bounds = PlanRect(roomLeft, y, roomRight, end);
         if (straight != null) stairRoom = bounds;

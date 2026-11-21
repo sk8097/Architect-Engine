@@ -31,7 +31,7 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
 
   static const dimensions = <String, String>{
     'plotWidth': 'Plot width (E-W)', 'plotDepth': 'Plot depth (N-S)',
-    'plateWidth': 'Floor plate width (E-W)', 'plateDepth': 'Floor plate depth (N-S)',
+    'plateWidth': 'Ground plate width (E-W)', 'plateDepth': 'Ground plate depth (N-S)',
     'westOffset': 'Offset from west plot edge', 'southOffset': 'Offset from south plot edge',
     'wall': 'Wall thickness', 'corridor': 'Clear corridor width', 'door': 'Clear door width',
   };
@@ -83,7 +83,6 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
       wall: _mm('wall'), corridor: _mm('corridor'), door: _mm('door'), basis: _values['basis']!.trim(),
       stairs: _stairs, lifts: _lifts, shafts: _shafts, groups: _groups);
     final result = TowerPlanGenerator().generate(brief);
-    if (result.issues.isNotEmpty) { setState(() => _error = result.issues.join('\n')); return; }
     final provider = context.read<ProjectProvider>();
     final name = _values['name']!.trim();
     final width = brief.plotWidth / 304.8, depth = brief.plotDepth / 304.8;
@@ -124,8 +123,10 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
   Future<void> _editGroup([int? index]) async {
     final initial = index == null ? null : _groups[index];
     final start = _groups.fold(1, (n, group) => group.last >= n ? group.last + 1 : n);
+    final prior = _groups.where((group)=>group.last==start-1).firstOrNull;
     final result = await Navigator.of(context).push<TowerFloorGroup>(MaterialPageRoute(builder: (_) =>
-      _GroupEditor(initial: initial, nextLevel: start, floors: int.parse(_values['floors']!))));
+      _GroupEditor(initial: initial, nextLevel: start, floors: int.parse(_values['floors']!),
+        inheritedInsets: prior?.insets ?? const TowerPlateInsets())));
     if (!mounted || result == null) return;
     setState(() { if (index == null) { _groups.add(result); } else { _groups[index] = result; } _error = null; });
   }
@@ -145,7 +146,7 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
         Expanded(child: Form(key: _form, child: SingleChildScrollView(key: ValueKey(_step), padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
           if (_step == 0) ...[
-            const Text('Concept planner for one rectangular building with a common floor plate. Level 1 is ground.'),
+            const Text('Level 1 is ground. Upper groups may use the same plate or step in from its edges.'),
             _text('name', 'Project name'), _text('floors', 'Total levels including ground', floors: true),
             for (final key in dimensions.keys.take(6)) _text(key, dimensions[key]!, dimension: true, zero: key.endsWith('Offset')),
             const SizedBox(height: 12),
@@ -155,7 +156,7 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
               validator: _required, onChanged: (side) => _frontage = side),
           ],
           if (_step == 1) ...[
-            const Text('Enter supplied dimensions. The planner reserves exactly the number of stairs, lifts and shafts you add; it does not size them for code or occupancy.'),
+            const Text('Enter supplied dimensions. The planner reserves exactly the cores you add. If any plate steps inward, their clear widths are held exact and aligned across all levels. No code sizing.'),
             _text('basis', 'Source of dimensions (drawing / study reference)'),
             for (final key in dimensions.keys.skip(6)) _text(key, dimensions[key]!, dimension: true),
             const SizedBox(height: 12),
@@ -164,9 +165,10 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
           if (_step == 2) ...[
             Text('Cover levels 1 to ${_values['floors']} with no gaps or overlaps. Use one group for floors with the same layout. Level 1 gets its own entrance sheet.'),
             const SizedBox(height: 8),
-            Text('Gross plate per floor: ${_sqft(_mm('plateWidth') * _mm('plateDepth'))} sqft'),
+            Text('Gross ground plate: ${_sqft(_mm('plateWidth') * _mm('plateDepth'))} sqft'),
+            const Text('Split ground/podium and upper levels into separate groups to enter different rectangular footprints.'),
             for (var i = 0; i < _groups.length; i++) ListTile(contentPadding: EdgeInsets.zero,
-              title: Text(_groups[i].name), subtitle: Text('${_groups[i].range} • ${_groups[i].spaces.length} spaces'),
+              title: Text(_groups[i].name), subtitle: Text('${_groups[i].range} • ${_groups[i].spaces.length} spaces • ${_groups[i].insets.isZero?'Ground plate':'Inset plate'}'),
               onTap: () => _editGroup(i), trailing: IconButton(icon: const Icon(Icons.close), tooltip: 'Remove group',
                 onPressed: () => setState(() => _groups.removeAt(i)))),
             OutlinedButton.icon(icon: const Icon(Icons.add), label: const Text('Add floor group'),
@@ -184,9 +186,10 @@ class _TowerPlannerScreenState extends State<TowerPlannerScreen> {
 }
 
 class _GroupEditor extends StatefulWidget {
-  const _GroupEditor({required this.initial, required this.nextLevel, required this.floors});
+  const _GroupEditor({required this.initial, required this.nextLevel, required this.floors,required this.inheritedInsets});
   final TowerFloorGroup? initial;
   final int nextLevel, floors;
+  final TowerPlateInsets inheritedInsets;
   @override
   State<_GroupEditor> createState() => _GroupEditorState();
 }
@@ -197,6 +200,9 @@ class _GroupEditorState extends State<_GroupEditor> {
   late String _first = '${widget.initial?.first ?? (widget.nextLevel > widget.floors ? 1 : widget.nextLevel)}';
   late String _last = widget.initial == null ? '' : '${widget.initial!.last}';
   late final _spaces = <TowerSpace>[...?widget.initial?.spaces];
+  late final _originalInsets = widget.initial?.insets ?? widget.inheritedInsets;
+  late bool _useInsets = !_originalInsets.isZero;
+  late final _insets = _originalInsets.toMap().map((key,value)=>MapEntry(key,_metric(value)));
   String? _error;
 
   Future<void> _edit([int? index]) async {
@@ -216,6 +222,17 @@ class _GroupEditorState extends State<_GroupEditor> {
       TextFormField(initialValue: _last, decoration: const InputDecoration(labelText: 'Last level'), keyboardType: TextInputType.number,
         validator: (value) => _whole(value, maximum: widget.floors), onChanged: (value) => _last = value),
       const SizedBox(height: 12),
+      SwitchListTile(contentPadding:EdgeInsets.zero,title:const Text('Inset plate for this group'),value:_useInsets,
+        onChanged:(value)=>setState(()=>_useInsets=value)),
+      if (_useInsets) ...[
+        const Text('Measure inward from each edge of the ground plate, not from the previous floor. Enter zero on an unchanged side.'),
+        for (final side in const {'west':'West','south':'South','east':'East','north':'North'}.entries)
+          TextFormField(key:ValueKey('tower_inset_${side.key}'),initialValue:_insets[side.key],
+            decoration:InputDecoration(labelText:'${side.value} inset from ground plate (m)'),
+            keyboardType:const TextInputType.numberWithOptions(decimal:true),
+            validator:(value)=>_dimensionError(value,zero:true),onChanged:(value)=>_insets[side.key]=value),
+      ],
+      const SizedBox(height:12),
       const Text('Add rooms or zones for one typical floor. Minimum width runs across the lane. Exact depth runs along the corridor.'),
       for (var i = 0; i < _spaces.length; i++) ListTile(contentPadding: EdgeInsets.zero,
         title: Text(_spaces[i].name), subtitle: Text(_spaceSize(_spaces[i])), onTap: () => _edit(i),
@@ -228,7 +245,9 @@ class _GroupEditorState extends State<_GroupEditor> {
         if (int.parse(_first) > int.parse(_last) || _spaces.isEmpty) {
           setState(() => _error = 'Use an ordered level range and add at least one room or zone.'); return;
         }
-        Navigator.of(context).pop(TowerFloorGroup(_name.trim(), int.parse(_first), int.parse(_last), _spaces));
+        final insets = _useInsets ? TowerPlateInsets(west:_readMm(_insets['west'])!,south:_readMm(_insets['south'])!,
+          east:_readMm(_insets['east'])!,north:_readMm(_insets['north'])!) : const TowerPlateInsets();
+        Navigator.of(context).pop(TowerFloorGroup(_name.trim(), int.parse(_first), int.parse(_last), _spaces,insets:insets));
       }, child: const Text('Save floor group')),
     ])))),
   );
@@ -348,6 +367,7 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
             ]),
             const SizedBox(height: 6),
             const Text('Planned includes shared core, circulation and walls.'),
+            if (widget.brief!=null) Text('Plate: ${_metric(sheet.plan.footprint.width)} m E–W × ${_metric(sheet.plan.footprint.depth)} m N–S'),
           ]))),
           const SizedBox(height: 12),
           DropdownButtonFormField<int>(initialValue: _selected, isExpanded: true,
@@ -360,7 +380,9 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           const Text('Concept preview · Specialist review pending'),
           const SizedBox(height: 8),
           CadPlanPreview(plan: sheet.plan, drawing: drawing!),
-          if (sheet.siteZones.isNotEmpty)
+          if (sheet.siteZones.any((zone)=>zone.layer=='GROUND_PLATE_REFERENCE'))
+            const Text('Grey outline: ground plate reference. Upper footprint is inset; exposed roof areas are not planned.')
+          else if (sheet.siteZones.any((zone)=>zone.layer=='PARKING_BAYS'))
             Text('${sheet.siteZones.where((zone) => zone.layer == 'PARKING_BAYS').length} open bays · '
               'Vehicle approach and separate pedestrian entrance walk. No vehicle swept-path, curb cut, slope or access approval verified.'),
           for (final stair in sheet.plan.stairs)
@@ -377,7 +399,7 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           Text(widget.note ?? 'Not for construction. Core reserves are not detailed stair or lift designs. No egress, structure, accessibility, setbacks or local-code compliance verified.'),
           if (widget.brief != null) Text('Supplied dimension reference: ${widget.brief!.basis}'),
           ExpansionTile(title: const Text('Floor schedule'), children: [
-            for (final item in _result.sheets) ListTile(dense: true, title: Text(item.range), subtitle: Text(item.name)),
+            for (final item in _result.sheets) ListTile(dense: true, title: Text(item.range), subtitle: Text(widget.brief==null?item.name:'${item.name} · ${_sqft(item.available)} sqft per floor')),
           ]),
         ],
       ])),
