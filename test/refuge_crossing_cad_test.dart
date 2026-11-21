@@ -68,7 +68,13 @@ void main() {
     final full = generator.generate(refuge(edits: {'ref_ch_l': 1.5, 'ref_ch_r': 98.5, 'ref_walk_w': 4, 'ref_reserve': 0}));
     expect(full.issue, isNull);
     expect(full.drawing!.lines.where((l) => l.layer == 'REF_MEDIAN').length, 2);
-    expect(full.drawing!.lines.where((l) => l.layer == 'REF_WALK'), isEmpty);
+    // The longitudinal edges are the median edges in this case; only two
+    // transverse end caps remain on the walk layer.
+    final caps = full.drawing!.lines.where((l) => l.layer == 'REF_WALK').toList();
+    expect(caps.length, 2);
+    for (final cap in caps) {
+      expect(((cap.end.x - cap.start.x).abs(), (cap.end.y - cap.start.y).abs()), (3200, 2400));
+    }
   });
 
   test('invalid crossing widths, station extents, reserves and landings block DXF', () {
