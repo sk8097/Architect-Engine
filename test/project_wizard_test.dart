@@ -181,6 +181,45 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('rail platform survey mode saves without a plot footprint and opens the plan', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Transport infrastructure');
+    await tap(tester, 'Railway Station');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('rail_platform_mode', 'Surveyed side platform: track offset and cross-section');
+    expect(find.byKey(const ValueKey('Plot geometry (required)')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Straight platform');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    await pick('rp_side', 'Left');
+    for (final entry in const {
+      'rp_grid': 'Projected example', 'rp_datum': 'Survey datum A', 'rp_axis': '500000,2000000;500096,2000128',
+      'rp_levels': '20,100,100.95;60,100.2,101.1;120,100.4,101.4', 'rp_offset': '1.8', 'rp_min_offset': '1.8',
+      'rp_width': '6', 'rp_edge_band': '0.8', 'rp_back_band': '1', 'rp_walk_min': '4.2', 'rp_crossfall': '2',
+      'rp_rise_min': '0.9', 'rp_rise_max': '1', 'rp_grade_max': '0.5',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.taxonomy!.plotShapeId, isNull);
+    expect(saved.brief!.requirements!.answers['rp_walk_min'], 4.2);
+    expect(find.text('Surveyed rail platform CAD'), findsOneWidget);
+    expect(find.text('Share platform plan DXF'), findsOneWidget);
+  });
+
   testWidgets('public toilet mode saves fixtures and opens the measured DXF preview', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
