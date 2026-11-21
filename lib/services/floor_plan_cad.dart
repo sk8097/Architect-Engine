@@ -74,6 +74,13 @@ class FloorPlanCad {
       final b = room.bounds;
       final center = (b.left + b.right) / 2;
       final y = (b.bottom + b.top) / 2;
+      final core = room.id.startsWith('stair_') || room.id.startsWith('lift_') || room.id.startsWith('shaft_');
+      if (core) {
+        // Reserve marker only; never present invented stair treads or lift equipment.
+        final ix = b.width / 10, iy = b.depth / 10;
+        line('CORE_RESERVES', b.left + ix, b.bottom + iy, b.right - ix, b.bottom + iy);
+        line('CORE_RESERVES', b.left + ix, b.top - iy, b.right - ix, b.top - iy);
+      }
       if (room.id == 'internal_passage' && b.heightLongerThanWidth) {
         _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y), 'PASSAGE', 180, angle: 90));
       } else {
@@ -108,10 +115,32 @@ class FloorPlanCad {
     line('ANNOTATIONS', arrowX, arrowY + 100, arrowX + 100, arrowY - 100);
     _labels.add(CadLabel('ANNOTATIONS', CadPoint(arrowX, arrowY + 260), 'N', 180));
     _labels.add(CadLabel('ANNOTATIONS', CadPoint(plot.width / 2, plot.top + 440),
-      '${plan.configurationLabel} CONCEPT - NOT FOR CONSTRUCTION', 200));
+      '${plan.sheetTitle ?? plan.configurationLabel} CONCEPT - NOT FOR CONSTRUCTION', 200));
     _labels.add(CadLabel('ANNOTATIONS', CadPoint(plot.width / 2, plot.top + 155),
       'DIMENSIONS IN MILLIMETRES', 140));
     bounds = PlanRect(plot.left - 250, plot.bottom - 1250, plot.right + 1250, plot.top + 920);
+  }
+
+  /// A single model-space DXF with the indexed sheets laid out in non-overlapping cells.
+  /// Per-sheet exports retain their original plot coordinates.
+  FloorPlanCad.sheetSet(Iterable<AutomaticFloorPlan> plans) {
+    final drawings = plans.map(FloorPlanCad.fromPlan).toList(growable: false);
+    final cellWidth = drawings.fold<int>(0, (n, d) => n > d.bounds.width ? n : d.bounds.width) + 4000;
+    final cellDepth = drawings.fold<int>(0, (n, d) => n > d.bounds.depth ? n : d.bounds.depth) + 4000;
+    var index = 0, right = 0, bottom = 0;
+    for (final sheet in drawings) {
+      final dx = (index % 4) * cellWidth - sheet.bounds.left;
+      final dy = -(index ~/ 4) * cellDepth - sheet.bounds.top;
+      CadPoint offset(CadPoint p) => CadPoint(p.x + dx, p.y + dy);
+      _lines.addAll(sheet.lines.map((line) => CadLine(line.layer, offset(line.start), offset(line.end))));
+      _arcs.addAll(sheet.arcs.map((arc) => CadArc(arc.layer, offset(arc.center), arc.radius, arc.start, arc.end)));
+      _labels.addAll(sheet.labels.map((label) => CadLabel(label.layer, offset(label.at), label.text, label.height, angle: label.angle)));
+      final edge = dx + sheet.bounds.right, base = dy + sheet.bounds.bottom;
+      if (edge > right) right = edge;
+      if (base < bottom) bottom = base;
+      index++;
+    }
+    bounds = PlanRect(0, bottom, right, 0);
   }
 
   late final PlanRect bounds;
@@ -170,7 +199,7 @@ class FloorPlanCad {
       pair(code, number(p.x)); pair(code + 10, number(p.y)); pair(code + 20, '0.0');
     }
     const layers = {'0': 7, 'PLOT': 8, 'WALLS': 7, 'DOORS': 3, 'WINDOWS': 5,
-      'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7};
+      'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

@@ -30,7 +30,7 @@ class PlanOpening {
 
 class AutomaticFloorPlan {
   AutomaticFloorPlan({required this.plot, required this.footprint,
-    required this.facing, this.bedrooms = 1, required Iterable<PlanRoom> rooms,
+    required this.facing, this.bedrooms = 1, this.sheetTitle, required Iterable<PlanRoom> rooms,
     required Iterable<PlanRect> walls, required Iterable<PlanOpening> openings})
       : rooms = List.unmodifiable(rooms), walls = List.unmodifiable(walls),
         openings = List.unmodifiable(openings);
@@ -40,6 +40,7 @@ class AutomaticFloorPlan {
   final PlanRect plot, footprint;
   final String facing;
   final int bedrooms;
+  final String? sheetTitle;
   String get configurationLabel => '$bedrooms BHK';
   final List<PlanRoom> rooms;
   final List<PlanRect> walls;

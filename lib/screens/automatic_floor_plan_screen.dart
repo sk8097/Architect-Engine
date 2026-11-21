@@ -82,15 +82,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
                 ),
               )),
               const SizedBox(height: 12),
-              Container(
-                decoration: BoxDecoration(color: const Color(0xfff5f7fa),
-                  borderRadius: BorderRadius.circular(12)),
-                clipBehavior: Clip.antiAlias,
-                child: SizedBox(height: 340, child: InteractiveViewer(
-                  maxScale: 6,
-                  child: CustomPaint(painter: _PlanPainter(plan, _drawing!), child: const SizedBox.expand()),
-                )),
-              ),
+              CadPlanPreview(plan: plan, drawing: _drawing!),
               const SizedBox(height: 8),
               const Text('Black: walls • Blue: windows • Green: door swings • N: north. Pinch to zoom.'),
               const SizedBox(height: 10),
@@ -113,6 +105,22 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
   }
 
   String _metres(int mm) => (mm / 1000).toStringAsFixed(2);
+}
+
+class CadPlanPreview extends StatelessWidget {
+  const CadPlanPreview({super.key, required this.plan, required this.drawing});
+  final AutomaticFloorPlan plan;
+  final FloorPlanCad drawing;
+
+  @override
+  Widget build(BuildContext context) => Container(
+    decoration: BoxDecoration(color: const Color(0xfff5f7fa), borderRadius: BorderRadius.circular(12)),
+    clipBehavior: Clip.antiAlias,
+    child: SizedBox(height: 340, child: InteractiveViewer(
+      key: ObjectKey(drawing), maxScale: 10,
+      child: CustomPaint(painter: _PlanPainter(plan, drawing), child: const SizedBox.expand()),
+    )),
+  );
 }
 
 class _PlanPainter extends CustomPainter {

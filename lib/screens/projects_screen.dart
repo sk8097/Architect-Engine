@@ -6,6 +6,7 @@ import '../widgets/common_app_bar.dart';
 import '../widgets/app_drawer.dart';
 import 'project_form_dialog.dart';
 import 'project_wizard_screen.dart';
+import 'tower_planner_screen.dart';
 import 'scenario_library_screen.dart';
 import 'automatic_floor_plan_screen.dart';
 import '../services/automatic_floor_plan_generator.dart';
@@ -44,6 +45,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            OutlinedButton.icon(onPressed: () => Navigator.of(context).push<void>(MaterialPageRoute(
+              builder: (_) => const TowerPlannerScreen(),)), icon: const Icon(Icons.apartment),
+              label: const Text('High-rise planner (up to 100 levels)')),
+            const SizedBox(height: 12),
             // Search Bar
             TextField(
               decoration: InputDecoration(
@@ -153,6 +158,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                             ),
                             PopupMenuButton<String>(
                               onSelected: (val) async {
+                                if (val == 'tower' && project.tower != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) =>
+                                    TowerPlanScreen(projectName: project.name, brief: project.tower!)));
+                                  return;
+                                }
                                 if (val == 'plan' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(
                                     builder: (_) => AutomaticFloorPlanScreen(
@@ -163,7 +173,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   return;
                                 }
                                 if (val == 'edit') {
-                                  if (project.brief != null) {
+                                  if (project.tower != null) {
+                                    Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => TowerPlannerScreen(existing: project)));
+                                  } else if (project.brief != null) {
                                     ProjectWizardScreen.open(context, project: project);
                                   } else {
                                     showDialog(context: context, builder: (_) => ProjectFormDialog(existingProject: project));
@@ -182,6 +194,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 }
                               },
                               itemBuilder: (ctx) => [
+                                if (project.tower != null)
+                                  const PopupMenuItem(value: 'tower', child: Text('High-rise CAD')),
                                 if (AutomaticFloorPlanGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),

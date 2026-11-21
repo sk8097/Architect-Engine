@@ -1,0 +1,220 @@
+import '../models/automatic_floor_plan.dart';
+import '../models/tower_brief.dart';
+import 'automatic_floor_plan_generator.dart' show validatePlanGeometry;
+
+class TowerSheet {
+  const TowerSheet(this.name, this.range, this.first, this.last, this.plan, this.unallocated);
+  final String name, range;
+  final int first, last, unallocated;
+  final AutomaticFloorPlan plan;
+  int get available => plan.footprint.area;
+  int get planned => available - unallocated;
+}
+
+class TowerResult {
+  const TowerResult(this.sheets, this.issues);
+  final List<TowerSheet> sheets;
+  final List<String> issues;
+}
+
+/// Fixed rectangular plate, single straight circulation spine, two room lanes.
+/// This is space planning using supplied assumptions, not a structural solver.
+class TowerPlanGenerator {
+  static const maxDimension = 300000;
+  static const maxSpaces = 24;
+  static const maxCoreSpaces = 12;
+  static const maxLevels = 100;
+
+  TowerResult generate(TowerBrief input) {
+    TowerResult block(String message) => TowerResult(const [], [message]);
+    bool valid(int n) => n > 0 && n <= maxDimension;
+    if (input.floors < 2 || input.floors > maxLevels) return block('Enter 2 to 100 levels, including ground.');
+    if (![input.plotWidth, input.plotDepth, input.plateWidth, input.plateDepth,
+        input.wall, input.corridor, input.door].every(valid)) return block('Enter positive site, plate and circulation dimensions. Maximum dimension: 300 m.');
+    if (input.basis.trim().isEmpty) return block('Enter the source of the core and circulation dimensions.');
+    if (!const {'South', 'North', 'East', 'West'}.contains(input.frontage)) return block('Select the ground-floor entry side.');
+    final plate = PlanRect(input.westOffset, input.southOffset,
+      input.westOffset + input.plateWidth, input.southOffset + input.plateDepth);
+    final plot = PlanRect(0, 0, input.plotWidth, input.plotDepth);
+    if (!plot.contains(plate)) return block('The plate and offsets put part of the building outside the plot.');
+    if (input.stairs.isEmpty || input.lifts.isEmpty || input.shafts.isEmpty) return block('Supply at least one stair, lift and service-shaft reserve. These are not code minima.');
+    if (input.stairs.length + input.lifts.length + input.shafts.length > maxCoreSpaces) return block('Use up to $maxCoreSpaces core reserves in this planner.');
+    if (input.groups.isEmpty || input.groups.length > input.floors) return block('Add floor groups covering every level.');
+    final groups = [...input.groups]..sort((a, b) => a.first.compareTo(b.first));
+    var expected = 1;
+    for (final group in groups) {
+      if (group.name.trim().isEmpty || group.first < 1 || group.last < group.first || group.last > input.floors) return block('Correct the name or level range for ${group.name.isEmpty ? 'an unnamed group' : group.name}.');
+      if (group.first < expected) return block('Level ${group.first} is assigned more than once. Correct the range for ${group.name}.');
+      if (group.first > expected) return block('Level $expected is not assigned to a floor group.');
+      if (group.spaces.isEmpty || group.spaces.length > maxSpaces) return block('${group.name}: supply 1 to $maxSpaces room or zone entries.');
+      expected = group.last + 1;
+    }
+    if (expected <= input.floors) return block('Level $expected is not assigned to a floor group.');
+    final rotated = input.frontage == 'East' || input.frontage == 'West';
+    final w = rotated ? plate.depth : plate.width;
+    final d = rotated ? plate.width : plate.depth;
+    final t = input.wall;
+    final passage = input.corridor;
+    if (passage <= input.door || d - 2 * t <= input.door) return block('The entry opening and swing must fit inside the circulation spine.');
+    final left = (w - 4 * t - passage) ~/ 2;
+    final right = w - 4 * t - passage - left;
+    final capacity = d - t; // cost is room depth plus separator; final separator may abut exterior
+    if (left <= 0 || right <= 0) return block('The plate is too narrow for the supplied walls and circulation spine.');
+    final core = [
+      for (var i = 0; i < input.stairs.length; i++) (id: 'stair_$i', space: input.stairs[i], sealed: false),
+      for (var i = 0; i < input.lifts.length; i++) (id: 'lift_$i', space: input.lifts[i], sealed: false),
+      for (var i = 0; i < input.shafts.length; i++) (id: 'shaft_$i', space: input.shafts[i], sealed: true),
+    ];
+    String? check(TowerSpace space, bool sealed) {
+      if (space.name.trim().isEmpty || !valid(space.width) || !valid(space.depth)) return 'Enter a space name and valid dimensions.';
+      if (space.width > right || (!sealed && right <= input.door)) return '${space.name}: clear width or door swing exceeds both available room lanes.';
+      if ((!sealed && space.depth <= input.door) || space.depth > d - 2 * t) return '${space.name}: depth does not fit the door opening or plate.';
+      if (space.window != null && (space.window! <= t || space.window! >= space.depth)) return '${space.name}: window width must exceed the wall thickness and be less than the room depth.';
+      return null;
+    }
+    if (input.door <= t) return block('Opening width must be larger than wall thickness for this drawing model.');
+    for (final space in core) {
+      final reason = check(space.space, space.sealed);
+      if (reason != null) return block('Common core: $reason');
+    }
+    const maxSearchStates = 32000;
+    List<bool>? pack(List<({String id, TowerSpace space, bool sealed})> items, int capLeft, int capRight) {
+      final total = items.fold(0, (sum, item) => sum + item.space.depth + t);
+      if (total > capLeft + capRight) return null;
+      var states = <int, int>{0: 0}; // depth on left -> bit mask of left items
+      var prefix = 0;
+      for (var i = 0; i < items.length; i++) {
+        final item = items[i];
+        final cost = item.space.depth + t;
+        prefix += cost;
+        final canLeft = item.space.width <= left && (item.sealed || left > input.door);
+        final next = <int, int>{};
+        for (final state in states.entries) {
+          if (prefix - state.key <= capRight) next[state.key] = state.value;
+          if (canLeft && state.key + cost <= capLeft) next[state.key + cost] = state.value | (1 << i);
+          if (next.length > maxSearchStates) return null;
+        }
+        if (next.isEmpty) return null;
+        states = next;
+      }
+      final selected = states.entries.reduce((a, b) =>
+        (a.key * 2 - total).abs() <= (b.key * 2 - total).abs() ? a : b).value;
+      return [for (var i = 0; i < items.length; i++) (selected & (1 << i)) != 0];
+    }
+    final assignedCore = pack(core, capacity, capacity);
+    if (assignedCore == null) return block('The common core could not fit in the two available lanes. Check the supplied core and plate dimensions.');
+    var usedLeft = 0, usedRight = 0;
+    for (var i = 0; i < core.length; i++) {
+      if (assignedCore[i]) { usedLeft += core[i].space.depth + t; }
+      else { usedRight += core[i].space.depth + t; }
+    }
+    final sheets = <TowerSheet>[];
+    for (final group in groups) {
+      for (final space in group.spaces) {
+        final reason = check(space, false);
+        if (reason != null) return block('${group.name}: $reason');
+      }
+      final rooms = [for (var i = 0; i < group.spaces.length; i++) (id: 'room_$i', space: group.spaces[i], sealed: false)];
+      final assignment = pack(rooms, capacity - usedLeft, capacity - usedRight);
+      if (assignment == null) return block('${group.name} (${group.range}): requested depths could not be arranged around the fixed core. Check lane width and depth; this does not prove that all layouts are infeasible.');
+      final placements = [...core, ...rooms];
+      final sides = [...assignedCore, ...assignment];
+      void addSheet(int first, int last, bool ground) {
+        final range = ground ? 'Ground (Level 1)' : first == last ? 'Level $first' : 'Levels $first-$last';
+        final result = _layout(input, plot, plate, w, d, left, right, placements, sides,
+          ground, '${group.name} / $range');
+        sheets.add(TowerSheet(group.name, range, first, last, result.plan, result.unallocated));
+      }
+      if (group.first == 1) addSheet(1, 1, true);
+      if (group.last > 1) addSheet(group.first == 1 ? 2 : group.first, group.last, false);
+    }
+    for (final sheet in sheets) {
+      final issue = validatePlanGeometry(sheet.plan,
+        indoorSeed: sheet.first == 1 ? null : 'internal_passage',
+        sealedRooms: sheet.plan.rooms.where((room) => room.id.startsWith('shaft_') || room.id.startsWith('reserve_')).map((r) => r.id).toSet());
+      if (issue != null) return block('${sheet.range}: drawing failed geometry validation. $issue');
+    }
+    return TowerResult(List.unmodifiable(sheets), const []);
+  }
+
+  ({AutomaticFloorPlan plan, int unallocated}) _layout(TowerBrief input, PlanRect plot,
+      PlanRect plate, int w, int d, int left, int right,
+      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title) {
+    final t = input.wall;
+    final corridor = input.corridor;
+    final door = input.door;
+    final cx = 2 * t + left, ce = cx + corridor;
+    final innerTop = d - t;
+    const hall = 'internal_passage';
+    const outside = AutomaticFloorPlan.entry;
+    final walls = <PlanRect>[];
+    final openings = <PlanOpening>[];
+    final rooms = <PlanRoom>[PlanRoom(hall, 'Shared circulation', PlanRect(cx, t, ce, innerTop))];
+    void wall(int x1, int y1, int x2, int y2) {
+      if (x1 < x2 && y1 < y2) walls.add(PlanRect(x1, y1, x2, y2));
+    }
+    wall(0, innerTop, w, d);
+    if (ground) {
+      final dx = cx + (corridor - door) ~/ 2;
+      wall(0, 0, dx, t); wall(dx + door, 0, w, t);
+      openings.add(PlanOpening(PlanOpeningKind.door, PlanRect(dx, 0, dx + door, t), outside, hall));
+    } else {
+      wall(0, 0, w, t);
+    }
+    var unused = 0;
+    for (final side in [true, false]) {
+      final x1 = side ? t : ce + t;
+      final x2 = side ? t + left : ce + t + right;
+      final wx1 = side ? x2 : ce;
+      final wx2 = wx1 + t;
+      final ex1 = side ? 0 : w - t;
+      final ex2 = ex1 + t;
+      var y = t;
+      for (var i = 0; i < items.length; i++) {
+        if (leftSide[i] != side) continue;
+        final item = items[i];
+        final end = y + item.space.depth;
+        final prefix = item.id.startsWith('stair_') ? 'Stair: ' : item.id.startsWith('lift_') ? 'Lift: '
+          : item.id.startsWith('shaft_') ? 'Shaft: ' : '';
+        rooms.add(PlanRoom(item.id, '$prefix${item.space.name}', PlanRect(x1, y, x2, end)));
+        if (item.sealed) {
+          wall(wx1, y, wx2, end);
+        } else {
+          final dy = y + (item.space.depth - door) ~/ 2;
+          wall(wx1, y, wx2, dy); wall(wx1, dy + door, wx2, end);
+          openings.add(PlanOpening(PlanOpeningKind.door, PlanRect(wx1, dy, wx2, dy + door), hall, item.id));
+        }
+        final window = item.space.window;
+        if (window != null && !item.sealed) {
+          final wy = y + (item.space.depth - window) ~/ 2;
+          wall(ex1, y, ex2, wy); wall(ex1, wy + window, ex2, end);
+          openings.add(PlanOpening(PlanOpeningKind.window, PlanRect(ex1, wy, ex2, wy + window), outside, item.id));
+        } else {
+          wall(ex1, y, ex2, end);
+        }
+        y = end + t < innerTop ? end + t : innerTop;
+        wall(side ? 0 : ce, end, side ? cx : w, y);
+      }
+      if (y < innerTop) {
+        final reserve = PlanRect(x1, y, x2, innerTop);
+        unused += reserve.area;
+        rooms.add(PlanRoom('reserve_$side', 'Unallocated space', reserve));
+        wall(wx1, y, wx2, innerTop); wall(ex1, y, ex2, innerTop);
+      }
+    }
+    PlanRect orient(PlanRect r) {
+      final local = switch (input.frontage) {
+        'North' => PlanRect(w-r.right, d-r.top, w-r.left, d-r.bottom),
+        'East' => PlanRect(d-r.top, r.left, d-r.bottom, r.right),
+        'West' => PlanRect(r.bottom, w-r.right, r.top, w-r.left),
+        _ => r,
+      };
+      return PlanRect(local.left + plate.left, local.bottom + plate.bottom,
+        local.right + plate.left, local.top + plate.bottom);
+    }
+    return (plan: AutomaticFloorPlan(plot: plot, footprint: plate, facing: input.frontage,
+      sheetTitle: title, rooms: rooms.map((r) => PlanRoom(r.id, r.label, orient(r.bounds))),
+      walls: walls.map(orient), openings: openings.map((o) => PlanOpening(o.kind, orient(o.bounds), o.from, o.to))),
+      unallocated: unused);
+  }
+}

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'project_brief.dart';
+import 'tower_brief.dart';
 
 class ProjectModel {
   final String id;
@@ -10,6 +11,7 @@ class ProjectModel {
   String floors;
   String facing;
   ProjectBrief? brief;
+  final TowerBrief? tower;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -22,6 +24,7 @@ class ProjectModel {
     required this.floors,
     required this.facing,
     this.brief,
+    this.tower,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -31,6 +34,7 @@ class ProjectModel {
   double get areaSqFt => length * width;
 
   String get description => [
+        if (tower != null) 'High-rise concept',
         if (brief?.typeLabel != null) brief!.typeLabel!,
         if (bhk.isNotEmpty) bhk,
         floors,
@@ -47,6 +51,7 @@ class ProjectModel {
       'floors': floors,
       'facing': facing,
       if (brief != null) 'brief': brief!.toMap(),
+      if (tower != null) 'tower': tower!.toMap(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -62,6 +67,7 @@ class ProjectModel {
       floors: map['floors'] ?? 'Ground floor',
       facing: map['facing'] ?? 'North',
       brief: ProjectBrief.fromMap(map['brief']),
+      tower: TowerBrief.fromMap(map['tower']),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
     );

@@ -358,7 +358,13 @@ AutomaticFloorPlan _layout(_Candidate c, int x, int y) {
     rooms: rooms, walls: walls, openings: openings, bedrooms: c.two ? 2 : 1);
 }
 
-String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) {
+String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) => validatePlanGeometry(plan,
+  expectedRoomCount: 4 + plan.bedrooms,
+);
+
+/// Shared geometric validation, not fire/egress or engineering certification.
+String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
+  String? indoorSeed, Set<String> sealedRooms = const {}}) {
   bool positive(PlanRect r) => r.width > 0 && r.depth > 0;
   if (!positive(plan.plot) || !positive(plan.footprint) || !plan.plot.contains(plan.footprint)) return 'Footprint outside the plot.';
   final parts = [...plan.rooms.map((r) => r.bounds), ...plan.walls, ...plan.openings.map((o) => o.bounds)];
@@ -378,7 +384,7 @@ String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) {
       ((a.bottom == b.top || a.top == b.bottom) && a.left < b.right && a.right > b.left);
   final rooms = {for (final r in plan.rooms) r.id: r.bounds};
   const outside = AutomaticFloorPlan.entry;
-  if (rooms.length != plan.rooms.length || rooms.containsKey(outside) || rooms.length != 4 + plan.bedrooms) return 'Invalid room program.';
+  if (rooms.length != plan.rooms.length || rooms.containsKey(outside) || (expectedRoomCount != null && rooms.length != expectedRoomCount)) return 'Invalid room program.';
   final adjacent = <String, Set<String>>{};
   var entranceCount = 0;
   for (final opening in plan.openings) {
@@ -404,12 +410,16 @@ String? validateAutomaticFloorPlan(AutomaticFloorPlan plan) {
     adjacent.putIfAbsent(opening.from, () => {}).add(opening.to);
     adjacent.putIfAbsent(opening.to, () => {}).add(opening.from);
   }
-  final reachable = <String>{outside};
-  final stack = <String>[outside];
+  if (indoorSeed != null && !rooms.containsKey(indoorSeed)) return 'Indoor circulation is missing.';
+  final start = indoorSeed ?? outside;
+  final reachable = <String>{start};
+  final stack = <String>[start];
   while (stack.isNotEmpty) {
     for (final next in adjacent[stack.removeLast()] ?? const <String>{}) {
       if (reachable.add(next)) stack.add(next);
     }
   }
-  return entranceCount == 1 && reachable.containsAll(rooms.keys) ? null : 'A room has no connected route from the entrance.';
+  return entranceCount == (indoorSeed == null ? 1 : 0) &&
+      reachable.containsAll(rooms.keys.where((id) => !sealedRooms.contains(id)))
+      ? null : 'A room has no connected route to circulation.';
 }

@@ -64,7 +64,7 @@ jobs:
         run: |
           set -o pipefail
           log="$RUNNER_TEMP/flutter-tests.log"
-          if flutter test --reporter expanded test/project_provider_test.dart test/project_requirements_test.dart test/project_wizard_test.dart test/tools_navigation_test.dart test/automatic_floor_plan_test.dart test/floor_plan_cad_test.dart test/project_scenarios_test.dart test/space_planning_test.dart 2>&1 | tee "$log"; then
+          if flutter test --reporter expanded test/project_provider_test.dart test/project_requirements_test.dart test/project_wizard_test.dart test/tools_navigation_test.dart test/automatic_floor_plan_test.dart test/floor_plan_cad_test.dart test/project_scenarios_test.dart test/space_planning_test.dart test/tower_plan_test.dart 2>&1 | tee "$log"; then
             exit 0
           fi
           # Surface the failing assertion in the check annotation as well as the log.

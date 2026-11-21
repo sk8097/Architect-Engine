@@ -16,6 +16,7 @@ import '../providers/project_provider.dart';
 import '../widgets/requirement_fields.dart';
 import '../services/automatic_floor_plan_generator.dart';
 import 'automatic_floor_plan_screen.dart';
+import 'tower_planner_screen.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
   const ProjectWizardScreen({super.key, this.existingProject, this.scenario, this.variant});
@@ -405,6 +406,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   }
 
   void _typeSelected(TaxonomyChoice type) {
+    if (widget.existingProject == null && _category?.id == 'special' && _group?.id == 'complex' &&
+        type.id == 'high_rise_supertall_building') {
+      Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const TowerPlannerScreen()));
+      return;
+    }
     setState(() {
       if (_type?.id != type.id) {
         _type = type;
