@@ -248,6 +248,39 @@ void main() {
     expect(find.text('Share paving plan DXF'), findsOneWidget);
   });
 
+  testWidgets('public rain garden saves and draws from measured geometry', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Public Garden');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '14');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '18');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Public garden: rain-garden ponding and media layers');
+    for (final entry in const {
+      'rg_bed_w': '6', 'rg_bed_l': '8', 'rg_slope_we': '3', 'rg_slope_sn': '4', 'rg_pond': '0.25',
+      'rg_free': '0.15', 'rg_media': '0.6', 'rg_agg': '0.25', 'rg_reserve': '1.2', 'rg_reserve_min': '0.9',
+      'rg_storage_min': '15.25', 'rg_west': '1', 'rg_south': '2',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Public rain garden');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['rg_storage_min'], 15.25);
+    expect(find.text('Share rain garden plan DXF'), findsOneWidget);
+  });
+
   testWidgets('telecom duct bank saves levels and crossings without generic equipment inputs', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
