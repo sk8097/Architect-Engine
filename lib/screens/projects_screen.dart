@@ -18,6 +18,8 @@ import 'cattle_shed_cad_screen.dart';
 import 'assembly_cad_screen.dart';
 import 'library_cad_screen.dart';
 import 'badminton_cad_screen.dart';
+import 'hostel_cad_screen.dart';
+import '../services/hostel_cad_generator.dart';
 import '../services/badminton_cad_generator.dart';
 import '../services/library_cad_generator.dart';
 import '../services/assembly_cad_generator.dart';
@@ -232,6 +234,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'hostel_shared_rooms' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => HostelCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if (val == 'badminton_hall' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => BadmintonCadScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
@@ -337,6 +344,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
                                 if (PackhouseCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'packhouse_flow', child: Text('Packhouse goods-flow CAD')),
+                                if (HostelCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'hostel_shared_rooms',child:Text('Shared-room hostel CAD')),
                                 if (BadmintonCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'badminton_hall',child:Text('Indoor badminton CAD')),
                                 if (LibraryCadGenerator.requested(project.brief))

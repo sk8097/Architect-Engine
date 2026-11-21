@@ -1,0 +1,11 @@
+# Measured shared-room hostel CAD
+
+Under **Residential → Hostel / dormitory**, select **Student Hostel**, **Working-Person Hostel** or **Dormitory** with the **Shared Rooms** configuration. Choose **Automatic drawing → Hostel: shared bedrooms, beds and lockers**. The template covers one new ground floor on a measured rectangular or square plot with a cardinal frontage.
+
+Add **1–6 identical Bedrooms**, **1 Warden Room** at the front and **1 Toilets/Baths** reserve. Enter their clear dimensions in Space details. In Facility setup, enter the same sleeping room count, **2, 4, 6 or 8** single beds per room, and their product as resident capacity. No bunks or different room mixes are drawn. Setbacks, mandatory adjacencies and optional measured exterior windows are checked by the shared enclosure solver; a window in exact-width mode requires a room spanning the full lane width.
+
+Enter the measured single-bed rectangle, clear side access per bed, door-aligned cross-aisle width, locker footprint and clear locker aisle. Each bedroom has two equal banks. The central cross-aisle joins the passage door to both bed banks and both locker aisles. Every bed has a clear side zone; every locker opens toward its retrieval aisle. The drawing keeps fixtures out of the door swing and does not place lockers in front of a supplied bedroom window. The warden room, bedrooms and shared washroom reserve all open directly off the same passage.
+
+For a starting example: 13.6 × 14 m plate on a 90 × 110 ft plot, 0.2 m walls, 1.8 m corridor and 1 m doors. Use two 5.5 × 6.4 m bedrooms, a 3 × 3.2 m warden room and a 4 × 4 m washroom reserve. For four beds per bedroom, try 0.9 × 2 m beds, 0.6 m bedside access, a 1.4 m cross-aisle, 0.45 × 0.55 m lockers and a 1.1 m locker aisle, with an optional 1.2 m bedroom window. Project rules and different offsets can change the fit.
+
+**Save** generates a preview from the brief, and **Shared-room hostel CAD** in Projects reopens it. Editable DXF separates beds, lockers, bedside clearances and aisles. If the measurements conflict, the app saves the brief and blocks export instead of producing generic zoning. This is not an occupancy, accessibility, fire-egress or daylight check. The washroom is a space reserve without sanitary fixtures, ventilation or plumbing.
