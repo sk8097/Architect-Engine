@@ -1,0 +1,11 @@
+# Angled surface parking CAD
+
+Choose **Institutional & Public Utility → Sports / recreation / public amenities → Public Parking → Automatic drawing → Surface parking: measured angled stalls and through aisle**. Use Outdoor or leave the setting blank. Leave above-grade floors and separate Parking and Space selections empty; stall count is entered in this template.
+
+Use a cardinally aligned rectangular or square plot: width west–east, depth south–north. Offsets are from the southwest corner, with south as front and west as left. There must be a viable south entrance and north exit for the intended one-way through layout; the plan draws the aisle to both plot edges but **does not verify external connections or permission**. Aisle approaches intentionally cross the end setbacks. The main envelope, including side reserves and both clear end spaces, must fit the supplied setbacks.
+
+Enter **1–30 stalls per side**, clear rectangular footprint width `W` and length `L`, and a marking angle `θ` of **30°, 45°, 60° or 90°** measured from the drive aisle. For the angled parallelogram markings, the along-aisle pitch is `W / sin(θ)`, the perpendicular row depth is `L × sin(θ) + W × cos(θ)`, and the longitudinal skew at the far edge is `row depth × cot(θ)`. The end spaces are measured beyond the extreme stall corners, not merely the aisle-side stripes. A separate guide layer shows the exact static fit of the supplied rectangle; at 90° it already coincides with the marked stall. The drawing does not model stripe thickness, a vehicle body, or how it enters or leaves a bay.
+
+Example: on a **28 × 45 m** plot, use eight **2.5 × 5 m** footprints per side, **60°**, a **6 m** aisle, **1.5 m** side reserves and **3 m / 4 m** clear south/north ends. At **3 m west / 4 m south** offsets the **16-stall** envelope fits. The pitch is **2.887 m** and row depth **5.580 m**. These are example inputs, not design standards.
+
+Valid geometry previews and exports an editable layered DXF in millimetres. Reopen from Projects under **Angled surface parking CAD**. Failed fit preserves the brief but blocks export. No swept-path, turning, accessible bay, pedestrian safety, gradient, drainage, paving, traffic or access certification is included.
