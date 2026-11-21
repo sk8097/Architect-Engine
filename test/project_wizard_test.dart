@@ -215,6 +215,43 @@ void main() {
     expect(find.text('Share canopy plan DXF'), findsOneWidget);
   });
 
+  testWidgets('separated cycle track saves survey fields and opens the specialist preview', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Transport infrastructure');
+    await tap(tester, 'Cycle Track');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('corridor_cad_mode', 'Separated cycle track: surveyed driveway crossings');
+    expect(find.byKey(const ValueKey('route_length')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Cycle corridor');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    await pick('cyc_side', 'Left');
+    for (final entry in const {
+      'cyc_grid': 'Example grid', 'cyc_axis': '1000,2000;1060,2080',
+      'cyc_limits': '10,7;40,6;90,8', 'cyc_buffer': '1.5', 'cyc_width': '3',
+      'cyc_margin': '1.5', 'cyc_island': '28', 'cyc_driveways': 'D1,20,26;D2,54,62',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['cyc_driveways'], 'D1,20,26;D2,54,62');
+    expect(find.text('Share cycle track DXF'), findsOneWidget);
+    expect(find.text('Share driveway schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('surveyed promenade saves limit and pad records without a building footprint', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');

@@ -1,3 +1,4 @@
+import 'cycle_crossing_cad_fields.dart';
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
@@ -5,12 +6,15 @@ const surveyCorridorTypes = {'road','street','footpath','cycle_track'};
 
 const surveyCorridorCadModes = {'survey_polyline','survey_circular'};
 
-final surveyCorridorMode = planningChoice('corridor_cad_mode', 'Corridor drawing', {
+final surveyCorridorMode = surveyCorridorModeField();
+
+RequirementField surveyCorridorModeField({bool includeCycleCrossings = false}) => planningChoice('corridor_cad_mode', 'Corridor drawing', {
   'straight': 'Straight corridor zoning', 'survey_polyline': 'Survey points: multi-segment corridor CAD',
   'survey_circular': 'Tangent survey with measured circular bends',
   'survey_profile': 'Longitudinal profile: survey levels and proposed grades',
   'survey_section': 'Cross-section: surveyed ground and proposed surface',
   'survey_earthwork': 'Earthwork takeoff: multi-station surveyed cross-sections',
+  if (includeCycleCrossings) cycleCrossingMode: 'Separated cycle track: surveyed driveway crossings',
 }, required: false);
 
 const surveyCorridorFields = <RequirementField>[
