@@ -283,6 +283,38 @@ void main() {
     expect(find.text('Share take-off schedule CSV'), findsOneWidget);
   });
 
+  testWidgets('outdoor switchback stair saves both landings without generic room fields', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Public Park');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '7');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '10');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Public space: measured switchback stair');
+    for (final entry in const {
+      'ss_datum': 'Local RL', 'ss_lower': '100', 'ss_upper': '103.75', 'ss_min_riser': '0.14', 'ss_max_riser': '0.17',
+      'ss_going': '0.29', 'ss_width': '1.5', 'ss_gap': '0.3', 'ss_end': '1.6', 'ss_turn': '1.8', 'ss_west': '1', 'ss_south': '1.2',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Park stair');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['ss_upper'], 103.75);
+    expect(find.text('Share stair plan DXF'), findsOneWidget);
+  });
+
   testWidgets('public rain garden saves and draws from measured geometry', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
