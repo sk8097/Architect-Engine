@@ -54,7 +54,7 @@ void main() {
 
   test('allows exact perpendicular bank gap and signed survey levels', () {
     final r=generator.generate(crossing(edits:{'fb_bearing':360,'fb_deck_start':29,'fb_deck_end':51,
-      'fb_ends':'500000,2000000,-10;500080,2000000,-9.8','fb_level':-8.7,'fb_water':-10.6'}));
+      'fb_ends':'500000,2000000,-10;500080,2000000,-9.8','fb_level':-8.7,'fb_water':-10.6}));
     expect(r.issue,isNull);
     expect((r.requiredStartMm,r.requiredEndMm,r.clearanceMm),(29000,51000,1400));
   });
