@@ -77,7 +77,7 @@ void main() {
       (cinema(edits: {'cs_rows': 2.5}), 'valid whole numbers'),
       (cinema(edits: {'cs_side': 1.199}), 'aisle is below'),
       (cinema(edits: {'cs_pitch': 1.049}), 'clear strip behind occupied seats'),
-      (cinema(edits: {'cs_hall': 4}), 'not enough width for two fixed-seat banks'),
+      (cinema(edits: {'cs_hall': 4, 'cs_screen_w': 3}), 'not enough width for two fixed-seat banks'),
       (cinema(edits: {'cs_target': 145}), 'Only 144 fixed seats fit'),
       (cinema(edits: {'cs_bay_w': 1.667}), 'flexible bays do not fit'),
       (cinema(edits: {'cs_screen_y': 4}), 'strictly in front of the first row'),
