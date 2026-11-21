@@ -71,7 +71,7 @@ class FloorPlanCad {
       }
       final room = rooms[opening.to]!;
       final layer = opening.to.startsWith('patient_') ? 'PATIENT_ROUTE' :
-        opening.to.startsWith('service_') ? 'SERVICE_ROUTE' : 'DOORS';
+        opening.to.startsWith('service_') ? 'SERVICE_ROUTE' : opening.to == 'retail_stock' ? 'RETAIL_SERVICE' : 'DOORS';
       if (horizontal) {
         final inward = room.bottom == b.top ? 1 : -1;
         final y = inward == 1 ? b.top : b.bottom;
@@ -273,7 +273,8 @@ class FloorPlanCad {
     const layers = {'0': 7, 'PLOT': 8, 'WALLS': 7, 'DOORS': 3, 'WINDOWS': 5,
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
-      'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2};
+      'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);
