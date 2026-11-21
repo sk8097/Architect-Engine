@@ -98,7 +98,7 @@ class JumpRunwayCadGenerator {
       final v = takeoffs[i], label = i == 0 ? 'LJ' : 'TJ';
       final y = start + v.approachMm;
       line('JR_BOARD', runLeft, y, runRight, y);
-      labels.add(CadLabel('JR_BOARD', runRight + 1.25 * t, y, label, .65 * t));
+      labels.add(CadLabel('JR_BOARD', CadPoint(runRight + 1.25 * t, y), label, .65 * t));
     }
     final nx = pw + 2.5 * t;
     line('ANNOTATIONS', nx, pd - 2 * t, nx, pd);
