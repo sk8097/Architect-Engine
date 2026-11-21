@@ -12,10 +12,13 @@ import '../services/floor_plan_cad.dart';
 
 class AutomaticFloorPlanScreen extends StatefulWidget {
   const AutomaticFloorPlanScreen({super.key, required this.projectName,
-    required this.brief, required this.frontageFt, required this.depthFt, required this.facing});
+    required this.brief, required this.frontageFt, required this.depthFt, required this.facing,
+    this.customResult, this.title = 'Automatic floor plan'});
 
   final String projectName, facing;
   final ProjectBrief brief;
+  final FloorPlanResult? customResult;
+  final String title;
   final double frontageFt, depthFt;
 
   @override
@@ -23,7 +26,7 @@ class AutomaticFloorPlanScreen extends StatefulWidget {
 }
 
 class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
-  late final _result = AutomaticFloorPlanGenerator().generate(
+  late final _result = widget.customResult ?? AutomaticFloorPlanGenerator().generate(
     brief: widget.brief, frontageFt: widget.frontageFt, depthFt: widget.depthFt,
     facing: widget.facing,
   );
@@ -56,7 +59,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
     final theme = Theme.of(context);
     final plan = _result.plan;
     return Scaffold(
-      appBar: AppBar(title: const Text('Automatic floor plan')),
+      appBar: AppBar(title: Text(widget.title)),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(18),
@@ -70,7 +73,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
                 ListTile(contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.error_outline), title: Text(issue)),
             ] else ...[
-              Text('${plan.configurationLabel} concept • ${plan.facing} entry', style: theme.textTheme.titleLarge),
+              Text('${plan.sheetTitle ?? plan.configurationLabel} concept • ${plan.facing} entry', style: theme.textTheme.titleLarge),
               const Text('Not for construction. Drawing units: millimetres.'),
               const SizedBox(height: 8),
               Builder(builder: (buttonContext) => Align(

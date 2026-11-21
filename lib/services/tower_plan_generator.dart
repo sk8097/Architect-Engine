@@ -137,9 +137,79 @@ class TowerPlanGenerator {
     return TowerResult(List.unmodifiable(sheets), const []);
   }
 
+  /// Shared detailed single-storey layout. No core or floor is invented.
+  TowerResult generateEnclosed(TowerBrief shell, List<({String id, TowerSpace space, bool sealed})> items, {
+    required bool exactWidths,
+    required bool Function(AutomaticFloorPlan) accepts,
+  }) {
+    TowerResult block(String issue) => TowerResult(const [], [issue]);
+    final plot = PlanRect(0, 0, shell.plotWidth, shell.plotDepth);
+    final plate = PlanRect(shell.westOffset, shell.southOffset,
+      shell.westOffset + shell.plateWidth, shell.southOffset + shell.plateDepth);
+    if (!plot.contains(plate) || shell.plateWidth < 1 || shell.plateDepth < 1) return block('The building footprint exceeds the measured plot.');
+    if (!const {'South','North','East','West'}.contains(shell.frontage)) return block('Select a cardinal entrance side.');
+    final rotated = shell.frontage == 'East' || shell.frontage == 'West';
+    final w = rotated ? plate.depth : plate.width, d = rotated ? plate.width : plate.depth, t = shell.wall;
+    final corridor = shell.corridor, door = shell.door;
+    final left = (w - 4 * t - corridor) ~/ 2, right = w - 4 * t - corridor - left;
+    if (t <= 0 || door <= t || corridor <= door || d - 2 * t <= door || left <= door || right <= door) {
+      return block('The supplied plate, wall, corridor and door dimensions do not leave room for the circulation spine and door swings.');
+    }
+    if (items.isEmpty || items.length > maxSpaces) return block('Add 1 to $maxSpaces dimensioned enclosed rooms.');
+    final capacity = d - t;
+    bool fits(TowerSpace space, int lane) {
+      final spare = lane - space.width;
+      return spare >= 0 && (!exactWidths || (spare == 0 || spare >= t)) &&
+        (!exactWidths || space.window == null || spare == 0);
+    }
+    for (final item in items) {
+      final s = item.space;
+      if (s.width <= door || s.depth <= door || s.depth > d - 2 * t) {
+        return block('${s.name}: its clear dimensions do not fit the supplied door swing or floor plate.');
+      }
+      if (s.window != null && (s.window! <= t || s.window! >= s.depth)) {
+        return block('${s.name}: the window width must exceed the wall thickness and be smaller than the clear room depth.');
+      }
+      if (!fits(s, left) && !fits(s, right)) return block('${s.name}: its clear width or exterior window does not fit either room lane. A window in exact-width mode needs a room spanning its lane.');
+    }
+    if (items.fold(0, (sum, item) => sum + item.space.depth + t) > 2 * capacity) {
+      return block('The total room depths and partitions exceed the available depth in both lanes.');
+    }
+    final sides = List<bool>.filled(items.length, false);
+    TowerSheet? match;
+    var visits = 0;
+    bool arrange(int i, int remainingLeft, int remainingRight) {
+      if (++visits > 12000) return false;
+      if (i == items.length) {
+        final output = _layout(shell, plot, plate, w, d, left, right, items, sides, true,
+          '${shell.groups.first.name} / GROUND', exactWidths: exactWidths);
+        if (!accepts(output.plan)) return false;
+        final reserves = output.plan.rooms.where((r) => r.id.startsWith('reserve_')).map((r) => r.id).toSet();
+        if (validatePlanGeometry(output.plan, sealedRooms: reserves) != null) return false;
+        match = TowerSheet(shell.groups.first.name, 'Ground', 1, 1, output.plan, output.unallocated);
+        return true;
+      }
+      final s = items[i].space, used = items[i].space.depth + t;
+      for (final useLeft in [remainingLeft >= remainingRight, remainingLeft < remainingRight]) {
+        if (useLeft) {
+          if (!fits(s, left) || used > remainingLeft) continue;
+          sides[i] = true;
+          if (arrange(i + 1, remainingLeft - used, remainingRight)) return true;
+        } else {
+          if (!fits(s, right) || used > remainingRight) continue;
+          sides[i] = false;
+          if (arrange(i + 1, remainingLeft, remainingRight - used)) return true;
+        }
+      }
+      return false;
+    }
+    arrange(0, capacity, capacity);
+    return match == null ? block('No supported corridor arrangement satisfies all room dimensions, edges and relationships. This is not a proof that the site cannot be designed.') : TowerResult([match!], const []);
+  }
+
   ({AutomaticFloorPlan plan, int unallocated}) _layout(TowerBrief input, PlanRect plot,
       PlanRect plate, int w, int d, int left, int right,
-      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title) {
+      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false}) {
     final t = input.wall;
     final corridor = input.corridor;
     final door = input.door;
@@ -176,7 +246,18 @@ class TowerPlanGenerator {
         final end = y + item.space.depth;
         final prefix = item.id.startsWith('stair_') ? 'Stair: ' : item.id.startsWith('lift_') ? 'Lift: '
           : item.id.startsWith('shaft_') ? 'Shaft: ' : '';
-        rooms.add(PlanRoom(item.id, '$prefix${item.space.name}', PlanRect(x1, y, x2, end)));
+        final roomLeft = exactWidths && side ? x2 - item.space.width : x1;
+        final roomRight = exactWidths && !side ? x1 + item.space.width : x2;
+        rooms.add(PlanRoom(item.id, '$prefix${item.space.name}', PlanRect(roomLeft, y, roomRight, end)));
+        if (roomLeft > x1 || roomRight < x2) {
+          final divider = side ? roomLeft - t : roomRight;
+          wall(divider, y, divider + t, end);
+          final residual = side ? PlanRect(x1, y, divider, end) : PlanRect(divider + t, y, x2, end);
+          if (residual.width > 0) {
+            unused += residual.area;
+            rooms.add(PlanRoom('reserve_width_$i', 'Unallocated space', residual));
+          }
+        }
         if (item.sealed) {
           wall(wx1, y, wx2, end);
         } else {

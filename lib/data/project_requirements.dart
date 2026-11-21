@@ -159,6 +159,7 @@ final alignmentFields = <RequirementField>[
   _measure('route_length', 'Surveyed route length', 'm', min: 0.01),
   _measure('right_of_way', 'Available right-of-way', 'm', min: 0.01),
   _select('concept_straight_alignment', 'CAD alignment basis', 'confirmed|Confirmed straight measured alignment;other|Curved / multi-segment or unknown'),
+  const RequirementField('corridor_bands', 'Measured parallel bands from bottom edge: label:width in m; label:width in m'),
   const RequirementField('chainage', 'Start and end chainage / datum'),
   const RequirementField('cross_section', 'Cross-section and terrain notes'),
   const RequirementField('crossings', 'Crossings / utilities / network tie-ins'),

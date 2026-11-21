@@ -116,10 +116,27 @@ class ConceptZoningGenerator {
       final length = metres(answers['route_length'], limit: 20000000), row = metres(answers['right_of_way']);
       if (length == null || row == null) return blocked('Enter measured route length (up to 20 km) and right-of-way.');
       final boundary = PlanRect(0, 0, length, row);
-      final zones = _pack(boundary, requests, relationships);
+      final bands = <MeasuredZone>[];
+      var usedWidth = 0;
+      final specification = answers['corridor_bands'];
+      if (specification is String && specification.trim().isNotEmpty) {
+        final entries = specification.split(';').where((s) => s.trim().isNotEmpty).toList();
+        if (entries.isEmpty || entries.length > 24) return blocked('Enter 1 to 24 measured bands in label:width format.');
+        for (final entry in entries) {
+          final fields = entry.split(':');
+          final name = fields.first.trim();
+          final width = fields.length == 2 ? metres(double.tryParse(fields[1].trim())) : null;
+          if (name.isEmpty || width == null) return blocked('Invalid band "$entry". Enter the name and measured width in metres (e.g. Footway:1.5).');
+          if (usedWidth + width > row) return blocked('The measured corridor bands exceed the right-of-way at "$name".');
+          bands.add(MeasuredZone('band_${bands.length}', name, PlanRect(0, usedWidth, length, usedWidth + width), 'CORRIDOR_BANDS'));
+          usedWidth += width;
+        }
+      }
+      final zones = requests.isEmpty ? const <MeasuredZone>[] :
+        _pack(PlanRect(0, usedWidth, length, row), requests, relationships);
       if (zones == null) return blocked('The corridor components do not fit the supplied right-of-way or adjacency requirements.');
       return ZoningResult([ZoningSheet(title: '${type.label} / CORRIDOR', envelope: boundary,
-        boundary: boundary, axisLabel: 'STATION AXIS - NO GEOGRAPHIC BEARING', corridor: true, zones: zones)], const [], focus: profile.focus);
+        boundary: boundary, axisLabel: 'STATION AXIS - NO GEOGRAPHIC BEARING', corridor: true, zones: [...bands, ...zones])], const [], focus: profile.focus);
     }
     if (!const {'rectangular', 'square'}.contains(selection.plotShapeId)) return blocked('Measured rectangular or square geometry is required. Survey area alone cannot be turned into a plot outline.');
     final w = metres(widthFt * .3048), d = metres(depthFt * .3048);

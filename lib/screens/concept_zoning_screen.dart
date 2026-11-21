@@ -75,7 +75,7 @@ class _ConceptZoningScreenState extends State<ConceptZoningScreen> {
             if (_drawings.length > 1) Builder(builder: (button) => OutlinedButton(
               onPressed: _sharing ? null : () => _share(button, all: true), child: const Text('Share all sheets'))),
           ]),
-          if (sheet.corridor) const Text('Straight corridor envelope only: no surveyed bends, levels, alignment or road design.')
+          if (sheet.corridor) const Text('Straight corridor and supplied measured bands only. No surveyed bends, grades, lane safety checks or technical alignment design.')
           else const Text('Rectangle allocation only: no partitions, doors, services or specialist workflow verified. Optional preferences are not guaranteed.'),
           for (final zone in sheet.zones) ListTile(dense: true, title: Text(zone.name),
             subtitle: Text('${zone.bounds.width / 1000} × ${zone.bounds.depth / 1000} m')),

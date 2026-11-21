@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 
 import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
+import '../data/detailed_cad_fields.dart';
 import '../data/project_scenarios.dart';
 import '../data/space_planning.dart';
 import '../models/project_brief.dart';
@@ -18,6 +19,8 @@ import '../services/automatic_floor_plan_generator.dart';
 import 'automatic_floor_plan_screen.dart';
 import 'tower_planner_screen.dart';
 import 'concept_zoning_screen.dart';
+import 'enclosed_cad_screen.dart';
+import '../services/enclosed_cad_generator.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
   const ProjectWizardScreen({super.key, this.existingProject, this.scenario, this.variant});
@@ -127,6 +130,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   }
   String _dimensionInSelectedUnit(double feet) => _plotUnit == 'm'
       ? (feet * .3048).toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '') : feet.toString();
+  bool get _enclosedCad => !_linearSite && _answers['cad_output'] == 'building';
+  List<RequirementField> get _cadFields => [
+    if (!_linearSite) cadOutputField,
+    if (_enclosedCad) ...[...enclosedCadFields, cadWidthMode],
+  ];
   List<RequirementField> get _frontPlanning => [
     if (_isRectangular) planningChoice('plot_unit', 'Plot measurement unit', {'ft': 'Feet', 'm': 'Metres'}, required: false),
     if (_customInfrastructure) customSiteKindField,
@@ -256,7 +264,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       ? preferenceFields.where((f) => f.id == 'sustainability').toList()
       : preferenceFields.where((f) => !_earlyIds.contains(f.id)).toList();
   List<RequirementField> get _generalSchema => [
-    ..._frontPlanning, ..._floorPlanning, ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
+    ..._frontPlanning, ..._cadFields, ..._floorPlanning, ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
     ...technicalFields, ..._designSchema, ...deliveryFields,
   ];
   ProjectScenario? get _currentScenario => scenarioForRequirements(
@@ -434,6 +442,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -482,6 +491,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_shapeId == null) return 'Select the geometry of your site.';
     if (_budget(0).total <= 0) return 'Enter the measured site size before continuing.';
     if (_vastu && (_facing == null || _facing == 'Not decided')) return 'Enter the measured frontage direction for Vastu suggestions.';
+    if (_enclosedCad && _floorCount != 1) return 'Measured enclosed CAD requires one floor. The high-rise planner is separate.';
+    if (_enclosedCad && !const {'South','North','East','West'}.contains(_facing)) return 'Choose the cardinal frontage for the measured enclosed plan.';
     if (_home && (_floorCount < 1 || _floorCount > 100)) return 'Enter the total floor count, including the ground floor.';
     if (_home && _facing == null) return 'Select the frontage direction or mark it unknown.';
     if (_home && _bedrooms < 0) return 'Enter the bedroom count or choose a configuration with a known count.';
@@ -506,11 +517,15 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       }
     }
     if (checkRooms) {
+      if (_enclosedCad && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) return 'Add at least one measured interior room.';
       for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
         final label = _customSpaces[entry.key] ?? taxonomyChoice(_program.spaces, entry.key)?.label ?? entry.key;
         final detail = _spaceDetails[entry.key] ?? const <String, Object>{};
         final level = _spaceLevel(detail);
         if (level == null || level < 0 || (level > 0 && level >= _floorCount)) return '$label: choose an existing floor by level number (0 for ground).';
+        if (_enclosedCad && (positiveNumber(detail['width']) == null || positiveNumber(detail['length']) == null)) {
+          return '$label: measured enclosed CAD needs clear width and length in Space details.';
+        }
         if (_coveredByCore(entry.key)) continue;
         final allocation = _roomAllocation(entry.key);
         if (allocation.minimum == null) return '$label: enter an area with units or both clear dimensions in its details.';
@@ -645,7 +660,12 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    if (AutomaticFloorPlanGenerator.supportsBrief(brief)) {
+    if (EnclosedCadGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => EnclosedCadScreen(name: name, brief: brief, widthFt: width ?? 0,
+          depthFt: length ?? 0, facing: facing),
+      ));
+    } else if (_answers['cad_output'] != 'zones' && AutomaticFloorPlanGenerator.supportsBrief(brief)) {
       Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
         builder: (_) => AutomaticFloorPlanScreen(projectName: name, brief: brief,
           frontageFt: width ?? 0, depthFt: length ?? 0, facing: facing),
@@ -790,7 +810,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       ],
       _fieldPanel(_frontPlanning.where((f) =>
         const {'surveyed_plot_area', 'route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
-      if ((_home || _vastu) && !_linearSite) ...[
+      if ((_home || _vastu || _enclosedCad) && !_linearSite) ...[
         _facingPicker(required: true),
         if (_vastu && _facing != null && _facing != 'Not decided')
           const Text('Vastu review: consider northeast for puja, southeast for kitchen and southwest for the main bedroom when feasible. These are preferences, not layout or approval checks.'),
@@ -832,6 +852,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         ], (value) => setState(() => _parking = value == null ? null : ProjectParking.values.byName(value)), required: _home),
         const SizedBox(height: 12),
       ],
+      if (!_linearSite) _fieldPanel(_cadFields),
       if (_isRectangular) ExpansionTile(
         title: const Text('Known setbacks (optional)'),
         maintainState: true,
@@ -971,13 +992,16 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       for (final key in spaceAdjacencyKeys)
         if (prior?[key] is Iterable) ...(prior![key] as Iterable).whereType<String>(),
     };
-    return spaceDetailFields([
+    return [
+      ...spaceDetailFields([
       for (final space in _allSpaces)
         if (space.id != id && _spaces.containsKey(space.id))
           if (!isExcludedSpace(_spaceDetails[space.id])) space
           else if (referenced.contains(space.id))
             TaxonomyChoice(space.id, '${space.label} (excluded)'),
-    ]);
+      ]),
+      if (_enclosedCad) cadWindowField,
+    ];
   }
 
   Future<void> _editSpace(TaxonomyChoice space) async {
@@ -1027,7 +1051,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
-      if (!_linearSite && !_vastu && !_home) _facingPicker(),
+      if (!_linearSite && !_vastu && !_home && !_enclosedCad) _facingPicker(),
       _fieldPanel(_siteSchema),
     ]),
   );
@@ -1125,11 +1149,13 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_canAutoPlan && _needsScenarioInputs)
+        if (_enclosedCad)
+          const Text('Saving attempts a measured floor plan with walls, doors and connected passage. A blocked drawing will not fall back to zoning.')
+        else if (_answers['cad_output'] != 'zones' && _canAutoPlan && _needsScenarioInputs)
           const Text('Input needed for CAD: confirm the floor count and parking on the facility page.')
-        else if (_canAutoPlan && _currentVariant?.generator == null)
+        else if (_answers['cad_output'] != 'zones' && _canAutoPlan && _currentVariant?.generator == null)
           const Text('Brief only for this floor and parking variant. Saving will explain why a drawing could not be generated.')
-        else if (_canAutoPlan)
+        else if (_answers['cad_output'] != 'zones' && _canAutoPlan)
           const Text('Saving checks your requirements and automatically opens the CAD concept if they fit. If they do not, your brief is kept as entered and the app explains why no drawing was created.')
         else
           const Text('Saving attempts a measured concept zoning sheet. Enter clear width and length for each selected space. This is not a detailed architectural drawing.'),
