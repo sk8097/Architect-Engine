@@ -283,6 +283,41 @@ void main() {
     expect(find.text('Share take-off schedule CSV'), findsOneWidget);
   });
 
+  testWidgets('cinema seating saves measured banks without generic service inputs', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Commercial');
+    await tap(tester, 'Business / service facilities');
+    await tap(tester, 'Cinema / Entertainment');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '18');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '20');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Cinema: measured seat banks and rear flexible bays');
+    for (final entry in const {
+      'cs_hall': '14', 'cs_rows': '8', 'cs_seat_w': '0.55', 'cs_seat_d': '0.6', 'cs_pitch': '1.05', 'cs_row_gap': '0.45',
+      'cs_cap': '10', 'cs_target': '144', 'cs_centre': '1.6', 'cs_side': '1.2', 'cs_rear': '1.4', 'cs_aisle_min': '1.2',
+      'cs_bays': '3', 'cs_bay_w': '1.1', 'cs_bay_d': '1.5', 'cs_front': '4', 'cs_screen_y': '0.5', 'cs_screen_w': '8',
+      'cs_west': '2', 'cs_south': '2.5',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Cinema hall');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['cs_target'], 144);
+    expect(find.text('Share seating plan DXF'), findsOneWidget);
+    expect(find.text('Share seating schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('outdoor switchback stair saves both landings without generic room fields', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
