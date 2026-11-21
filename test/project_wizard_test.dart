@@ -181,6 +181,45 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('bicycle rack mode at a metro station does not require a traffic survey', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Transport infrastructure');
+    await tap(tester, 'Metro Station');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '12');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '16');
+    await tester.pumpAndSettle();
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('cad_output', 'Bicycle parking: measured two-sided stands');
+    await pick('br_banks', 'Two mirrored rows');
+    for (final entry in const {
+      'br_stands': '5', 'br_cycle_l': '1.9', 'br_cycle_w': '0.65', 'br_stand_l': '0.8', 'br_stand_w': '0.1',
+      'br_flank': '0.075', 'br_pitch': '1.8', 'br_pair_gap': '0.25', 'br_aisle': '2.2', 'br_outer': '0.5',
+      'br_head_s': '1.5', 'br_head_n': '1.2', 'br_west': '2', 'br_south': '2', 'br_target': '20',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Cycle parking');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['br_target'], 20);
+    expect(find.text('Bicycle rack CAD'), findsOneWidget);
+    expect(find.text('Share bicycle rack DXF'), findsOneWidget);
+  });
+
   testWidgets('memorial niche mode saves measured geometry without a generic landscape note', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
