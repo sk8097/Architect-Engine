@@ -1,0 +1,11 @@
+# Surveyed staggered pedestrian refuge CAD
+
+Choose **Infrastructure / Public Works → Transport infrastructure → Street**. Under **Corridor drawing**, select **Surveyed staggered pedestrian refuge**. Select Linear Corridor or leave Arrangement blank. Leave separate Space selections empty. The straight and circular corridor drawings remain available.
+
+Enter two surveyed controls on a straight **median centreline**, A then B, in a projected metre grid. Left and right are as viewed looking from A to B, and both crossing centre chainages start at A. Use constant measured median and carriageway widths. Either crossing may come first. Each opening has the same width along the baseline, and each carriageway crossing is perpendicular to it. The full opening intervals must lie within A–B. The gap between their nearest edges is `abs(right centre − left centre) − opening width`.
+
+The median connector is centred between the median edges. Its side reserves are checked **between** the openings, not at the median approaches. The two crossing openings and connector use one submitted minimum clear width. Enter the usable depth available at each roadside landing; both must meet the submitted landing minimum. The plan connects each landing straight across its carriageway, with a turn into the median connector. It does not check swept turning areas or barriers.
+
+**Example:** A `(1000,2000)`, B `(1060,2080)`, crossing centres **Ch 35 m left / Ch 43 m right**. A **4 m** median, **3 m** openings and **2 m** connector yield **5 m** between opening edges and **1 m** side reserve on each side between openings. With carriageways **7 / 7.5 m** and landings **2.5 / 3 m**, the centreline route is **32 m** from landing edge to landing edge. This is a geometric route length, not a walking-time estimate or design standard.
+
+Export the editable layered **DXF in projected millimetres**, or reopen it from Projects under **Surveyed pedestrian refuge CAD**. Failed checks retain the brief and a reason but prevent export and generic fallback. The plan shows horizontal envelopes, not approved markings or a traffic-control layout. It does not verify slopes, curbs, ramps, tactile surfaces, signals, visibility, vehicle movement, drainage or accessibility compliance.
