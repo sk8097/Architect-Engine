@@ -38,3 +38,15 @@ const dwellingTwoWheelerBayFields = <RequirementField>[
   RequirementField('g1_bike_width', 'Clear width per two-wheeler bay', kind: RequirementKind.decimal, min: .001, max: 300, unit: 'm', required: true),
   RequirementField('g1_bike_depth', 'Clear depth per two-wheeler bay', kind: RequirementKind.decimal, min: .001, max: 300, unit: 'm', required: true),
 ];
+
+const dwellingRoofFields = <RequirementField>[
+  RequirementField('g1_roof_height','First floor to terrace rise',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_stair_width','Clear width of second straight flight',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_risers','Risers in second flight',kind:RequirementKind.integer,min:2,max:50,required:true),
+  RequirementField('g1_roof_going','Going per tread in second flight',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_landing','Each second-flight end landing depth',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_walk','Clear terrace walk width at stair head',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_width','Clear open terrace width across the plate',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_depth','Clear open terrace depth along the plate',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+  RequirementField('g1_roof_parapet','Parapet thickness in plan (no greater than house wall)',kind:RequirementKind.decimal,unit:'m',min:.001,max:300,required:true),
+];

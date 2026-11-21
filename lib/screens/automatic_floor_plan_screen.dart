@@ -178,6 +178,8 @@ class _PlanPainter extends CustomPainter {
       'VEHICLE_APPROACH' => const Color(0xff823a75),
       'PEDESTRIAN_APPROACH' => const Color(0xff1d7137),
       'GROUND_PLATE_REFERENCE' => const Color(0xff8993a6),
+      'TERRACE_ACCESS' => const Color(0xff823a75),
+      'TERRACE_DECK' => const Color(0xff237d42),
       'STAIRS' => const Color(0xff354ba0),
       'PATIENT_ROUTE' => const Color(0xff006f91),
       'SERVICE_ROUTE' => const Color(0xffa65f17),

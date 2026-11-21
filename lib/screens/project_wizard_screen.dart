@@ -217,6 +217,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       for (final zone in (_answers['terrace_use'] as Iterable).whereType<String>())
         if (const {'open', 'covered', 'enclosed', 'garden'}.contains(zone))
           planningArea('terrace_area_$zone', 'Area for $zone terrace zone'),
+    if (_g1Cad && _terrace) ...dwellingRoofFields,
   ];
   List<RequirementField> _levelFields(int level) => [
     if (level > 0 && !_g1Cad) ...[
@@ -277,6 +278,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       final risers = positiveNumber(_answers['g1_risers']) ?? 1.0;
       final run = (risers - 1) * (positiveNumber(_answers['g1_going']) ?? 0.0) + 2 * (positiveNumber(_answers['g1_landing']) ?? 0.0);
       var areaM2 = stairW * run;
+      if (_terrace) {
+        final roofWidth=positiveNumber(_answers['g1_roof_stair_width'])??0.0;
+        final steps=(positiveNumber(_answers['g1_roof_risers'])??1.0)-1;
+        areaM2+=roofWidth*(steps*(positiveNumber(_answers['g1_roof_going'])??0.0)+2*(positiveNumber(_answers['g1_roof_landing'])??0.0));
+      }
       var unknown = false;
       for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
         final detail = _spaceDetails[entry.key] ?? const <String,Object>{};
@@ -527,7 +533,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields, ...mixedRetailCadFields,...crossDockFields,...schoolPlaygroundFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields, ...mixedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -1021,6 +1027,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
       ],
       if (_crossDockCad) const Text('Leave Storage layout as Not specified: this drawing uses a transfer hall, not storage/racking. Docks / loading doors is the total for both banks.'),
+      if (_g1Cad) const Text('Optional terrace: select open terrace only. It uses a second measured straight flight, with an aligned sealed reserve below on ground.'),
       if (_g1Cad && _wantsParking) const Text('Open parking only: a row of bays with unobstructed vehicle access across its full width, plus a separate pedestrian walk. Enter requested bay counts in Operations.'),
       if (!_linearSite || _surveyCorridorEligible) _fieldPanel(_cadFields),
       if (_isRectangular) ExpansionTile(
@@ -1334,7 +1341,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
             ? 'Saving checks the visitor lobby, student passage, rear door and entire fenced playground fit. A blocked layout does not fall back to zoning.'
             : 'Saving checks that the administration door opens into the visitor lobby and classroom and support-room doors open beyond the internal threshold. Invalid layouts do not fall back to zoning.')
         else if (_g1Cad)
-          const Text('Saving attempts two measured floor plans with an aligned straight indoor stair. If requested, regular open parking is drawn on the ground sheet. Unsupported or non-fitting layouts do not fall back to zoning.')
+          const Text('Saving attempts two measured floor plans with an aligned straight indoor stair. If requested, open parking or a separate open terrace sheet is also drawn. Unsupported or non-fitting layouts do not fall back to zoning.')
         else if (_retailCad)
           const Text('Saving checks the measured shell, sales fixtures, customer aisles and stock access. A blocked drawing does not fall back to zoning.')
         else if (_clinicCad)

@@ -303,7 +303,7 @@ class TowerPlanScreen extends StatefulWidget {
     : title = 'High-rise CAD', note = null, areaSqft = null;
   const TowerPlanScreen.dwelling({super.key, required this.projectName, required TowerResult this.generated, required double this.areaSqft})
     : brief = null, title = 'G+1 house CAD', note =
-      'Plan-view stair only. Verify the stair section, headroom, floor opening, handrails and local code before construction.';
+      'Plan-view stairs and roof only. Verify stair sections, headroom, openings, handrails, parapet height, roof structure, drainage and local code before construction.';
   final String projectName, title;
   final String? note;
   final double? areaSqft;
@@ -334,7 +334,7 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
       final sheet = _result.sheets[_selected];
       final drawing = all ? FloorPlanCad.combined(Iterable.generate(_result.sheets.length, _drawing)) : _drawing(_selected);
       final safeName = widget.projectName.replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_');
-      final suffix = all ? 'all_sheets' : 'levels_${sheet.first}-${sheet.last}';
+      final suffix = all ? 'all_sheets' : sheet.range=='Roof terrace' ? 'roof_terrace' : 'levels_${sheet.first}-${sheet.last}';
       await Share.shareXFiles([XFile.fromData(Uint8List.fromList(ascii.encode(drawing.toDxf())),
         mimeType: 'application/dxf')], fileNameOverrides: ['${safeName}_$suffix.dxf'], sharePositionOrigin: origin);
     } catch (_) {
@@ -359,14 +359,16 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           ..._result.issues.map((issue) => ListTile(title: Text(issue), leading: const Icon(Icons.error_outline))),
         ] else ...[
           Card(child: Padding(padding: const EdgeInsets.all(12), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Per floor · ${sheet.name}', style: theme.textTheme.titleMedium),
+            Text('${sheet.range=='Roof terrace'?'Roof area':'Per floor'} · ${sheet.name}', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Wrap(spacing: 18, runSpacing: 8, children: [
               _metricTile('Available', sheet.available), _metricTile('Planned', sheet.planned),
               _metricTile('Unallocated', sheet.unallocated),
             ]),
             const SizedBox(height: 6),
-            const Text('Planned includes shared core, circulation and walls.'),
+            if (sheet.range=='Roof terrace')
+              const Text('Planned includes the open deck, walk, stair enclosure and parapet.')
+            else const Text('Planned includes shared core, circulation and walls.'),
             if (widget.brief!=null) Text('Plate: ${_metric(sheet.plan.footprint.width)} m E–W × ${_metric(sheet.plan.footprint.depth)} m N–S'),
           ]))),
           const SizedBox(height: 12),
@@ -385,8 +387,10 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           else if (sheet.siteZones.any((zone)=>zone.layer=='PARKING_BAYS'))
             Text('${sheet.siteZones.where((zone) => zone.layer == 'PARKING_BAYS').length} open bays · '
               'Vehicle approach and separate pedestrian entrance walk. No vehicle swept-path, curb cut, slope or access approval verified.'),
+          if (sheet.range=='Roof terrace')
+            const Text('Green: the clear open deck. Purple: stair-head walk. The remaining roof is unallocated.'),
           for (final stair in sheet.plan.stairs)
-            Text('${stair.up ? 'UP' : 'DOWN'}: ${stair.risers} risers × ${stair.riseMm.toStringAsFixed(1)} mm · '
+            Text('${sheet.plan.stairs.length>1?(stair.roomId=='stair_1'?'Terrace: ':'Ground: '):''}${stair.up ? 'UP' : 'DOWN'}: ${stair.risers} risers × ${stair.riseMm.toStringAsFixed(1)} mm · '
               '${stair.goingMm} mm going · ${stair.floorHeightMm} mm floor-to-floor'),
           const SizedBox(height: 8),
           Wrap(spacing: 8, runSpacing: 8, children: [

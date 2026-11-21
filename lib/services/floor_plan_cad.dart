@@ -113,6 +113,8 @@ class FloorPlanCad {
       for (final (from, to) in stair.strokes) { line('STAIRS', from.$1, from.$2, to.$1, to.$2); }
     }
     for (final room in plan.rooms) {
+      if (room.id.startsWith('reserve_roof_') || siteZones.any((z)=>z.id==room.id &&
+          const {'TERRACE_ACCESS','TERRACE_DECK'}.contains(z.layer))) continue;
       final b = room.bounds;
       final center = (b.left + b.right) / 2;
       final y = (b.bottom + b.top) / 2;
@@ -373,7 +375,7 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
-      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'GROUND_PLATE_REFERENCE': 8, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
+      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'GROUND_PLATE_REFERENCE': 8, 'TERRACE_ACCESS': 6, 'TERRACE_DECK': 3, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
       'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30, 'SCHOOL_PLAYGROUND': 3, 'SCHOOL_PLAY_WALK': 4, 'SCHOOL_PLAY_FENCE': 8,
       'MIXED_SHOP_ACCESS': 30, 'MIXED_HOME_ACCESS': 3, 'MIXED_DIVIDER': 6,
       'CROSS_DOCK_INBOUND': 30, 'CROSS_DOCK_OUTBOUND': 4, 'CROSS_DOCK_STAGING': 8, 'CROSS_DOCK_FLOW': 6,

@@ -41,6 +41,13 @@ const openParking = <String,Object>{
   'g1_car_width':2.6, 'g1_car_depth':5, 'g1_bike_width':1.1, 'g1_bike_depth':2.1,
 };
 
+const openTerrace = <String,Object>{
+  'terrace_needed':'yes','terrace_use':['open'],'terrace_sqft':155,'terrace_area_open':120,
+  'g1_roof_height':2.88,'g1_roof_risers':16,'g1_roof_stair_width':1.3,
+  'g1_roof_going':.28,'g1_roof_landing':1.2,'g1_roof_walk':1.1,
+  'g1_roof_width':3,'g1_roof_depth':4,'g1_roof_parapet':.15,
+};
+
 void main() {
   TowerResult run(ProjectBrief input,[String facing='South']) =>
     DwellingG1Generator().generate(input,widthFt:80,depthFt:100,facing:facing);
@@ -84,7 +91,7 @@ void main() {
     expect(run(house(values:{'stair_access':'outside'})).issues.single,contains('inside straight stair'));
     expect(run(house(values:{'upper_use':'separate'})).issues.single,contains('rental'));
     expect(run(house(parking:ProjectParking.car)).issues.single,contains('Confirm that open parking'));
-    expect(run(house(values:{'terrace_needed':'yes'})).issues.single,contains('Terrace access'));
+    expect(run(house(values:{'terrace_needed':'yes'})).issues.single,contains('open terrace only'));
     expect(run(house(values:{'fsi_limit':.2})).issues.single,contains('Both gross floor plates'));
     expect(run(house(values:{'main_kitchen_floor':'1'})).issues.single,contains('closed kitchen'));
     final conflict=run(house(rooms:{'closed_kitchen':{
@@ -164,6 +171,83 @@ void main() {
       expect(result.issues,isEmpty);
       expect(result.sheets.first.siteZones.where((zone)=>zone.layer=='PARKING_BAYS').length,count);
     }
+  });
+
+  test('open terrace uses a second aligned stair and connected measured roof route', () {
+    final brief=ProjectBrief.fromMap(house(values:{...openParking,...openTerrace},parking:ProjectParking.both).toMap())!;
+    List<int> edges(PlanRect b)=>[b.left,b.bottom,b.right,b.top];
+    bool sharesEdge(PlanRect a,PlanRect b)=>
+      ((a.left==b.right||a.right==b.left)&&a.bottom<b.top&&a.top>b.bottom) ||
+      ((a.bottom==b.top||a.top==b.bottom)&&a.left<b.right&&a.right>b.left);
+    for (final facing in ['South','North','East','West']) {
+      final result=run(brief,facing);
+      expect(result.issues,isEmpty,reason:'$facing: ${result.issues}');
+      expect(result.sheets.map((s)=>s.range),['Ground floor','First floor','Roof terrace']);
+      final ground=result.sheets[0], first=result.sheets[1], roof=result.sheets[2];
+      final access=first.plan.stairs.singleWhere((s)=>s.roomId=='stair_1'), top=roof.plan.stairs.single;
+      expect(ground.plan.stairs.single.roomId,'stair_0');
+      expect(ground.siteZones.where((z)=>z.layer=='PARKING_BAYS').length,3);
+      expect(ground.plan.openings.where((o)=>o.to=='stair_1'),isEmpty);
+      PlanRect stairBox(TowerSheet s)=>s.plan.rooms.singleWhere((r)=>r.id=='stair_1').bounds;
+      expect(edges(stairBox(ground)),edges(stairBox(first)));
+      expect(edges(stairBox(first)),edges(stairBox(roof)));
+      expect(access.up,isTrue);
+      expect(top.up,isFalse);
+      expect(top.riseMm,180);
+      expect(top.strokes.take(16),orderedEquals(access.strokes.take(16)));
+      expect(top.strokes[16],(access.strokes[16].$2,access.strokes[16].$1));
+      final door=roof.plan.openings.single;
+      final walk=roof.siteZones.singleWhere((z)=>z.id=='roof_walk').bounds;
+      final deck=roof.siteZones.singleWhere((z)=>z.id=='roof_deck').bounds;
+      expect(door.from,'roof_walk');
+      expect(door.to,'stair_1');
+      expect(sharesEdge(stairBox(roof),door.bounds),isTrue);
+      expect(sharesEdge(door.bounds,walk),isTrue);
+      expect(sharesEdge(walk,deck),isTrue);
+      final rotated=facing=='East'||facing=='West';
+      expect(rotated?deck.depth:deck.width,3000);
+      expect(rotated?deck.width:deck.depth,4000);
+      expect(rotated?walk.depth:walk.width,1100);
+      expect(validatePlanPartition(roof.plan),isNull);
+      final drawing=FloorPlanCad.combined([
+        for(final s in result.sheets) FloorPlanCad.fromPlan(s.plan,siteZones:s.siteZones),
+      ]);
+      for(final layer in ['TERRACE_ACCESS','TERRACE_DECK']) {
+        expect(drawing.lines.where((l)=>l.layer==layer).length,4);
+      }
+      expect(drawing.toDxf(),contains('DOWN - 16 RISERS'));
+    }
+  });
+
+  test('invalid terrace configuration blocks all export rather than omitting the roof', () {
+    for (final (edits,message) in <(Map<String,Object>,String)>[
+      ({'terrace_use':['open','garden']},'open terrace only'),
+      ({'g1_roof_height':0},'second straight flight'),
+      ({'g1_roof_landing':.5},'landing must fit'),
+      ({'g1_roof_parapet':.3},'parapet thickness'),
+      ({'g1_roof_walk':.8},'Terrace walk must span the door'),
+      ({'g1_roof_depth':25},'do not fit'),
+      ({'terrace_sqft':130},'available terrace area'),
+      ({'terrace_area_open':140},'requested area'),
+      ({'fsi_limit':.72},'roof stair enclosure'),
+    ]) {
+      final result=run(house(values:{...openTerrace,...edits}));
+      expect(result.issues.single,contains(message),reason:edits.toString());
+      expect(result.sheets,isEmpty);
+    }
+  });
+
+  testWidgets('terrace sheet can be selected in the saved brief preview', (tester) async {
+    await tester.pumpWidget(MaterialApp(home:DwellingG1Screen(name:'Terrace test',brief:house(values:openTerrace),
+      widthFt:80,depthFt:100,facing:'South')));
+    await tester.tap(find.byType(DropdownButtonFormField<int>));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Roof terrace — Open terrace').last);
+    await tester.pumpAndSettle();
+    expect(find.text('Roof terrace · Open terrace'),findsOneWidget);
+    await tester.scrollUntilVisible(find.text('Share all sheets DXF'),250);
+    expect(find.textContaining('DOWN: 16 risers'),findsOneWidget);
+    expect(find.text('Share selected DXF'),findsOneWidget);
   });
 
   testWidgets('dwelling preview switches between ground and first floor and exposes DXF', (tester) async {

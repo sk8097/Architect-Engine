@@ -26,6 +26,19 @@ class StraightStairSpec {
   final int risers, going, landing, height;
   int get run => (risers - 1) * going;
   int get depth => run + 2 * landing;
+
+  StairDrawing drawing(String id,PlanRect bounds,bool up,(int,int) Function(int,int) point) {
+    final first=bounds.bottom+landing,last=first+run,centre=(bounds.left+bounds.right)~/2;
+    final graphics=<((int,int),(int,int))>[
+      for (var i=0;i<risers;i++) (point(bounds.left,first+i*going),point(bounds.right,first+i*going)),
+    ];
+    final start=up?first:last,end=up?last:first;
+    final head=(bounds.width<going?bounds.width:going)~/4,back=up?end-head:end+head;
+    graphics.addAll([(point(centre,start),point(centre,end)),
+      (point(centre-head,back),point(centre,end)),(point(centre+head,back),point(centre,end))]);
+    return StairDrawing(roomId:id,up:up,risers:risers,riseMm:height/risers,goingMm:going,floorHeightMm:height,strokes:graphics);
+  }
+
 }
 
 /// Rectangular plates, aligned straight circulation spine and two room lanes.
@@ -38,9 +51,10 @@ class TowerPlanGenerator {
 
   TowerResult generate(TowerBrief input) => _generate(input);
 
-  TowerResult generateDwelling(TowerBrief input, StraightStairSpec stair) => _generate(input, stair: stair);
+  TowerResult generateDwelling(TowerBrief input, StraightStairSpec stair, {StraightStairSpec? roofStair}) =>
+    _generate(input,stair:stair,roofStair:roofStair);
 
-  TowerResult _generate(TowerBrief input, {StraightStairSpec? stair}) {
+  TowerResult _generate(TowerBrief input, {StraightStairSpec? stair,StraightStairSpec? roofStair}) {
     TowerResult block(String message) => TowerResult(const [], [message]);
     bool valid(int n) => n > 0 && n <= maxDimension;
     if (input.floors < 2 || input.floors > maxLevels) return block('Enter 2 to 100 levels, including ground.');
@@ -55,10 +69,12 @@ class TowerPlanGenerator {
     if (stair == null && (input.stairs.isEmpty || input.lifts.isEmpty || input.shafts.isEmpty)) {
       return block('Supply at least one stair, lift and service-shaft reserve. These are not code minima.');
     }
-    if (stair != null && (input.floors != 2 || input.stairs.length != 1 || input.lifts.isNotEmpty || input.shafts.isNotEmpty ||
-        stair.risers < 2 || stair.risers > 50 || stair.going <= 0 || stair.landing < input.door || stair.height <= 0 ||
-        input.stairs.single.depth != stair.depth || input.stairs.single.width <= input.door)) {
-      return block('The dwelling plan needs two levels and one measured straight flight. The stair and each landing must fit the supplied door swing.');
+    bool validFlight(StraightStairSpec spec,TowerSpace space) =>
+      spec.risers>=2 && spec.risers<=50 && spec.going>0 && spec.landing>=input.door && spec.height>0 &&
+      space.depth==spec.depth && space.width>input.door;
+    if (stair!=null && (input.floors!=2 || input.stairs.length!=(roofStair==null?1:2) || input.lifts.isNotEmpty || input.shafts.isNotEmpty ||
+      !validFlight(stair,input.stairs.first) || (roofStair!=null && !validFlight(roofStair,input.stairs.last)))) {
+      return block('The dwelling plan needs two levels and measured straight flights. Each stair and landing must fit the supplied door swing.');
     }
     if (input.stairs.length + input.lifts.length + input.shafts.length > maxCoreSpaces) return block('Use up to $maxCoreSpaces core reserves in this planner.');
     if (input.groups.isEmpty || input.groups.length > input.floors) return block('Add floor groups covering every level.');
@@ -194,7 +210,7 @@ class TowerPlanGenerator {
         final range = stair != null ? (ground ? 'Ground floor' : 'First floor') :
           ground ? 'Ground (Level 1)' : first == last ? 'Level $first' : 'Levels $first-$last';
         final result=_layout(input,plot,section.plate,section.width,section.depth,section.left,section.right,placements,sides,
-          ground,'${group.name} / $range',exactWidths:stair!=null,exactCoreWidths:stepped,leading:section.lead,stair:stair);
+          ground,'${group.name} / $range',exactWidths:stair!=null,exactCoreWidths:stepped,leading:section.lead,stair:stair,roofStair:roofStair);
         sheets.add(TowerSheet(group.name,range,first,last,result.plan,result.unallocated,siteZones:[
           if (!group.insets.isZero) MeasuredZone('ground_plate','Ground plate reference',plate,'GROUND_PLATE_REFERENCE'),
         ]));
@@ -213,7 +229,7 @@ class TowerPlanGenerator {
       }
       final issue = validatePlanGeometry(sheet.plan,
         indoorSeed: sheet.first == 1 ? null : 'internal_passage',
-        sealedRooms: sheet.plan.rooms.where((room) => room.id.startsWith('shaft_') || room.id.startsWith('reserve_')).map((r) => r.id).toSet());
+        sealedRooms: sheet.plan.rooms.where((room) => room.id.startsWith('shaft_') || room.id.startsWith('reserve_') || (roofStair!=null && sheet.first==1 && room.id=='stair_1')).map((r) => r.id).toSet());
       if (issue != null) return block('${sheet.range}: drawing failed geometry validation. $issue');
     }
     return TowerResult(List.unmodifiable(sheets), const []);
@@ -291,7 +307,7 @@ class TowerPlanGenerator {
 
   ({AutomaticFloorPlan plan, int unallocated}) _layout(TowerBrief input, PlanRect plot,
       PlanRect plate, int w, int d, int left, int right,
-      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false, bool exactCoreWidths = false, int leading = 0, StraightStairSpec? stair}) {
+      List<({String id, TowerSpace space, bool sealed})> items, List<bool> leftSide, bool ground, String title, {bool exactWidths = false, bool exactCoreWidths = false, int leading = 0, StraightStairSpec? stair, StraightStairSpec? roofStair}) {
     final t = input.wall;
     final corridor = input.corridor;
     final door = input.door;
@@ -314,7 +330,7 @@ class TowerPlanGenerator {
       wall(0, 0, w, t);
     }
     var unused = 0;
-    PlanRect? stairRoom;
+    final flightMarks=<({PlanRect bounds,String id,StraightStairSpec spec,bool up})>[];
     for (final side in [true, false]) {
       final x1 = side ? t : ce + t;
       final x2 = side ? t + left : ce + t + right;
@@ -346,10 +362,14 @@ class TowerPlanGenerator {
         final exact=exactWidths || (exactCoreWidths && !item.id.startsWith('room_'));
         final roomLeft=exact && side ? x2-item.space.width : x1;
         final roomRight=exact && !side ? x1+item.space.width : x2;
-        final straight = stair != null && item.id == 'stair_0' ? stair : null;
-        final bounds = PlanRect(roomLeft, y, roomRight, end);
-        if (straight != null) stairRoom = bounds;
-        rooms.add(PlanRoom(item.id, straight == null ? '$prefix${item.space.name}' : 'Straight stair', bounds));
+        final roofFlight=roofStair!=null && item.id=='stair_1';
+        final straight=item.id=='stair_0'?stair:roofFlight&&!ground?roofStair:null;
+        final up=ground||roofFlight;
+        final sealed=item.sealed || roofFlight&&ground;
+        final bounds=PlanRect(roomLeft,y,roomRight,end);
+        if (straight!=null) flightMarks.add((bounds:bounds,id:item.id,spec:straight,up:up));
+        rooms.add(PlanRoom(item.id,roofFlight?(ground?'Sealed terrace stair reserve':'Stair to terrace'):
+          straight!=null?(roofStair==null?'Straight stair':'Ground to first-floor stair'):'$prefix${item.space.name}',bounds));
         if (roomLeft > x1 || roomRight < x2) {
           final divider = side ? roomLeft - t : roomRight;
           wall(divider, y, divider + t, end);
@@ -359,16 +379,16 @@ class TowerPlanGenerator {
             rooms.add(PlanRoom('reserve_width_$i', 'Unallocated space', residual));
           }
         }
-        if (item.sealed) {
+        if (sealed) {
           wall(wx1, y, wx2, end);
         } else {
           final dy = straight == null ? y + (item.space.depth - door) ~/ 2 :
-            (ground ? y : end - straight.landing) + (straight.landing - door) ~/ 2;
+            (up ? y : end - straight.landing) + (straight.landing - door) ~/ 2;
           wall(wx1, y, wx2, dy); wall(wx1, dy + door, wx2, end);
           openings.add(PlanOpening(PlanOpeningKind.door, PlanRect(wx1, dy, wx2, dy + door), hall, item.id));
         }
         final window = item.space.window;
-        if (window != null && !item.sealed) {
+        if (window != null && !sealed) {
           final wy = y + (item.space.depth - window) ~/ 2;
           wall(ex1, y, ex2, wy); wall(ex1, wy + window, ex2, end);
           openings.add(PlanOpening(PlanOpeningKind.window, PlanRect(ex1, wy, ex2, wy + window), outside, item.id));
@@ -395,28 +415,11 @@ class TowerPlanGenerator {
       return PlanRect(local.left + plate.left, local.bottom + plate.bottom,
         local.right + plate.left, local.top + plate.bottom);
     }
-    final stairGraphics = <StairDrawing>[];
-    final stairBounds = stairRoom;
-    if (stair != null && stairBounds != null) {
-      final first = stairBounds.bottom + stair.landing;
-      final last = first + stair.run;
-      final centre = (stairBounds.left + stairBounds.right) ~/ 2;
-      (int, int) point(int x, int y) {
-        final transformed = orient(PlanRect(x,y,x,y));
-        return (transformed.left, transformed.bottom);
-      }
-      final graphics = <((int,int),(int,int))>[
-        for (var i=0; i<stair.risers; i++)
-          (point(stairBounds.left,first+i*stair.going), point(stairBounds.right,first+i*stair.going)),
-      ];
-      final start = ground ? first : last, end = ground ? last : first;
-      final head = (stairBounds.width < stair.going ? stairBounds.width : stair.going) ~/ 4;
-      final back = ground ? end - head : end + head;
-      graphics.addAll([(point(centre,start),point(centre,end)),
-        (point(centre-head,back),point(centre,end)), (point(centre+head,back),point(centre,end))]);
-      stairGraphics.add(StairDrawing(roomId: 'stair_0', up: ground, risers: stair.risers,
-        riseMm: stair.height / stair.risers, goingMm: stair.going, floorHeightMm: stair.height, strokes: graphics));
+    (int,int) point(int x,int y) {
+      final transformed=orient(PlanRect(x,y,x,y));
+      return (transformed.left,transformed.bottom);
     }
+    final stairGraphics=[for(final m in flightMarks) m.spec.drawing(m.id,m.bounds,m.up,point)];
     return (plan: AutomaticFloorPlan(plot: plot, footprint: plate, facing: input.frontage,
       sheetTitle: title, stairs: stairGraphics, rooms: rooms.map((r) => PlanRoom(r.id, r.label, orient(r.bounds))),
       walls: walls.map(orient), openings: openings.map((o) => PlanOpening(o.kind, orient(o.bounds), o.from, o.to))),
