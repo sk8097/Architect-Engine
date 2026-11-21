@@ -11,6 +11,7 @@ import '../data/warehouse_cad_fields.dart';
 import '../data/healthcare_cad_fields.dart';
 import '../data/school_cad_fields.dart';
 import '../data/packhouse_cad_fields.dart';
+import '../data/survey_corridor_fields.dart';
 import '../data/retail_cad_fields.dart';
 import '../data/dwelling_cad_fields.dart';
 import '../data/project_scenarios.dart';
@@ -30,6 +31,8 @@ import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
 import 'packhouse_cad_screen.dart';
+import 'survey_corridor_screen.dart';
+import '../services/survey_corridor_generator.dart';
 import '../services/packhouse_cad_generator.dart';
 import '../services/school_cad_generator.dart';
 import 'retail_cad_screen.dart';
@@ -161,7 +164,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _schoolCad => _schoolEligible && _answers['cad_output'] == 'school_arrival';
   bool get _packhouseEligible => _category?.id == 'rural' && _group?.id == 'agro_processing' && packhouseCadTypes.contains(_type?.id);
   bool get _packhouseCad => _packhouseEligible && _answers['cad_output'] == 'packhouse_flow';
+  bool get _surveyCorridorEligible => _category?.id == 'infrastructure' && _group?.id == 'transport' && surveyCorridorTypes.contains(_type?.id);
+  bool get _surveyCorridorCad => _surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_polyline';
   List<RequirementField> get _cadFields => [
+    if (_surveyCorridorEligible) surveyCorridorMode,
     if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible),
     if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
     if (_g1Cad && _wantsParking) ...[
@@ -182,7 +188,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_type?.id == 'custom') customTypeField,
     if (_configurationId == 'custom') customConfigurationField,
     if (_linearSite)
-      ...alignmentFields.take(3).map((field) => field.id == 'alignment_reference' ? field : asRequired(field))
+      ...alignmentFields.take(3).map((field) => field.id == 'alignment_reference' && !_surveyCorridorCad ? field : asRequired(field))
     else if (_shapeId != null && !_isRectangular)
       asRequired(surveyedPlotFields.first),
     if (!_linearSite) planningChoice('vastu', 'Vastu preference', {
@@ -307,7 +313,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   List<RequirementField> get _siteSchema => [
     ...siteCommonFields,
     for (final field in (_linearSite ? alignmentFields : surveyedPlotFields))
-      if (!_earlyIds.contains(field.id)) field,
+      if (!_earlyIds.contains(field.id) && !(_surveyCorridorCad && const {'concept_straight_alignment','corridor_bands'}.contains(field.id))) field,
+    if (_surveyCorridorCad) ...[...surveyCorridorFields,surveyCorridorBands],
   ];
   List<RequirementField> get _ruleSchema => _linearSite
       ? jurisdictionFields.take(5).toList() : jurisdictionFields;
@@ -503,7 +510,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -757,7 +764,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    if (PackhouseCadGenerator.requested(brief)) {
+    if (SurveyCorridorGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => SurveyCorridorScreen(name:name,brief:brief),
+      ));
+    } else if (PackhouseCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
         builder: (_) => PackhouseCadScreen(name: name, brief: brief, widthFt: width ?? 0,
           depthFt: length ?? 0, facing: facing),
@@ -980,7 +991,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
       ],
       if (_g1Cad && _wantsParking) const Text('Open parking only: a row of bays with unobstructed vehicle access across its full width, plus a separate pedestrian walk. Enter requested bay counts in Operations.'),
-      if (!_linearSite) _fieldPanel(_cadFields),
+      if (!_linearSite || _surveyCorridorEligible) _fieldPanel(_cadFields),
       if (_isRectangular) ExpansionTile(
         title: const Text('Known setbacks (optional)'),
         maintainState: true,
@@ -1026,7 +1037,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(_packhouseCad ? 'Add one receiving, grading, packaging and dispatch room. An ambient finished store is optional. Each clear room width must match the clear building width.' : _retailCad ? 'The retail fixture plan already draws sales, display, checkout and stock. Do not add separate rooms for this drawing.' : _warehouseCad ? 'The measured loading plan already draws its staging, storage, bays and routes. Do not add separate rooms for this drawing.' :
+            Text(_surveyCorridorCad ? 'This CAD mode uses only the left-to-right band list in Site. Leave these discrete space selections empty.' : _packhouseCad ? 'Add one receiving, grading, packaging and dispatch room. An ambient finished store is optional. Each clear room width must match the clear building width.' : _retailCad ? 'The retail fixture plan already draws sales, display, checkout and stock. Do not add separate rooms for this drawing.' : _warehouseCad ? 'The measured loading plan already draws its staging, storage, bays and routes. Do not add separate rooms for this drawing.' :
               'Select spaces or components, then configure each one. This is not a code-required room schedule.'),
             const SizedBox(height: 8),
             OutlinedButton.icon(onPressed: _addCustomSpace, icon: const Icon(Icons.add), label: const Text('Add an unlisted space')),
@@ -1183,6 +1194,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
       if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_clinicCad && !_retailCad && !_schoolCad && !_packhouseCad) _facingPicker(),
+      if (_surveyCorridorCad) const Text('Paste projected metre coordinates (not latitude/longitude) in travel order. ROW is constant and centred on the supplied axis; any unallocated width stays on the right.'),
       _fieldPanel(_siteSchema),
     ]),
   );
@@ -1280,7 +1292,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_packhouseCad)
+        if (_surveyCorridorCad)
+          const Text('Saving checks the surveyed length, chainages and offset band geometry. Conflicting geometry blocks DXF rather than generating straight zoning.')
+        else if (_packhouseCad)
           const Text('Saving checks exact stage lengths, transfer openings, both handling pads and the continuous front-to-rear goods lane. Invalid layouts do not fall back to zoning.')
         else if (_schoolCad)
           const Text('Saving checks that the administration door opens into the visitor lobby and classroom and support-room doors open beyond the internal threshold. Invalid layouts do not fall back to zoning.')

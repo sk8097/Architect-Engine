@@ -150,6 +150,10 @@ class _PlanPainter extends CustomPainter {
       top + (bounds.top - y.toDouble()) * scale);
     Offset xy(CadPoint p) => point(p.x, p.y);
     Color color(String layer) => switch (layer) {
+      'SURVEY_AXIS' => const Color(0xff1e648b),
+      'SURVEY_STATIONS' => const Color(0xff823a75),
+      'RIGHT_OF_WAY' => const Color(0xff4f5868),
+      'CORRIDOR_BANDS' => const Color(0xff1d7137),
       'PLOT' => const Color(0xff7c8798),
       'DOORS' => const Color(0xff127d4d),
       'WINDOWS' => const Color(0xff0072a7),

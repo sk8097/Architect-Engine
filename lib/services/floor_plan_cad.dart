@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import '../models/automatic_floor_plan.dart';
 import '../models/concept_zoning.dart';
+import '../models/survey_corridor.dart';
 
 class CadPoint {
   const CadPoint(this.x, this.y);
@@ -174,6 +177,70 @@ class FloorPlanCad {
     bounds = PlanRect(plot.left - 250, plot.bottom - 1250, plot.right + 1250, plot.top + 920);
   }
 
+  /// Keeps projected grid coordinates in mm; no sheet-set offset is applied.
+  FloorPlanCad.fromSurveyCorridor(SurveyCorridorDrawing sheet) {
+    CadPoint cad(CorridorPoint p) => CadPoint(p.easting,p.northing);
+    void line(String layer, CorridorPoint a, CorridorPoint b) => _lines.add(CadLine(layer,cad(a),cad(b)));
+    void trace(String layer, List<CorridorPoint> points) {
+      for (var i=0;i+1<points.length;i++) { line(layer,points[i],points[i+1]); }
+    }
+    final edges = sheet.edges, axis = sheet.stations.map((s)=>s.point).toList();
+    trace('SURVEY_AXIS',axis);
+    for (var i=0;i<edges.length;i++) {
+      // If a band edge is exactly the centreline, it is already on SURVEY_AXIS.
+      final edge = edges[i];
+      final outer = i==0 || i==edges.length-1;
+      if (outer || !List.generate(edge.length,(j)=>edge[j].easting==axis[j].easting && edge[j].northing==axis[j].northing).every((same)=>same)) {
+        trace(outer?'RIGHT_OF_WAY':'CORRIDOR_BANDS',edge);
+      }
+    }
+    line('RIGHT_OF_WAY',edges.first.first,edges.last.first);
+    line('RIGHT_OF_WAY',edges.first.last,edges.last.last);
+    final all = [...edges.first,...edges.last];
+    final left = all.map((p)=>p.easting).reduce(math.min), right = all.map((p)=>p.easting).reduce(math.max);
+    final bottom = all.map((p)=>p.northing).reduce(math.min), top = all.map((p)=>p.northing).reduce(math.max);
+    final gap = (sheet.widthMm/10).clamp(200,1800).toDouble();
+    final mid = (left+right)/2;
+    _labels.addAll([
+      CadLabel('ANNOTATIONS',CadPoint(mid,top+gap*3),'${sheet.title} / SURVEY CORRIDOR - CONCEPT ONLY',gap),
+      CadLabel('ANNOTATIONS',CadPoint(mid,top+gap*1.8),'${sheet.grid} / ${sheet.reference}',gap*.65),
+      CadLabel('ANNOTATIONS',CadPoint(mid,top+gap*.7),'PROJECTED COORDINATES IN MM - NOT FOR CONSTRUCTION',gap*.65),
+    ]);
+    final arrowX = right+gap*2, arrowY = top+gap*2;
+    final tip = CadPoint(arrowX,arrowY+gap), bottomArrow = CadPoint(arrowX,arrowY-gap);
+    _lines.addAll([CadLine('ANNOTATIONS',bottomArrow,tip),
+      CadLine('ANNOTATIONS',CadPoint(arrowX-gap/3,arrowY+gap/3),tip),
+      CadLine('ANNOTATIONS',CadPoint(arrowX+gap/3,arrowY+gap/3),tip)]);
+    _labels.add(CadLabel('ANNOTATIONS',CadPoint(arrowX,arrowY+gap*1.5),'GRID N',gap*.65));
+    double length(int i) {
+      final dx=axis[i+1].easting-axis[i].easting, dy=axis[i+1].northing-axis[i].northing;
+      return math.sqrt(dx.toDouble()*dx+dy.toDouble()*dy);
+    }
+    var longest = 0;
+    for (var i=1;i+1<axis.length;i++) { if (length(i)>length(longest)) longest=i; }
+    final dx = axis[longest+1].easting-axis[longest].easting, dy = axis[longest+1].northing-axis[longest].northing;
+    final bearing = math.atan2(dy,dx)*180/math.pi;
+    final upright = bearing > 90 ? bearing-180 : bearing < -90 ? bearing+180 : bearing;
+    for (var i=0;i<sheet.bands.length;i++) {
+      final band=sheet.bands[i];
+      final points=[edges[i][longest],edges[i][longest+1],edges[i+1][longest],edges[i+1][longest+1]];
+      final x=points.fold<int>(0,(n,p)=>n+p.easting)/4, y=points.fold<int>(0,(n,p)=>n+p.northing)/4;
+      final text = '${band.label} ${(band.widthMm/1000).toStringAsFixed(3)} M';
+      final height = math.min(gap*.65,math.min(band.widthMm*.36,length(longest)/(text.length*.85)));
+      _labels.add(CadLabel('CORRIDOR_BANDS',CadPoint(x,y),text,height,angle:upright));
+    }
+    for (var i=0;i<axis.length;i++) {
+      final p=axis[i];
+      final size=gap*.20;
+      _lines.add(CadLine('SURVEY_STATIONS',CadPoint(p.easting-size,p.northing-size),CadPoint(p.easting+size,p.northing+size)));
+      _lines.add(CadLine('SURVEY_STATIONS',CadPoint(p.easting-size,p.northing+size),CadPoint(p.easting+size,p.northing-size)));
+      _labels.add(CadLabel('SURVEY_STATIONS',CadPoint(p.easting,p.northing+gap*.55),'STA ${sheet.stations[i].label}',gap*.5));
+    }
+    final labelSpan = math.max(52,(sheet.grid.length+sheet.reference.length+3)*.65)*gap*.31;
+    bounds=PlanRect(math.min(left-gap,mid-labelSpan).floor(),(bottom-gap*1.5).floor(),
+      math.max(right+gap*4,mid+labelSpan).ceil(),(top+gap*4).ceil());
+  }
+
   FloorPlanCad.fromZoning(ZoningSheet sheet) {
     void line(String layer, num x, num y, num ex, num ey) =>
       _lines.add(CadLine(layer, CadPoint(x, y), CadPoint(ex, ey)));
@@ -306,7 +373,7 @@ class FloorPlanCad {
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
       'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
       'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30,
-      'PACKHOUSE_PADS': 30, 'PACKHOUSE_OPENINGS': 6, 'PACKHOUSE_FLOW': 3};
+      'PACKHOUSE_PADS': 30, 'PACKHOUSE_OPENINGS': 6, 'PACKHOUSE_FLOW': 3, 'SURVEY_AXIS': 4, 'SURVEY_STATIONS': 6};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

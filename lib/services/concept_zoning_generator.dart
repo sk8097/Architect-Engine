@@ -110,6 +110,7 @@ class ConceptZoningGenerator {
       }
     }
     if (linear) {
+      if (answers['corridor_cad_mode'] == 'survey_polyline') return blocked('This brief requests survey corridor CAD, not straight zoning.');
       if (answers['concept_straight_alignment'] != 'confirmed') {
         return blocked('For CAD, confirm a straight measured corridor. A curved or surveyed multi-segment alignment needs a different generator.');
       }

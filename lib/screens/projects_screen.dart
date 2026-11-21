@@ -13,6 +13,8 @@ import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
 import 'packhouse_cad_screen.dart';
+import 'survey_corridor_screen.dart';
+import '../services/survey_corridor_generator.dart';
 import '../services/packhouse_cad_generator.dart';
 import '../services/school_cad_generator.dart';
 import 'retail_cad_screen.dart';
@@ -191,6 +193,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'survey_polyline' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => SurveyCorridorScreen(
+                                    name: project.name, brief: project.brief!)));
+                                  return;
+                                }
                                 if (val == 'packhouse_flow' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => PackhouseCadScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -276,7 +283,9 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'warehouse_loading', child: Text('Warehouse loading CAD')),
                                 if (EnclosedCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'enclosed', child: Text('Measured floor plan CAD')),
-                                if (ConceptZoningGenerator.supportsBrief(project.brief))
+                                if (SurveyCorridorGenerator.requested(project.brief))
+                                  const PopupMenuItem(value: 'survey_polyline', child: Text('Survey corridor CAD')),
+                                if (!SurveyCorridorGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'zones', child: Text('Concept zoning CAD')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),
