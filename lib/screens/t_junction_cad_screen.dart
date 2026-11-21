@@ -7,6 +7,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/project_brief.dart';
 import '../services/floor_plan_cad.dart';
 import '../services/t_junction_cad_generator.dart';
+import '../services/cross_junction_cad_generator.dart';
 import 'automatic_floor_plan_screen.dart';
 
 class TJunctionCadScreen extends StatefulWidget {
@@ -19,7 +20,8 @@ class TJunctionCadScreen extends StatefulWidget {
 }
 
 class _TJunctionCadScreenState extends State<TJunctionCadScreen> {
-  late final _result = TJunctionCadGenerator().generate(widget.brief);
+  late final _cross = CrossJunctionCadGenerator.requested(widget.brief);
+  late final _result = _cross ? CrossJunctionCadGenerator().generate(widget.brief) : TJunctionCadGenerator().generate(widget.brief);
   bool _sharing = false;
 
   Future<void> _share(BuildContext context, FloorPlanCad cad) async {
@@ -30,7 +32,7 @@ class _TJunctionCadScreenState extends State<TJunctionCadScreen> {
     setState(() => _sharing = true);
     try {
       await Share.shareXFiles([XFile.fromData(Uint8List.fromList(ascii.encode(cad.toDxf())), mimeType: 'application/dxf')],
-        fileNameOverrides: ['${name.isEmpty ? 'project' : name}_t_junction.dxf'], sharePositionOrigin: origin);
+        fileNameOverrides: ['${name.isEmpty ? 'project' : name}_${_cross ? 'four_arm_junction' : 't_junction'}.dxf'], sharePositionOrigin: origin);
     } catch (_) {
       if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text('Could not share the DXF.')));
     } finally {
@@ -41,7 +43,7 @@ class _TJunctionCadScreenState extends State<TJunctionCadScreen> {
   @override
   Widget build(BuildContext context) {
     final cad = _result.drawing;
-    return Scaffold(appBar: AppBar(title: const Text('Survey T-junction CAD')), body: SafeArea(child: ListView(
+    return Scaffold(appBar: AppBar(title: Text(_cross ? 'Survey four-arm intersection CAD' : 'Survey T-junction CAD')), body: SafeArea(child: ListView(
       padding: const EdgeInsets.all(16), children: [
         Text(widget.name, style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),

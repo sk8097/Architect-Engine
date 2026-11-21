@@ -3,6 +3,7 @@ import 'space_planning.dart';
 
 final tJunctionCadMode = planningChoice('junction_cad_mode', 'Junction drawing', {
   'survey_t': 'Survey controls: orthogonal T-junction CAD',
+  'survey_cross': 'Survey controls: skew four-arm intersection CAD',
 }, required: false);
 
 const tJunctionCadFields = <RequirementField>[
@@ -15,4 +16,13 @@ const tJunctionCadFields = <RequirementField>[
   RequirementField('junction_branch_row', 'Full branch right-of-way width', kind: RequirementKind.decimal, unit: 'm', min: .001, max: 1000, required: true),
   RequirementField('junction_a_radius', 'Curb-return radius on main A side', kind: RequirementKind.decimal, unit: 'm', min: .001, max: 1000, required: true),
   RequirementField('junction_b_radius', 'Curb-return radius on main B side', kind: RequirementKind.decimal, unit: 'm', min: .001, max: 1000, required: true),
+];
+
+final crossJunctionCadFields = <RequirementField>[
+  ...tJunctionCadFields.take(2),
+  const RequirementField('cross_controls', 'Easting,Northing in m: main A; junction J; main B; cross C; cross D', required: true),
+  ...tJunctionCadFields.skip(3).take(4),
+  for (final pair in ['AC', 'BC', 'BD', 'AD'])
+    RequirementField('cross_radius_${pair.toLowerCase()}', 'Curb-return radius between ${pair[0]} and ${pair[1]}',
+      kind: RequirementKind.decimal, unit: 'm', min: .001, max: 1000, required: true),
 ];
