@@ -33,7 +33,7 @@ class CorridorSectionResult {
 class CorridorSectionGenerator {
   static bool requested(ProjectBrief? brief) => brief?.requirements?.answers['corridor_cad_mode'] == 'survey_section';
 
-  CorridorSectionResult generate(ProjectBrief brief) {
+  CorridorSectionResult generate(ProjectBrief brief, {bool sheetSet = false}) {
     CorridorSectionResult stop(String issue) => CorridorSectionResult(null, issue);
     final sel = brief.taxonomy, snap = brief.requirements;
     if (sel == null || snap == null || sel.version != projectTaxonomyVersion || snap.version != requirementsSchemaVersion ||
@@ -166,7 +166,10 @@ class CorridorSectionGenerator {
     final headings = [
       'SURVEY CROSS-SECTION / CH ${m(chainage)} M',
       source,
-      'X = SIGNED OFFSET MM / Y = (LEVEL - ${m(datum)} M) x $scale IN MM',
+      if (sheetSet)
+        'LOCAL ORIGIN: CL / PLOT BASE ${m(datum)} M / MM / VERTICAL x $scale'
+      else
+        'X = SIGNED OFFSET MM / Y = (LEVEL - ${m(datum)} M) x $scale IN MM',
       'CUT ${cut.toStringAsFixed(3)} M2 / FILL ${fill.toStringAsFixed(3)} M2 WITHIN DESIGN EXTENTS',
     ];
     for (var i = 0; i < headings.length; i++) {

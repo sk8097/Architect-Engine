@@ -10,6 +10,7 @@ final surveyCorridorMode = planningChoice('corridor_cad_mode', 'Corridor drawing
   'survey_circular': 'Tangent survey with measured circular bends',
   'survey_profile': 'Longitudinal profile: survey levels and proposed grades',
   'survey_section': 'Cross-section: surveyed ground and proposed surface',
+  'survey_earthwork': 'Earthwork takeoff: multi-station surveyed cross-sections',
 }, required: false);
 
 const surveyCorridorFields = <RequirementField>[
