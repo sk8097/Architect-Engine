@@ -1,0 +1,13 @@
+# Fixed-tilt solar farm CAD
+
+Choose **Infrastructure → Energy / utilities / communications → Solar Farm**. Under **Automatic drawing**, choose **Solar farm: measured fixed-tilt rows and shade clearance**. Use an outdoor yard with no floors, parking or separate Space selections.
+
+Enter a measured rectangular or square plot aligned to the cardinal axes: width is west–east, depth south–north. The drawing uses a local origin at the southwest corner, not a projected survey CRS. The tables face south or north and are arranged in aligned east–west rows. Enter the table and module counts, module dimensions in the tilted plane, seams, nameplate power, tilt angle, row pitch and table gaps. Measure the first row low-edge offset from the **south edge for south-facing modules** or **north edge for north-facing modules**. Drawings are capped at 8,000 modules.
+
+The app checks that table footprints fit the perimeter clearance and any larger side-specific setbacks (front = south, rear = north, left = west, right = east), and do not overlap optional rectangular exclusions. Enter exclusions as `ID,west offset,south offset,width,depth`, in metres, separated by semicolon or newline. Shared boundaries are allowed; include any needed buffer in the exclusion dimensions. Exclusions protect space only: their heights and shadows are not modelled.
+
+For adjacent rows, the horizontal clear gap equals pitch minus the projected table depth. It must meet the supplied maintenance gap and be at least the rear shade reach at the supplied **sun profile angle in the plane perpendicular to the rows**. The reach is the table rise divided by the tangent of that angle, assuming all low edges are at the same elevation and sunlight comes from the module-facing side. This is not an annual or site-specific shade analysis. One row has no inter-row check.
+
+Example: on a 50 × 40 m plot, choose three south-facing rows of four tables each, with five columns by two modules per table. Use 1.10 × 2.00 m modules, 0.02 m seams, 550 Wp per module, 30° tilt, 30° sun profile angle, 8 m pitch, 2 m between tables, a 3 m maintenance gap and 3 m perimeter clearance. Start 5 m from the west edge and 4 m from the south. The table projects about 3.481 m horizontally; the clear row gap is about 4.519 m. The result is 120 modules totalling **66.000 kWp DC nameplate**, not a generation estimate.
+
+Save to preview and share a layered editable DXF; reopen it from **Fixed-tilt solar farm CAD** in Projects. A layout that cannot fit keeps the brief but blocks export. The model does not design electrical systems, racks or foundations, estimate energy production, or verify actual shading, road/fire access or approvals.
