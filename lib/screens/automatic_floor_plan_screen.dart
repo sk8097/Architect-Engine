@@ -152,6 +152,11 @@ class _PlanPainter extends CustomPainter {
     Color color(String layer) => switch (layer) {
       'SURVEY_AXIS' => const Color(0xff1e648b),
       'SURVEY_STATIONS' => const Color(0xff823a75),
+      'DRAIN_PLAN_AXIS' || 'DRAIN_INVERT' => const Color(0xff265e99),
+      'DRAIN_CROWN' => const Color(0xff007e8c),
+      'DRAIN_NODES' || 'DRAIN_PROFILE_NODES' => const Color(0xff823a75),
+      'DRAIN_FLOW' => const Color(0xff237d42),
+      'DRAIN_GROUND' => const Color(0xffaa5c19),
       'PROFILE_GROUND' => const Color(0xffaa5c19),
       'PROFILE_DESIGN' => const Color(0xff265e99),
       'PROFILE_STATIONS' => const Color(0xff8993a6),
