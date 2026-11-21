@@ -4,6 +4,7 @@ import 'space_planning.dart';
 const stormwaterCadTypes = {'stormwater_drain', 'drainage_network'};
 
 final stormwaterCadMode = planningChoice('drain_cad_mode', 'Drainage drawing', {
+  'survey_open_drain': 'Open stormwater drain: surveyed trapezoidal reach',
   'survey_gravity': 'Gravity stormwater: surveyed plan and pipe profile',
 }, required: false);
 

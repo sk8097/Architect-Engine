@@ -40,6 +40,7 @@ import '../data/longitudinal_profile_fields.dart';
 import '../data/corridor_section_fields.dart';
 import '../data/corridor_earthwork_fields.dart';
 import '../data/stormwater_cad_fields.dart';
+import '../data/open_drain_cad_fields.dart';
 import '../data/culvert_cad_fields.dart';
 import '../data/t_junction_cad_fields.dart';
 import '../data/retail_cad_fields.dart';
@@ -115,6 +116,8 @@ import 'corridor_earthwork_screen.dart';
 import '../services/corridor_earthwork_generator.dart';
 import '../services/corridor_section_generator.dart';
 import 'stormwater_cad_screen.dart';
+import 'open_drain_cad_screen.dart';
+import '../services/open_drain_cad_generator.dart';
 import 'culvert_cad_screen.dart';
 import '../services/culvert_cad_generator.dart';
 import '../services/stormwater_cad_generator.dart';
@@ -322,7 +325,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _culvertCad => _culvertEligible && _answers['culvert_cad_mode'] == 'survey_crossing';
   bool get _stormwaterEligible => _category?.id == 'infrastructure' && _group?.id == 'water' && stormwaterCadTypes.contains(_type?.id);
   bool get _stormwaterCad => _stormwaterEligible && _answers['drain_cad_mode'] == 'survey_gravity';
-  bool get _surveySheetOnly => _junctionCad || _longProfileCad || _corridorSectionCad || _earthworkCad || _stormwaterCad || _culvertCad;
+  bool get _openDrainCad => _stormwaterEligible && _answers['drain_cad_mode'] == 'survey_open_drain';
+  bool get _surveySheetOnly => _junctionCad || _longProfileCad || _corridorSectionCad || _earthworkCad || _stormwaterCad || _openDrainCad || _culvertCad;
   bool get _junctionEligible => _category?.id == 'infrastructure' && _group?.id == 'transport' && _type?.id == 'intersection';
   bool get _junctionCad => _junctionEligible && const {'survey_t', 'survey_cross'}.contains(_answers['junction_cad_mode']);
   bool get _crossJunctionCad => _junctionCad && _answers['junction_cad_mode'] == 'survey_cross';
@@ -525,6 +529,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_corridorSectionCad) ...corridorSectionFields,
     if (_earthworkCad) ...corridorEarthworkFields,
     if (_stormwaterCad) ...stormwaterCadFields,
+    if (_openDrainCad) ...openDrainCadFields,
     if (_culvertCad) ...culvertCadFields,
     if (_truckSweepCad) truckSweepObstacles,
     if (_solarCad) solarFarmObstacles,
@@ -731,7 +736,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,culvertCadMode,...culvertCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,...openDrainCadFields,culvertCadMode,...culvertCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -1077,6 +1082,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => TJunctionCadScreen(name:name,brief:brief)));
     } else if (CulvertCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => CulvertCadScreen(name:name,brief:brief)));
+    } else if (OpenDrainCadGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => OpenDrainCadScreen(name:name,brief:brief)));
     } else if (StormwaterCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => StormwaterCadScreen(name:name,brief:brief)));
     } else if (CorridorEarthworkGenerator.requested(brief)) {
@@ -1591,7 +1598,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
 
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
-    child: _selectionList(_culvertCad ? 'Record the culvert end survey, ground levels and road crossing.' : _stormwaterCad ? 'Record the surveyed gravity-run nodes, cover and fall requirements.' : _earthworkCad ? 'Record surveyed and proposed sections at two or more matching stations.' : _corridorSectionCad ? 'Record a transverse ground and design section against one benchmark.' : _longProfileCad ? 'Record the surveyed ground and proposed levels against the same benchmark.' : _junctionCad ? 'Record your junction survey controls and measured widths and radii.' : _linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
+    child: _selectionList(_openDrainCad ? 'Record the ends of the open drain, section geometry and available corridor.' : _culvertCad ? 'Record the culvert end survey, ground levels and road crossing.' : _stormwaterCad ? 'Record the surveyed gravity-run nodes, cover and fall requirements.' : _earthworkCad ? 'Record surveyed and proposed sections at two or more matching stations.' : _corridorSectionCad ? 'Record a transverse ground and design section against one benchmark.' : _longProfileCad ? 'Record the surveyed ground and proposed levels against the same benchmark.' : _junctionCad ? 'Record your junction survey controls and measured widths and radii.' : _linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
       if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_crossDockCad && !_clinicCad && !_retailCad && !_schoolCad && !_officeCad && !_diningCad && !_cattleCad && !_packhouseCad && !_libraryCad && !_assemblyCad && !_badmintonCad && !_hostelCad && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_truckSweepCad && !_pairedApartmentCad && !_solarCad && !_basinCad && !_evHubCad && !_orchardCad && !_switchbackRampCad && !_teachingLabCad && !_hotelWingCad && !_basketballCad && !_rainwaterCad && !_lapPoolCad && !_publicMarketCad && !_mixedHomeCad) _facingPicker(),
       if (_publicMarketCad) const Text('Measure plot width along the selected frontage and depth inward. Left and right are as seen from the frontage, looking into the plot.')
       else if (_lapPoolCad) const Text('Plot width is west–east and depth south–north, with the shallow end to the south. Setbacks use south as front and west as left.')
@@ -1599,6 +1606,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       else if (_orchardCad) const Text('Plot width is west–east and depth is south–north. Setbacks use south as front and west as left. Measure exclusions from the southwest plot corner.')
       else if (_basinCad) const Text('Plot width is west–east and depth is south–north. Setbacks use south as front and west as left. Use the same level datum for the floor, normal pool, design water and crest.')
       else if (_culvertCad) const Text('Measure chainage along the barrel from its inlet. Enter the straight road bearing from grid north, and road width perpendicular to its own axis.')
+      else if (_openDrainCad) const Text('Enter projected metre coordinates and a common invert datum. Looking downstream, measure each corridor limit perpendicular from the bottom centreline.')
       else if (_stormwaterCad) const Text('Enter upstream to downstream. Use projected metre coordinates and ground/invert levels on one datum. Intermediate ground samples use cumulative plan distance from the first node.')
       else if (_earthworkCad) const Text('Group both lists by increasing chainage, with offsets increasing from negative left to positive right within each station. Use the same station set and level datum for both lists.')
       else if (_corridorSectionCad) const Text('Looking toward increasing chainage: left is negative, centreline is zero and right is positive. Use increasing offsets; surveyed ground must cover the full proposed width.')
@@ -1714,6 +1722,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           const Text('Saving checks the surveyed junction geometry, curb-return arcs and measured right-of-way. A failed fit does not fall back to corridor zoning.')
         else if (_culvertCad)
           const Text('Saving checks the crossed road band, full end-face fit, longitudinal fall and centreline cover. Failed checks block both DXFs.')
+        else if (_openDrainCad)
+          const Text('Saving checks downstream fall, geometric freeboard and both corridor limits. A failed check blocks all three DXFs.')
         else if (_stormwaterCad)
           const Text('Saving checks plan intersections, downstream fall and cover at supplied surface points. Failed fit blocks both plan and profile DXF.')
         else if (_earthworkCad)
