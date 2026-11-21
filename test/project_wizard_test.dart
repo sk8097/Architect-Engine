@@ -196,10 +196,17 @@ void main() {
     await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, 'New road');
     await tap(tester, 'Continue');
+    final alignment = find.byKey(const ValueKey('concept_straight_alignment'));
+    await tester.ensureVisible(alignment);
+    await tester.tap(find.descendant(of: alignment, matching: find.byType(DropdownButtonFormField<String>)));
+    await tester.pumpAndSettle();
+    await tap(tester, 'Confirmed straight measured alignment');
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     expect(projects.projects.single.brief!.requirements!.answers['route_length'], 1200.5);
     expect(projects.projects.single.brief!.taxonomy!.plotShapeId, isNull);
+    expect(find.text('Concept zoning CAD'), findsOneWidget);
+    expect(find.text('Share zoning DXF'), findsOneWidget);
   });
 
   testWidgets('bedroom count with no preset automatically opens the generated plan', (tester) async {

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/project_scenarios.dart';
 import '../data/project_taxonomy.dart';
 import 'project_wizard_screen.dart';
+import 'tower_planner_screen.dart';
 
 class ScenarioLibraryScreen extends StatefulWidget {
   const ScenarioLibraryScreen({super.key});
@@ -63,7 +64,8 @@ class _ScenarioLibraryScreenState extends State<ScenarioLibraryScreen> {
                       DropdownMenuItem(value: '', child: Text('All statuses')),
                       DropdownMenuItem(value: 'CAD supported', child: Text('CAD supported')),
                       DropdownMenuItem(value: 'Input needed', child: Text('Input needed')),
-                      DropdownMenuItem(value: 'Brief only', child: Text('Brief only')),
+                      DropdownMenuItem(value: 'Zoning CAD', child: Text('Zoning CAD')),
+                      DropdownMenuItem(value: 'High-rise CAD', child: Text('High-rise CAD')),
                     ],
                     onChanged: (value) => setState(() => _status = value ?? ''),
                   ),
@@ -87,7 +89,13 @@ class _ScenarioLibraryScreenState extends State<ScenarioLibraryScreen> {
                         title: Text(entry.scenario.label),
                         subtitle: Text([entry.scenario.path, if (entry.variant != null) entry.variant!.label, entry.status].join('\n')),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () => ProjectWizardScreen.open(context, scenario: entry.scenario, variant: entry.variant),
+                        onTap: () {
+                          if (entry.isHighRise) {
+                            Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => const TowerPlannerScreen()));
+                          } else {
+                            ProjectWizardScreen.open(context, scenario: entry.scenario, variant: entry.variant);
+                          }
+                        },
                       );
                     },
                   ),
@@ -104,8 +112,10 @@ class _ScenarioEntry {
   final ProjectScenario scenario;
   final ProjectScenarioVariant? variant;
 
-  String get status => variant != null
-    ? (variant!.generator == null ? 'Brief only' : 'CAD supported')
-    : (scenario.generator == null ? 'Brief only' : 'Input needed');
+  bool get isHighRise => scenario.category.id == 'special' && scenario.group.id == 'complex' &&
+      scenario.type.id == 'high_rise_supertall_building';
+  String get status => isHighRise ? 'High-rise CAD' : variant != null
+    ? (variant!.generator == null ? 'Zoning CAD' : 'CAD supported')
+    : (scenario.generator == null ? 'Zoning CAD' : 'Input needed');
   late final searchText = '${scenario.label} ${scenario.path} ${variant?.label ?? ''} $status'.toLowerCase();
 }

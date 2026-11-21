@@ -7,6 +7,8 @@ import '../widgets/app_drawer.dart';
 import 'project_form_dialog.dart';
 import 'project_wizard_screen.dart';
 import 'tower_planner_screen.dart';
+import 'concept_zoning_screen.dart';
+import '../services/concept_zoning_generator.dart';
 import 'scenario_library_screen.dart';
 import 'automatic_floor_plan_screen.dart';
 import '../services/automatic_floor_plan_generator.dart';
@@ -163,6 +165,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     TowerPlanScreen(projectName: project.name, brief: project.tower!)));
                                   return;
                                 }
+                                if (val == 'zones' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => ConceptZoningScreen(
+                                    name: project.name, brief: project.brief!, widthFt: project.width,
+                                    depthFt: project.length, facing: project.facing)));
+                                  return;
+                                }
                                 if (val == 'plan' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(
                                     builder: (_) => AutomaticFloorPlanScreen(
@@ -198,6 +206,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'tower', child: Text('High-rise CAD')),
                                 if (AutomaticFloorPlanGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
+                                if (ConceptZoningGenerator.supportsBrief(project.brief))
+                                  const PopupMenuItem(value: 'zones', child: Text('Concept zoning CAD')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),
                                 const PopupMenuItem(value: 'del', child: Text('Delete', style: TextStyle(color: Colors.red))),

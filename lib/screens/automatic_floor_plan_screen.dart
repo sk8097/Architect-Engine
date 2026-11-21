@@ -108,8 +108,8 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
 }
 
 class CadPlanPreview extends StatelessWidget {
-  const CadPlanPreview({super.key, required this.plan, required this.drawing});
-  final AutomaticFloorPlan plan;
+  const CadPlanPreview({super.key, this.plan, required this.drawing});
+  final AutomaticFloorPlan? plan;
   final FloorPlanCad drawing;
 
   @override
@@ -125,7 +125,7 @@ class CadPlanPreview extends StatelessWidget {
 
 class _PlanPainter extends CustomPainter {
   const _PlanPainter(this.plan, this.drawing);
-  final AutomaticFloorPlan plan;
+  final AutomaticFloorPlan? plan;
   final FloorPlanCad drawing;
 
   @override
@@ -145,10 +145,13 @@ class _PlanPainter extends CustomPainter {
       'DOORS' => const Color(0xff127d4d),
       'WINDOWS' => const Color(0xff0072a7),
       'DIMENSIONS' => const Color(0xff455977),
+      'ZONES_PUBLIC' => const Color(0xff007d87),
+      'ZONES_SERVICE' => const Color(0xff8f4b10),
+      'PLANNING_ENVELOPE' => const Color(0xff775ea4),
       _ => const Color(0xff182537),
     };
     final wallFill = Paint()..color = const Color(0xffa8b6c6);
-    for (final wall in plan.walls) {
+    for (final wall in plan?.walls ?? const <PlanRect>[]) {
       canvas.drawRect(Rect.fromPoints(point(wall.left, wall.top), point(wall.right, wall.bottom)), wallFill);
     }
     for (final line in drawing.lines) {

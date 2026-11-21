@@ -1,4 +1,5 @@
 import '../models/automatic_floor_plan.dart';
+import '../models/concept_zoning.dart';
 
 class CadPoint {
   const CadPoint(this.x, this.y);
@@ -121,10 +122,59 @@ class FloorPlanCad {
     bounds = PlanRect(plot.left - 250, plot.bottom - 1250, plot.right + 1250, plot.top + 920);
   }
 
+  FloorPlanCad.fromZoning(ZoningSheet sheet) {
+    void line(String layer, num x, num y, num ex, num ey) =>
+      _lines.add(CadLine(layer, CadPoint(x, y), CadPoint(ex, ey)));
+    void rectangle(String layer, PlanRect box) {
+      line(layer, box.left, box.bottom, box.right, box.bottom);
+      line(layer, box.right, box.bottom, box.right, box.top);
+      line(layer, box.right, box.top, box.left, box.top);
+      line(layer, box.left, box.top, box.left, box.bottom);
+    }
+    void label(String layer, num x, num y, String text, num height, {num angle = 0}) =>
+      _labels.add(CadLabel(layer, CadPoint(x, y), text, height, angle: angle));
+    final site = sheet.boundary, envelope = sheet.envelope;
+    final minSide = site.width < site.depth ? site.width : site.depth;
+    final gap = (minSide ~/ 50).clamp(250, 2000).toInt();
+    rectangle(sheet.corridor ? 'RIGHT_OF_WAY' : 'PLOT', site);
+    if (envelope.left != site.left || envelope.bottom != site.bottom || envelope.right != site.right || envelope.top != site.top) {
+      rectangle('PLANNING_ENVELOPE', envelope);
+    }
+    for (final item in sheet.zones) {
+      final box = item.bounds, x = (box.left + box.right) / 2, y = (box.bottom + box.top) / 2;
+      final height = (box.width / ((item.name.length + 2) * .72)).clamp(1, box.depth / 5 > 1 ? box.depth / 5 : 1).clamp(1, gap).toDouble();
+      rectangle(item.layer, box);
+      label('ROOM_LABELS', x, y + height * .65, item.name, height);
+      label('DIMENSIONS', x, y - height * .85, '${box.width} x ${box.depth}', height * .75);
+    }
+    final mid = (site.left + site.right) / 2;
+    label('ANNOTATIONS', mid, site.top + gap * 3, '${sheet.title} - CONCEPT ZONING', gap);
+    label('ANNOTATIONS', mid, site.top + gap * 1.65, 'NOT FOR CONSTRUCTION - DIMENSIONS IN MM', gap * .65);
+    label('ANNOTATIONS', mid, site.top + gap * .6, sheet.axisLabel, gap * .65);
+    final y = site.bottom - gap * 1.6, x = site.right + gap * 2;
+    line('DIMENSIONS', site.left, site.bottom, site.left, y - gap / 3);
+    line('DIMENSIONS', site.right, site.bottom, site.right, y - gap / 3);
+    line('DIMENSIONS', site.left, y, site.right, y);
+    label('DIMENSIONS', mid, y + gap / 4, '${site.width}', gap * .75);
+    line('DIMENSIONS', site.right, site.bottom, x + gap / 3, site.bottom);
+    line('DIMENSIONS', site.right, site.top, x + gap / 3, site.top);
+    line('DIMENSIONS', x, site.bottom, x, site.top);
+    label('DIMENSIONS', x - gap / 4, (site.bottom + site.top) / 2, '${site.depth}', gap * .75, angle: 90);
+    if (sheet.corridor) {
+      final end = site.width ~/ 1000000;
+      final remainder = ((site.width % 1000000) / 1000).toStringAsFixed(3).padLeft(7, '0');
+      label('ANNOTATIONS', site.left + gap * 2, y - gap, 'STA 0+000', gap * .8);
+      label('ANNOTATIONS', site.right - gap * 2, y - gap, 'STA $end+$remainder', gap * .8);
+    }
+    bounds = PlanRect(site.left - gap * 3, site.bottom - gap * 4, site.right + gap * 4, site.top + gap * 5);
+  }
+
   /// A single model-space DXF with the indexed sheets laid out in non-overlapping cells.
-  /// Per-sheet exports retain their original plot coordinates.
-  FloorPlanCad.sheetSet(Iterable<AutomaticFloorPlan> plans) {
-    final drawings = plans.map(FloorPlanCad.fromPlan).toList(growable: false);
+  /// Per-sheet exports retain their original coordinates.
+  factory FloorPlanCad.sheetSet(Iterable<AutomaticFloorPlan> plans) => FloorPlanCad.combined(plans.map(FloorPlanCad.fromPlan));
+
+  FloorPlanCad.combined(Iterable<FloorPlanCad> geometry) {
+    final drawings = geometry.toList(growable: false);
     final cellWidth = drawings.fold<int>(0, (n, d) => n > d.bounds.width ? n : d.bounds.width) + 4000;
     final cellDepth = drawings.fold<int>(0, (n, d) => n > d.bounds.depth ? n : d.bounds.depth) + 4000;
     var index = 0, right = 0, bottom = 0;
@@ -199,7 +249,8 @@ class FloorPlanCad {
       pair(code, number(p.x)); pair(code + 10, number(p.y)); pair(code + 20, '0.0');
     }
     const layers = {'0': 7, 'PLOT': 8, 'WALLS': 7, 'DOORS': 3, 'WINDOWS': 5,
-      'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8};
+      'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
+      'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

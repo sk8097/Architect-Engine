@@ -17,6 +17,7 @@ import '../widgets/requirement_fields.dart';
 import '../services/automatic_floor_plan_generator.dart';
 import 'automatic_floor_plan_screen.dart';
 import 'tower_planner_screen.dart';
+import 'concept_zoning_screen.dart';
 
 class ProjectWizardScreen extends StatefulWidget {
   const ProjectWizardScreen({super.key, this.existingProject, this.scenario, this.variant});
@@ -147,7 +148,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           planningArea('terrace_area_$zone', 'Area for $zone terrace zone'),
   ];
   List<RequirementField> _levelFields(int level) => [
-    if (level > 0) planningArea('level_area_$level', 'Available floor area'),
+    if (level > 0) ...[
+      planningArea('level_area_$level', 'Available floor area'),
+      RequirementField('zoning_width_$level', 'Zoning envelope width', kind: RequirementKind.decimal, min: .01, unit: 'm'),
+      RequirementField('zoning_depth_$level', 'Zoning envelope depth', kind: RequirementKind.decimal, min: .01, unit: 'm'),
+    ],
     if (_floorCount > 1) planningArea('level_access_$level', 'Stair, landing and lift allowance'),
     if (_home && _floorCount > 1) ...[
       RequirementField('level_bedrooms_$level', 'Bedrooms on this floor', kind: RequirementKind.integer, min: 0, required: true),
@@ -646,8 +651,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           frontageFt: width ?? 0, depthFt: length ?? 0, facing: facing),
       ));
     } else {
-      Navigator.of(context).pop();
-      messenger.showSnackBar(const SnackBar(content: Text('Project brief saved.')));
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => ConceptZoningScreen(name: name, brief: brief, widthFt: width ?? 0,
+          depthFt: length ?? 0, facing: facing),
+      ));
     }
   }
 
@@ -1125,7 +1132,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         else if (_canAutoPlan)
           const Text('Saving checks your requirements and automatically opens the CAD concept if they fit. If they do not, your brief is kept as entered and the app explains why no drawing was created.')
         else
-          const Text('Your requirements will be saved as entered. No automatic drawing is available for this selection yet.'),
+          const Text('Saving attempts a measured concept zoning sheet. Enter clear width and length for each selected space. This is not a detailed architectural drawing.'),
         if (_canAutoPlan) const Text('A generated drawing can be saved as DXF. PDF is not available yet.'),
       ],
     );

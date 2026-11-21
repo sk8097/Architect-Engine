@@ -10,3 +10,7 @@ The main flow is **Projects → New Project**: enter your own requirements witho
 The library ships all known catalogue entries together without claiming that every entry generates. Engine upgrades can assign additional scenario IDs to validated generators without changing other entries.
 
 When the user leaves the configuration blank but specifies a bedroom count on a low-rise housing program, the app may derive a matching BHK label and internal scenario. The stored configuration stays unset and user requirements such as parking are never changed to fit a generator.
+
+## CAD routing
+
+The library now distinguishes **Zoning CAD** (measured zoning for other types) from the previously registered detailed low-rise routes and the separate **High-rise CAD** planner. See [Measured concept zoning CAD](concept-zoning.md). No badge guarantees that any entered plan fits or has specialist verification.
