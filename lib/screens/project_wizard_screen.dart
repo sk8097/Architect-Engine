@@ -402,7 +402,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_culvertEligible) culvertCadMode,
     if (_footbridgeEligible) footbridgeCadMode,
     if (_busLaybyEligible) busLaybyCadMode,
-    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible, mixedShopHome: _mixedEligible, crossDock: _crossDockEligible, officeWorkplace: _officeEligible, diningService:_diningEligible,cattleShed:_cattleEligible,assembly:_assemblyEligible,libraryReading:_libraryEligible,badminton:_badmintonEligible,hostel:_hostelEligible,greenhouse:_greenhouseEligible,sharedCore:_sharedCoreEligible,inpatientWard:_inpatientWardEligible,truckSweep:_warehouseEligible,pairedApartments:_pairedApartmentEligible, solarFarm:_solarEligible, detentionBasin:_basinEligible, evHub:_evHubEligible, orchard:_orchardEligible, switchbackRamp:_switchbackRampEligible, teachingLab:_teachingLabEligible, hotelWing:_hotelWingEligible, basketball:_basketballEligible, rainwater:_rainwaterEligible, lapPool:_lapPoolEligible, publicMarket:_publicMarketEligible, raisedBeds:_raisedBedEligible, amphitheatre:_amphitheatreEligible, parkLoop:_parkLoopEligible, windrowYard:_windrowYardEligible, galleryPanels:_galleryPanelEligible, angledParking:_angledParkingEligible, coldRacks:_coldRackEligible, twinTank:_twinTankEligible),
+    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible, mixedShopHome: _mixedEligible, crossDock: _crossDockEligible, officeWorkplace: _officeEligible, diningService:_diningEligible,cattleShed:_cattleEligible,assembly:_assemblyEligible,libraryReading:_libraryEligible,badminton:_badmintonEligible,hostel:_hostelEligible,greenhouse:_greenhouseEligible,sharedCore:_sharedCoreEligible,inpatientWard:_inpatientWardEligible,truckSweep:_warehouseEligible,pairedApartments:_pairedApartmentEligible, solarFarm:_solarEligible, detentionBasin:_basinEligible, evHub:_evHubEligible, orchard:_orchardEligible, switchbackRamp:_switchbackRampEligible, teachingLab:_teachingLabEligible, hotelWing:_hotelWingEligible, basketball:_basketballEligible, rainwater:_rainwaterEligible, lapPool:_lapPoolEligible, publicMarket:_publicMarketEligible, raisedBeds:_raisedBedEligible, amphitheatre:_amphitheatreEligible, parkLoop:_parkLoopEligible, windrowYard:_windrowYardEligible, galleryPanels:_galleryPanelEligible, angledParking:_angledParkingEligible, coldRacks:_coldRackEligible, twinTank:_twinTankEligible, tennis:_tennisEligible),
     if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
     if (_g1Cad && _wantsParking) ...[
       ...dwellingParkingCommonFields,
@@ -1794,10 +1794,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     final pending = [
       if (['city', 'address'].every((key) => _answers[key]?.toString().trim().isNotEmpty != true)) 'location',
       if (_linearSite ? alignmentFields.every((f) => f.normalized(_answers[f.id]) == null) : width.isEmpty && _answers['survey_boundary']?.toString().trim().isNotEmpty != true) 'measured site data',
-      if (!_linearSite && (_facing == null || _facing == 'Not decided')) 'orientation',
+      if (!_linearSite && !_tennisCad && (_facing == null || _facing == 'Not decided')) 'orientation',
       if (_answers['rule_status'] != 'reference_provided') 'local rule reference',
       if (_answers['jurisdiction']?.toString().trim().isNotEmpty != true) 'jurisdiction',
-      if (activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) 'space program',
+      if (!_tennisCad && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) 'space program',
     ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

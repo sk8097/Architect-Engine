@@ -198,6 +198,7 @@ void main() {
     await tester.ensureVisible(mode);
     await tester.tap(mode);
     await tester.pumpAndSettle();
+    expect(find.text('Outdoor tennis: measured court bank'), findsOneWidget);
     await tap(tester, 'Outdoor tennis: measured court bank');
     for (final entry in const {
       'tc_count': '2', 'tc_doubles': '10.97', 'tc_singles': '8.23', 'tc_length': '23.77',
