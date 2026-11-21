@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false, bool detentionBasin = false, bool evHub = false, bool orchard = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false, bool detentionBasin = false, bool evHub = false, bool orchard = false, bool switchbackRamp = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (switchbackRamp) 'measured_switchback': 'Public-space ramp: two flights and turning landings',
   if (orchard) 'orchard_measured_rows': 'Orchard: measured planting rows and access loop',
   if (evHub) 'ev_measured_hub': 'EV charging yard: measured bays, equipment and transfer route',
   if (detentionBasin) 'basin_stage_storage': 'Detention / retention basin: plan, section and storage',
