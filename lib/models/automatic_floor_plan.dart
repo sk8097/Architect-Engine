@@ -19,7 +19,7 @@ class PlanRoom {
   final PlanRect bounds;
 }
 
-enum PlanOpeningKind { door, window, loadingDoor }
+enum PlanOpeningKind { door, window, loadingDoor, materialOpening }
 
 class PlanOpening {
   const PlanOpening(this.kind, this.bounds, this.from, this.to);

@@ -1,7 +1,10 @@
 import 'automatic_floor_plan.dart';
 
+enum ZoneDirection { north, east, south, west }
+
 class MeasuredZone {
-  const MeasuredZone(this.id, this.name, this.bounds, this.layer);
+  const MeasuredZone(this.id, this.name, this.bounds, this.layer, {this.direction});
+  final ZoneDirection? direction;
   final String id, name, layer;
   final PlanRect bounds;
 }

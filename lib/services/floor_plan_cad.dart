@@ -44,6 +44,22 @@ class FloorPlanCad {
       final b = zone.bounds;
       box(zone.layer, b);
       final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
+      if (zone.direction case final direction?) {
+        final (dx,dy) = switch(direction) {
+          ZoneDirection.north => (0,1), ZoneDirection.south => (0,-1),
+          ZoneDirection.east => (1,0), ZoneDirection.west => (-1,0),
+        };
+        final length = dx == 0 ? b.depth : b.width, clear = dx == 0 ? b.width : b.depth;
+        final head = (clear < length / 10 ? clear : length / 10) / 4;
+        line(zone.layer,x-dx*length/2,y-dy*length/2,x+dx*length/2,y+dy*length/2);
+        for (final fraction in [-.3,0.0,.3]) {
+          final tipX = x+dx*length*fraction, tipY = y+dy*length*fraction;
+          for (final side in [-1,1]) {
+            line(zone.layer,tipX-dx*head+side*dy*head,tipY-dy*head+side*dx*head,tipX,tipY);
+          }
+        }
+        continue;
+      }
       final height = (b.width / ((zone.name.length + 2) * .72)).clamp(1, 350).toDouble();
       _labels.add(CadLabel(zone.layer, CadPoint(x, y + height / 2), zone.name.toUpperCase(), height));
       _labels.add(CadLabel('DIMENSIONS', CadPoint(x, y - height), '${b.width} x ${b.depth}', height * .75));
@@ -52,9 +68,10 @@ class FloorPlanCad {
     for (final opening in plan.openings) {
       final b = opening.bounds;
       final horizontal = b.width > b.depth;
-      if (opening.kind == PlanOpeningKind.loadingDoor) {
-        if (horizontal) { line('DOCK_OPENINGS', b.left, (b.bottom + b.top) / 2, b.right, (b.bottom + b.top) / 2); }
-        else { line('DOCK_OPENINGS', (b.left + b.right) / 2, b.bottom, (b.left + b.right) / 2, b.top); }
+      if (opening.kind == PlanOpeningKind.loadingDoor || opening.kind == PlanOpeningKind.materialOpening) {
+        final layer = opening.kind == PlanOpeningKind.loadingDoor ? 'DOCK_OPENINGS' : 'PACKHOUSE_OPENINGS';
+        if (horizontal) { line(layer, b.left, (b.bottom + b.top) / 2, b.right, (b.bottom + b.top) / 2); }
+        else { line(layer, (b.left + b.right) / 2, b.bottom, (b.left + b.right) / 2, b.top); }
         continue;
       }
       if (opening.kind == PlanOpeningKind.window) {
@@ -288,7 +305,8 @@ class FloorPlanCad {
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
       'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
-      'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30};
+      'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30,
+      'PACKHOUSE_PADS': 30, 'PACKHOUSE_OPENINGS': 6, 'PACKHOUSE_FLOW': 3};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);
