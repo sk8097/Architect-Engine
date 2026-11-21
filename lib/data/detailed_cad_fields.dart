@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (schoolArrival) 'school_arrival': 'Primary school: visitor lobby and classroom route',
   if (dwellingG1) 'dwelling_g1': 'G+1 house with measured indoor staircase',
   if (retailFixtures) 'retail_fixtures': 'Retail displays, checkout and stock',
   if (clinicSeparated) 'clinic_separated': 'Outpatient clinic: separate patient and service routes',

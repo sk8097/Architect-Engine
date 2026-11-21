@@ -71,6 +71,7 @@ class FloorPlanCad {
       }
       final room = rooms[opening.to]!;
       final layer = opening.to.startsWith('patient_') ? 'PATIENT_ROUTE' :
+        opening.from == 'school_arrival_route' && opening.to == 'school_learning_route' ? 'SCHOOL_THRESHOLD' :
         opening.to.startsWith('service_') ? 'SERVICE_ROUTE' : opening.to == 'retail_stock' ? 'RETAIL_SERVICE' : 'DOORS';
       if (horizontal) {
         final inward = room.bottom == b.top ? 1 : -1;
@@ -106,8 +107,11 @@ class FloorPlanCad {
         final offset = vertical ? b.width / 3 : b.depth / 3;
         _labels.add(CadLabel('STAIRS', CadPoint(center + (vertical ? offset : 0), y + (vertical ? 0 : offset)),
           '${measured.up ? 'UP' : 'DOWN'} - ${measured.risers} RISERS', 145, angle: vertical ? 90 : 0));
-      } else if (room.id == 'patient_internal_passage' || room.id == 'service_internal_passage') {
-        final layer = room.id.startsWith('patient_') ? 'PATIENT_ROUTE' : 'SERVICE_ROUTE';
+      } else if (const {'patient_internal_passage','service_internal_passage','school_arrival_route','school_learning_route'}.contains(room.id)) {
+        final layer = switch (room.id) {
+          'patient_internal_passage' => 'PATIENT_ROUTE', 'service_internal_passage' => 'SERVICE_ROUTE',
+          'school_arrival_route' => 'SCHOOL_ARRIVAL', _ => 'SCHOOL_LEARNING',
+        };
         final vertical = b.heightLongerThanWidth;
         final edge = vertical ? b.left + b.width / 4 : b.bottom + b.depth / 4;
         if (vertical) { line(layer, edge, b.bottom, edge, b.top); }
@@ -283,7 +287,8 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
-      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3};
+      'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
+      'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);

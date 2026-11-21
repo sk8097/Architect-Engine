@@ -11,6 +11,8 @@ import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
+import 'school_cad_screen.dart';
+import '../services/school_cad_generator.dart';
 import 'retail_cad_screen.dart';
 import 'dwelling_g1_screen.dart';
 import '../services/dwelling_g1_generator.dart';
@@ -187,6 +189,12 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'school_arrival' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => SchoolCadScreen(
+                                    name: project.name, brief: project.brief!, widthFt: project.width,
+                                    depthFt: project.length, facing: project.facing)));
+                                  return;
+                                }
                                 if (val == 'clinic_separated' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => HealthcareCadScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -250,6 +258,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'dwelling_g1', child: Text('G+1 house CAD')),
                                 if (RetailCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
+                                if (SchoolCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value: 'school_arrival', child: Text('Primary school CAD')),
                                 if (HealthcareCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'clinic_separated', child: Text('Clinic route CAD')),
                                 if (WarehouseLoadingGenerator.requested(project.brief))

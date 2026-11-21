@@ -12,7 +12,8 @@ class EnclosedCadGenerator {
   static bool requested(ProjectBrief? brief) => brief?.requirements?.answers['cad_output'] == 'building';
 
   TowerResult generate(ProjectBrief brief, {required double widthFt, required double depthFt, required String facing,
-    bool Function(AutomaticFloorPlan)? extraAcceptance}) {
+    bool Function(AutomaticFloorPlan)? extraAcceptance,
+    bool Function(AutomaticFloorPlan, Map<String,String> roomTypes)? roomTypeAcceptance}) {
     TowerResult stop(String reason) => TowerResult(const [], [reason]);
     final selection = brief.taxonomy;
     final request = brief.requirements;
@@ -161,6 +162,7 @@ class EnclosedCadGenerator {
     }
     bool adjoining(PlanRect a, PlanRect b) => ((a.right + shell.wall == b.left || b.right + shell.wall == a.left) && a.bottom < b.top && b.bottom < a.top) ||
       ((a.top + shell.wall == b.bottom || b.top + shell.wall == a.bottom) && a.left < b.right && b.left < a.right);
+    final roomTypes = Map<String,String>.unmodifiable(typesById);
     bool accepts(AutomaticFloorPlan plan) {
       final rooms = plan.rooms.where((r) => typesById.containsKey(r.id)).toList();
       for (final r in rooms) {
@@ -170,7 +172,7 @@ class EnclosedCadGenerator {
         if (required is Iterable && required.any((id) => !rooms.any((other) => other.id != r.id && typesById[other.id] == id && adjoining(r.bounds, other.bounds)))) return false;
         if (separate is Iterable && rooms.any((other) => other.id != r.id && separate.contains(typesById[other.id]) && adjoining(r.bounds, other.bounds))) return false;
       }
-      return extraAcceptance?.call(plan) ?? true;
+      return (extraAcceptance?.call(plan) ?? true) && (roomTypeAcceptance?.call(plan, roomTypes) ?? true);
     }
     return TowerPlanGenerator().generateEnclosed(shell, spaces, exactWidths: data['cad_width_mode'] != 'minimum', accepts: accepts);
   }
