@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (libraryReading) 'library_reading': 'Library: checkout, open stacks and quiet reading',
   if (assembly) 'assembly_workflow': 'Factory assembly: material route, staff passage and benches',
   if (cattleShed) 'cattle_shed': 'Cattle shed: double pen rows, feed and cleaning lanes',
   if (diningService) 'dining_service': 'Dine-in: seating, kitchen pass and dish return',

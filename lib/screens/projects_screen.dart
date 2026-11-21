@@ -16,6 +16,8 @@ import 'office_cad_screen.dart';
 import 'dining_cad_screen.dart';
 import 'cattle_shed_cad_screen.dart';
 import 'assembly_cad_screen.dart';
+import 'library_cad_screen.dart';
+import '../services/library_cad_generator.dart';
 import '../services/assembly_cad_generator.dart';
 import '../services/cattle_shed_cad_generator.dart';
 import '../services/dining_cad_generator.dart';
@@ -228,6 +230,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'library_reading' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => LibraryCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if (val == 'assembly_workflow' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => AssemblyCadScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
@@ -323,6 +330,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
                                 if (PackhouseCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'packhouse_flow', child: Text('Packhouse goods-flow CAD')),
+                                if (LibraryCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'library_reading',child:Text('Library reading CAD')),
                                 if (AssemblyCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'assembly_workflow',child:Text('Factory assembly CAD')),
                                 if (CattleShedCadGenerator.requested(project.brief))

@@ -13,7 +13,8 @@ class EnclosedCadGenerator {
 
   TowerResult generate(ProjectBrief brief, {required double widthFt, required double depthFt, required String facing,
     bool Function(AutomaticFloorPlan)? extraAcceptance,
-    bool Function(AutomaticFloorPlan, Map<String,String> roomTypes)? roomTypeAcceptance}) {
+    bool Function(AutomaticFloorPlan, Map<String,String> roomTypes)? roomTypeAcceptance,
+    int Function(String roomType)? roomOrder}) {
     TowerResult stop(String reason) => TowerResult(const [], [reason]);
     final selection = brief.taxonomy;
     final request = brief.requirements;
@@ -127,6 +128,7 @@ class EnclosedCadGenerator {
       }
     }
     int rank(String id) {
+      if (roomOrder != null) return roomOrder(typesById[id]!);
       if (edges[id] == 'front') return -2;
       if (edges[id] == 'rear') return 2;
       return switch (profile?.preferredEdge(access[id])) {'front' => -1, 'rear' => 1, _ => 0};
