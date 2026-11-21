@@ -1,0 +1,13 @@
+# Measured oval athletics track CAD
+
+Choose **Institutional & Public Utility → Sports / recreation / public amenities → Stadium**, **Sports Complex**, **Sports Club** or **Training Centre**. In **Automatic drawing**, select **Athletics: measured oval and one-lap staggers**. Select Outdoor or leave Activity setting blank. Leave building floors, parking and separate Space selections empty.
+
+Use a cardinally aligned rectangular or square plot. Width runs west–east, depth south–north, and the oval straights run north–south. Use west as left and south as front for setbacks. Enter the west and south offsets of the **full run-off envelope**. Its outer radius is the inner track radius plus all lane widths plus outside run-off. Both straights have the same tangent-to-tangent length; both bends are semicircles.
+
+Enter 2–10 equal-width lanes, with a positive measurement offset inside lane 1 and another offset (possibly the same) inside every other lane. The horizontal lap along a running line with radius `r` is `2 × straight + 2πr`. Lane 1 must meet the submitted target within the allowed absolute tolerance (at least 1 mm). Input lengths are rounded to millimetres. The example is not a preset or standard.
+
+For counterclockwise travel, the common finish is the **south end of the east straight**, with runners initially heading north. A lane's one-lap start advances from that line by `2π × (lane running radius − lane 1 running radius)`, measured along its own running line. It then has exactly the same remaining distance to the finish as lane 1’s geometric lap: not necessarily the supplied target itself. Stagger marks are transverse on straights and radial on bends.
+
+**Example:** Eight **1.22 m** lanes, **36.50 m** inner radius, **84.39 m** straights, and **0.30 / 0.20 m** running offsets give lane 1 a **400.001 m** geometric lap, within **0.010 m** of a 400 m target. Lane 2 starts **7.037 m** forward; lane 8 starts **53.030 m** forward. Add **3 m** external run-off for a **98.520 × 182.910 m** envelope. A **110 × 200 m** plot with offsets of **4 m from west / 7 m from south** leaves **7.480 m east / 10.090 m north** for submitted setbacks.
+
+Export an editable layered DXF with native arcs, plus a CSV of running radii, lap lengths, staggers and start coordinates. Measurement guides are a separate layer; they are not lines to paint. Reopen under **Athletics track CAD** in Projects. Invalid briefs stay saved with a reason and no DXF, CSV or generic zoning fallback. No sprint straights, lane break lines, multi-lap or relay marks, line widths, gradients, banking, construction details or competition certification are provided.

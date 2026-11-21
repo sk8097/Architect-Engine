@@ -181,6 +181,41 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('measured athletics oval saves and opens its DXF and lane schedule', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Institutional & Public Utility');
+    await tap(tester, 'Sports / recreation / public amenities');
+    await tap(tester, 'Stadium');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '110');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '200');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Athletics: measured oval and one-lap staggers');
+    for (final entry in const {
+      'ak_lanes': '8', 'ak_straight': '84.39', 'ak_radius': '36.5', 'ak_lane_width': '1.22', 'ak_offset_1': '0.3',
+      'ak_offset_other': '0.2', 'ak_runoff': '3', 'ak_west': '4', 'ak_south': '7', 'ak_target': '400', 'ak_tolerance': '0.01',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Track');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['ak_target'], 400);
+    expect(find.textContaining('Lane 1 lap 400.001 m'), findsOneWidget);
+    expect(find.text('Share athletics track DXF'), findsOneWidget);
+    expect(find.text('Share lane schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('playground mode saves the Site equipment records and opens both exports', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
