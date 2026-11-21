@@ -181,6 +181,47 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('memorial niche mode saves measured geometry without a generic landscape note', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Cemetery/Memorial Landscape');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '20');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '10');
+    await tester.pumpAndSettle();
+    await choose(tester, 'Public realm arrangement (optional)', 'Public Open Space');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('cad_output', 'Memorial: measured niche walls and elevation');
+    await pick('mn_faces', 'South and north faces');
+    for (final entry in const {
+      'mn_panels': '3', 'mn_columns': '8', 'mn_tiers': '4', 'mn_width': '0.36', 'mn_height': '0.32',
+      'mn_depth': '0.4', 'mn_web': '0.06', 'mn_frame': '0.12', 'mn_core': '0.16', 'mn_plinth': '0.3',
+      'mn_gap': '0.5', 'mn_ends': '1.2', 'mn_south_strip': '1.8', 'mn_north_strip': '1.5',
+      'mn_west': '2', 'mn_south': '3', 'mn_target': '192',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Memorial');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['mn_target'], 192);
+    expect(find.text('Memorial niche wall CAD'), findsOneWidget);
+    expect(find.text('Share niche plan DXF'), findsOneWidget);
+  });
+
   testWidgets('outdoor tennis opt-in saves measured inputs and opens the DXF preview', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Institutional & Public Utility');
