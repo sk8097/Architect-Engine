@@ -181,6 +181,47 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('vehicle service bay wizard saves the measured lift brief', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Industrial & Warehousing');
+    await tap(tester, 'Workshop');
+    await tap(tester, 'Vehicle Repair');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '18');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '20');
+    await tester.pumpAndSettle();
+    final floors = find.byKey(const ValueKey('floor_count'));
+    await tester.ensureVisible(floors);
+    await tester.enterText(floors, '1');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Workshop: measured vehicle lift bays and section');
+    for (final entry in const {
+      'service_bays': '2', 'clear_height': '4.6', 'lv_bay_w': '4.8', 'lv_wall': '0.2', 'lv_car_w': '2.1',
+      'lv_car_l': '5.2', 'lv_car_h': '1.95', 'lv_front': '1.6', 'lv_rear': '1.4', 'lv_door_w': '2.9',
+      'lv_door_h': '2.45', 'lv_door_head': '0.35', 'lv_inner': '2.7', 'lv_post_w': '0.35', 'lv_post_d': '0.4',
+      'lv_post_h': '4', 'lv_rise': '1.8', 'lv_side': '0.3', 'lv_outside': '0.7', 'lv_overhead': '0.6',
+      'lv_apron': '4', 'lv_west': '2.5', 'lv_south': '3',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Vehicle service');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['service_bays'], 2);
+    expect(find.text('Vehicle service bay CAD'), findsOneWidget);
+    expect(find.text('Share workshop plan DXF'), findsOneWidget);
+  });
+
   testWidgets('measured athletics oval saves and opens its DXF and lane schedule', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Institutional & Public Utility');
