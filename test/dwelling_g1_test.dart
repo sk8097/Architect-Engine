@@ -34,6 +34,13 @@ ProjectBrief house({Map<String,Object> values = const {}, Map<String,Map<String,
     }));
 }
 
+const openParking = <String,Object>{
+  'cad_offset_front':8, 'parking_sqft':350, 'parking_arrangement':['open'],
+  'g1_parking_frontage':'confirmed', 'g1_parking_offset':.8, 'g1_parking_apron':2.5,
+  'g1_parking_path':1.4, 'g1_parking_gap':.4, 'cars':1, 'two_wheelers':2,
+  'g1_car_width':2.6, 'g1_car_depth':5, 'g1_bike_width':1.1, 'g1_bike_depth':2.1,
+};
+
 void main() {
   TowerResult run(ProjectBrief input,[String facing='South']) =>
     DwellingG1Generator().generate(input,widthFt:80,depthFt:100,facing:facing);
@@ -76,7 +83,8 @@ void main() {
     expect(run(house(values:{'g1_landing':.7})).issues.single,contains('landing must fit'));
     expect(run(house(values:{'stair_access':'outside'})).issues.single,contains('inside straight stair'));
     expect(run(house(values:{'upper_use':'separate'})).issues.single,contains('rental'));
-    expect(run(house(parking:ProjectParking.car)).issues.single,contains('Parking or terrace'));
+    expect(run(house(parking:ProjectParking.car)).issues.single,contains('Confirm that open parking'));
+    expect(run(house(values:{'terrace_needed':'yes'})).issues.single,contains('Terrace access'));
     expect(run(house(values:{'fsi_limit':.2})).issues.single,contains('Both gross floor plates'));
     expect(run(house(values:{'main_kitchen_floor':'1'})).issues.single,contains('closed kitchen'));
     final conflict=run(house(rooms:{'closed_kitchen':{
@@ -84,6 +92,78 @@ void main() {
     }}));
     expect(conflict.issues.single,contains('same floor'));
     expect(conflict.sheets,isEmpty);
+  });
+
+  test('parking fits the ground site for four frontages and survives brief serialization', () {
+    final brief = ProjectBrief.fromMap(house(values:openParking,parking:ProjectParking.both).toMap())!;
+    for (final facing in ['South','North','East','West']) {
+      final result = DwellingG1Generator().generate(brief,widthFt:100,depthFt:110,facing:facing);
+      expect(result.issues,isEmpty,reason:facing);
+      final ground = result.sheets.first, upstairs = result.sheets.last;
+      expect(upstairs.siteZones,isEmpty);
+      expect(ground.siteZones.map((z)=>z.id),['vehicle_approach','pedestrian_approach','car_1','bike_1','bike_2']);
+      final plot=ground.plan.plot;
+      final (apron,walk,car,bike) = (ground.siteZones[0].bounds,ground.siteZones[1].bounds,
+        ground.siteZones[2].bounds,ground.siteZones[3].bounds);
+      final door = ground.plan.openings.singleWhere((o)=>o.from==AutomaticFloorPlan.entry && o.kind==PlanOpeningKind.door).bounds;
+      final vertical = facing=='North' || facing=='South';
+      expect(vertical ? car.width : car.depth,2600);
+      expect(vertical ? car.depth : car.width,5000);
+      expect(vertical ? bike.width : bike.depth,1100);
+      expect(vertical ? walk.depth : walk.width,8000);
+      expect(vertical ? apron.width : apron.depth,4800);
+      expect(vertical ? apron.depth : apron.width,2500);
+      expect(vertical ? walk.left<=door.left && walk.right>=door.right : walk.bottom<=door.bottom && walk.top>=door.top,isTrue);
+      expect(switch (facing) {
+        'North'=>apron.top==plot.top && walk.top==plot.top && walk.bottom==door.top && car.top==apron.bottom,
+        'East'=>apron.right==plot.right && walk.right==plot.right && walk.left==door.right && car.right==apron.left,
+        'West'=>apron.left==plot.left && walk.left==plot.left && walk.right==door.left && car.left==apron.right,
+        _=>apron.bottom==plot.bottom && walk.bottom==plot.bottom && walk.top==door.bottom && car.bottom==apron.top,
+      },isTrue,reason:facing);
+      for (final zone in ground.siteZones) {
+        expect(plot.contains(zone.bounds),isTrue);
+        expect(zone.bounds.overlaps(ground.plan.footprint),isFalse);
+        expect(ground.siteZones.where((other)=>other!=zone && other.bounds.overlaps(zone.bounds)),isEmpty);
+      }
+      final groundDrawing = FloorPlanCad.fromPlan(ground.plan,siteZones:ground.siteZones);
+      final upperDrawing = FloorPlanCad.fromPlan(upstairs.plan,siteZones:upstairs.siteZones);
+      final combined = FloorPlanCad.combined([groundDrawing,upperDrawing]);
+      for (final layer in ['PARKING_BAYS','PEDESTRIAN_APPROACH','VEHICLE_APPROACH']) {
+        expect(groundDrawing.lines.where((line)=>line.layer==layer),isNotEmpty);
+        expect(upperDrawing.lines.where((line)=>line.layer==layer),isEmpty);
+        expect(combined.lines.where((line)=>line.layer==layer).length,groundDrawing.lines.where((line)=>line.layer==layer).length);
+      }
+      expect(combined.toDxf(),contains('TWO-WHEELER 2'));
+    }
+  });
+
+  test('wrong arrangement, missing counts, access overlap and limited plot or area block export', () {
+    for (final (edits,message) in <(Map<String,Object>,String)>[
+      ({'parking_arrangement':['covered']},'open-surface'),
+      ({'accessible_bays':1},'specialist'),
+      ({'g1_parking_frontage':'pending'},'Confirm that open parking'),
+      ({'cars':0},'number of parking bays'),
+      ({'g1_bike_width':0},'measured bay'),
+      ({'parking_sqft':300},'supplied parking allowance'),
+      ({'g1_parking_offset':8},'pedestrian approach conflict'),
+      ({'g1_parking_offset':28},'frontage width'),
+      ({'g1_parking_apron':4},'do not fit between'),
+      ({'g1_parking_path':.8},'front-door opening'),
+    ]) {
+      final result = DwellingG1Generator().generate(house(values:{...openParking,...edits},parking:ProjectParking.both),
+        widthFt:100,depthFt:110,facing:'South');
+      expect(result.issues.single,contains(message),reason:edits.toString());
+      expect(result.sheets,isEmpty);
+    }
+  });
+
+  test('single vehicle choice only draws the selected bay type', () {
+    for (final (type,count) in [(ProjectParking.car,1),(ProjectParking.twoWheeler,2)]) {
+      final result = DwellingG1Generator().generate(house(values:openParking,parking:type),
+        widthFt:100,depthFt:110,facing:'South');
+      expect(result.issues,isEmpty);
+      expect(result.sheets.first.siteZones.where((zone)=>zone.layer=='PARKING_BAYS').length,count);
+    }
   });
 
   testWidgets('dwelling preview switches between ground and first floor and exposes DXF', (tester) async {

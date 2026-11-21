@@ -1,9 +1,11 @@
 import '../models/automatic_floor_plan.dart';
+import '../models/concept_zoning.dart';
 import '../models/tower_brief.dart';
 import 'automatic_floor_plan_generator.dart' show validatePlanGeometry;
 
 class TowerSheet {
-  const TowerSheet(this.name, this.range, this.first, this.last, this.plan, this.unallocated);
+  const TowerSheet(this.name, this.range, this.first, this.last, this.plan, this.unallocated, {this.siteZones = const []});
+  final List<MeasuredZone> siteZones;
   final String name, range;
   final int first, last, unallocated;
   final AutomaticFloorPlan plan;

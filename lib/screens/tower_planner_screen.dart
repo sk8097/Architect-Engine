@@ -301,6 +301,11 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
   var _selected = 0;
   var _sharing = false;
 
+  FloorPlanCad _drawing(int index) => _drawings.putIfAbsent(index, () {
+    final sheet = _result.sheets[index];
+    return FloorPlanCad.fromPlan(sheet.plan, siteZones: sheet.siteZones);
+  });
+
   Future<void> _share(BuildContext button, {required bool all}) async {
     if (_sharing) return;
     final box = button.findRenderObject();
@@ -308,7 +313,7 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
     setState(() => _sharing = true);
     try {
       final sheet = _result.sheets[_selected];
-      final drawing = all ? FloorPlanCad.sheetSet(_result.sheets.map((s) => s.plan)) : _drawings[_selected]!;
+      final drawing = all ? FloorPlanCad.combined(Iterable.generate(_result.sheets.length, _drawing)) : _drawing(_selected);
       final safeName = widget.projectName.replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_');
       final suffix = all ? 'all_sheets' : 'levels_${sheet.first}-${sheet.last}';
       await Share.shareXFiles([XFile.fromData(Uint8List.fromList(ascii.encode(drawing.toDxf())),
@@ -324,7 +329,7 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final sheet = _result.sheets.isEmpty ? null : _result.sheets[_selected];
-    final drawing = sheet == null ? null : _drawings.putIfAbsent(_selected, () => FloorPlanCad.fromPlan(sheet.plan));
+    final drawing = sheet == null ? null : _drawing(_selected);
     return Scaffold(appBar: AppBar(title: Text(widget.title)), body: SafeArea(child: Center(child:
       ConstrainedBox(constraints: const BoxConstraints(maxWidth: 710), child: ListView(padding: const EdgeInsets.all(16), children: [
         Text(widget.projectName, style: theme.textTheme.headlineSmall),
@@ -355,6 +360,9 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           const Text('Concept preview · Specialist review pending'),
           const SizedBox(height: 8),
           CadPlanPreview(plan: sheet.plan, drawing: drawing!),
+          if (sheet.siteZones.isNotEmpty)
+            Text('${sheet.siteZones.where((zone) => zone.layer == 'PARKING_BAYS').length} open bays · '
+              'Vehicle approach and separate pedestrian entrance walk. No vehicle swept-path, curb cut, slope or access approval verified.'),
           for (final stair in sheet.plan.stairs)
             Text('${stair.up ? 'UP' : 'DOWN'}: ${stair.risers} risers × ${stair.riseMm.toStringAsFixed(1)} mm · '
               '${stair.goingMm} mm going · ${stair.floorHeightMm} mm floor-to-floor'),

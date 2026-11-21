@@ -154,6 +154,11 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   List<RequirementField> get _cadFields => [
     if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible),
     if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
+    if (_g1Cad && _wantsParking) ...[
+      ...dwellingParkingCommonFields,
+      if (_parking != ProjectParking.twoWheeler) ...dwellingCarBayFields,
+      if (_parking != ProjectParking.car) ...dwellingTwoWheelerBayFields,
+    ],
     if (_clinicCad) ...clinicCadFields,
     if (_retailCad) ...[...enclosedCadFields.take(5), ...retailCadFields],
     if (_warehouseCad) ...warehouseLoadingFields,
@@ -302,7 +307,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         'cars' => _parking != ProjectParking.twoWheeler,
         'two_wheelers' => _parking != ProjectParking.car,
         _ => true,
-      }),
+      }).map((field) => _g1Cad && const {'cars','two_wheelers'}.contains(field.id) ? asRequired(field) : field),
   ];
   List<RequirementField> get _designSchema => _linearSite
       ? preferenceFields.where((f) => f.id == 'sustainability').toList()
@@ -486,7 +491,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -946,6 +951,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         ], (value) => setState(() => _parking = value == null ? null : ProjectParking.values.byName(value)), required: _home),
         const SizedBox(height: 12),
       ],
+      if (_g1Cad && _wantsParking) const Text('Open parking only: a row of bays with unobstructed vehicle access across its full width, plus a separate pedestrian walk. Enter requested bay counts in Operations.'),
       if (!_linearSite) _fieldPanel(_cadFields),
       if (_isRectangular) ExpansionTile(
         title: const Text('Known setbacks (optional)'),
@@ -1247,7 +1253,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
         if (_g1Cad)
-          const Text('Saving attempts two measured floor plans with an aligned straight indoor stair. Unsupported access, terrace and parking requests do not fall back to zoning.')
+          const Text('Saving attempts two measured floor plans with an aligned straight indoor stair. If requested, regular open parking is drawn on the ground sheet. Unsupported or non-fitting layouts do not fall back to zoning.')
         else if (_retailCad)
           const Text('Saving checks the measured shell, sales fixtures, customer aisles and stock access. A blocked drawing does not fall back to zoning.')
         else if (_clinicCad)
