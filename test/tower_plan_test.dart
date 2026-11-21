@@ -3,6 +3,9 @@ import 'package:architect_engine/models/project_model.dart';
 import 'package:architect_engine/models/tower_brief.dart';
 import 'package:architect_engine/services/floor_plan_cad.dart';
 import 'package:architect_engine/screens/tower_planner_screen.dart';
+import 'package:architect_engine/providers/project_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:architect_engine/services/tower_plan_generator.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -105,6 +108,31 @@ void main() {
     expect(find.text('Per floor · Office'), findsOneWidget);
     await tester.scrollUntilVisible(find.text('Share all sheets DXF'), 250);
     expect(find.text('Share selected DXF'), findsOneWidget);
+  });
+
+
+  testWidgets('saved 100-level requirements can be edited and regenerate the preview', (tester) async {
+    final now = DateTime.utc(2026);
+    final saved = ProjectModel(id: 'tower_test', name: 'Saved tower', length: 100, width: 60,
+      bhk: '', floors: '100 levels', facing: 'South', tower: tower(), createdAt: now, updatedAt: now);
+    SharedPreferences.setMockInitialValues({'ae_projects_v1': [saved.toJson()]});
+    final provider = ProjectProvider();
+    addTearDown(provider.dispose);
+    await tester.pumpWidget(ChangeNotifierProvider<ProjectProvider>.value(value: provider,
+      child: MaterialApp(home: TowerPlannerScreen(existing: saved))));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('tower_name')), 'Updated tower');
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Shared stairs, lifts and shafts'), findsOneWidget);
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(find.text('Floor groups'), findsOneWidget);
+    await tester.tap(find.text('Save & generate CAD'));
+    await tester.pumpAndSettle();
+    expect(find.text('High-rise CAD'), findsOneWidget);
+    expect(find.text('Updated tower'), findsOneWidget);
+    expect(provider.projects.single.tower!.floors, 100);
   });
 
 }

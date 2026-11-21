@@ -419,7 +419,9 @@ String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
       if (reachable.add(next)) stack.add(next);
     }
   }
-  return entranceCount == (indoorSeed == null ? 1 : 0) &&
-      reachable.containsAll(rooms.keys.where((id) => !sealedRooms.contains(id)))
-      ? null : 'A room has no connected route to circulation.';
+  if (entranceCount != (indoorSeed == null ? 1 : 0)) {
+    return indoorSeed == null ? 'The plan must have exactly one exterior entrance.' : 'An upper floor cannot have an exterior entrance.';
+  }
+  return reachable.containsAll(rooms.keys.where((id) => !sealedRooms.contains(id))) ? null :
+      (indoorSeed == null ? 'A room has no connected route from the entrance.' : 'A room has no connected route to circulation.');
 }
