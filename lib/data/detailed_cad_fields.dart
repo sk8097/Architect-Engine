@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (cattleShed) 'cattle_shed': 'Cattle shed: double pen rows, feed and cleaning lanes',
   if (diningService) 'dining_service': 'Dine-in: seating, kitchen pass and dish return',
   if (officeWorkplace) 'office_workplace': 'Office: visitor rooms and measured staff workstations',
   if (crossDock) 'warehouse_cross_dock': 'Cross-dock: opposing inbound and outbound banks',

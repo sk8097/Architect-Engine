@@ -14,6 +14,8 @@ import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
 import 'office_cad_screen.dart';
 import 'dining_cad_screen.dart';
+import 'cattle_shed_cad_screen.dart';
+import '../services/cattle_shed_cad_generator.dart';
 import '../services/dining_cad_generator.dart';
 import '../services/office_cad_generator.dart';
 import 'packhouse_cad_screen.dart';
@@ -224,6 +226,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'cattle_shed' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => CattleShedCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if (val == 'dining_service' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => DiningCadScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
@@ -309,6 +316,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
                                 if (PackhouseCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'packhouse_flow', child: Text('Packhouse goods-flow CAD')),
+                                if (CattleShedCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'cattle_shed',child:Text('Cattle shed CAD')),
                                 if (DiningCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'dining_service',child:Text('Dine-in service CAD')),
                                 if (OfficeCadGenerator.requested(project.brief))

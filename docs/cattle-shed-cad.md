@@ -1,0 +1,11 @@
+# Dairy and cattle group-pen shed CAD
+
+**Rural / Agricultural → Farm / farmhouse / agricultural estate → Dairy Farm or Cattle Farm → Automatic drawing → Cattle shed: double pen rows, feed and cleaning lanes**. Use one new ground-floor production shed on a measured rectangular or square plot. Select the cardinal front feed entrance. Confirm separate on-site access to the front door and both rear cleaning doors. Do not add Space selections; the shed is built from the measured pen and lane inputs.
+
+Enter the total planned herd, pen count in each identical row, assumed animals per pen, clear pen size, rail thickness, centre feed lane and both cleaning alley widths. Enter measured trough depth, pen gate and entry door widths, and rear pad depth. The clear widths plus barriers must match the measured building shell. Across the shed, the gross width is two external walls + two cleaning alleys + two pen widths + four rail thicknesses + the feed lane. Along the shed, it is two walls + the sum of pen depths + the intervening rail thicknesses. If they do not match, the blocker shows the required envelope rather than resizing pens.
+
+A trough runs along the feed edge inside each pen. Its solid feed-side separation is not a circulation opening. Each pen has a measured gate to its own outboard cleaning alley. The centre lane has a separate front entrance, and the two outboard alleys have distinct rear doors and pads. The plan does not connect the feed lane and cleaning alleys inside the shed. The front route ends at the plot boundary; rear pads do not establish access beyond them.
+
+Save previews the generated floor plan. Reopen **Cattle shed CAD** in the project menu. Editable DXF includes `DAIRY_FEED_ACCESS`, `DAIRY_CLEAN_ACCESS`, `DAIRY_TROUGHS` and `DAIRY_PEN_GATES`. If a pen gate would hit a trough, access pads cannot fit or the requested herd exceeds the *user-entered* places, export is blocked and the brief remains saved.
+
+This drawing does not establish safe stocking density, animal handling, gate specifications, exits, floor falls, drainage, manure storage, milking facilities, watering, ventilation, structural design or welfare compliance. It is a shed concept, not a complete farm site plan.
