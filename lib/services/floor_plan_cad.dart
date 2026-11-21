@@ -43,10 +43,11 @@ class FloorPlanCad {
     final plot = plan.plot, building = plan.footprint;
     box('PLOT', plot);
     _wallPerimeter(plan.walls, line);
+    for (final m in plan.markings) { line(m.layer,m.fromX,m.fromY,m.toX,m.toY); }
     for (final zone in siteZones) {
       final b = zone.bounds;
       box(zone.layer, b);
-      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR','FOOD_SEATS','ASSEMBLY_CLEARANCE','LIBRARY_CHAIR_CLEAR'}.contains(zone.layer)) continue;
+      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR','FOOD_SEATS','ASSEMBLY_CLEARANCE','LIBRARY_CHAIR_CLEAR','BADMINTON_SEATS','BADMINTON_VIEW_DIVIDER'}.contains(zone.layer)) continue;
       final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
       if (zone.direction case final direction?) {
         final (dx,dy) = switch(direction) {
@@ -415,6 +416,8 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'BADMINTON_COURTS': 5, 'BADMINTON_LINES': 5, 'BADMINTON_NET': 6, 'BADMINTON_RUNOFF': 8,
+      'BADMINTON_PLAYERS': 3, 'BADMINTON_SPECTATOR': 30, 'BADMINTON_VIEW_DIVIDER': 6, 'BADMINTON_SEATS': 4,
       'LIBRARY_PUBLIC': 30, 'LIBRARY_QUIET': 5, 'LIBRARY_QUIET_THRESHOLD': 6, 'LIBRARY_SHELVES': 5,
       'LIBRARY_STACK_AISLES': 3, 'LIBRARY_DESKS': 5, 'LIBRARY_CHAIR_CLEAR': 8, 'LIBRARY_STUDY_AISLE': 3,
       'ASSEMBLY_MATERIAL': 4, 'ASSEMBLY_OPENINGS': 6, 'ASSEMBLY_STAFF': 3, 'ASSEMBLY_PADS': 30,

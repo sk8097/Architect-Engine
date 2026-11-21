@@ -40,13 +40,20 @@ class StairDrawing {
   final List<((int, int), (int, int))> strokes;
 }
 
+/// Linework inside the plan which is not a wall or a room boundary.
+class PlanMarking {
+  const PlanMarking(this.layer,this.fromX,this.fromY,this.toX,this.toY);
+  final String layer;
+  final int fromX,fromY,toX,toY;
+}
+
 class AutomaticFloorPlan {
   AutomaticFloorPlan({required this.plot, required this.footprint,
     required this.facing, this.bedrooms = 1, this.sheetTitle, required Iterable<PlanRoom> rooms,
     required Iterable<PlanRect> walls, required Iterable<PlanOpening> openings,
-    Iterable<StairDrawing> stairs = const []})
+    Iterable<StairDrawing> stairs = const [], Iterable<PlanMarking> markings = const []})
       : rooms = List.unmodifiable(rooms), walls = List.unmodifiable(walls),
-        openings = List.unmodifiable(openings), stairs = List.unmodifiable(stairs);
+        openings = List.unmodifiable(openings), stairs = List.unmodifiable(stairs), markings = List.unmodifiable(markings);
 
   static const generatorVersion = 'house-concept-v2';
   static const entry = 'outside';
@@ -59,4 +66,5 @@ class AutomaticFloorPlan {
   final List<PlanRect> walls;
   final List<PlanOpening> openings;
   final List<StairDrawing> stairs;
+  final List<PlanMarking> markings;
 }
