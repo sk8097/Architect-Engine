@@ -1,4 +1,20 @@
 import 'rain_garden_cad_fields.dart';
+import 'facade_louvre_cad_fields.dart';
+import 'dock_leveller_cad_fields.dart';
+import 'aquaculture_pond_cad_fields.dart';
+import 'silage_bunker_cad_fields.dart';
+import 'bouldering_bay_cad_fields.dart';
+import 'weighbridge_cad_fields.dart';
+import 'cooling_loop_cad_fields.dart';
+import 'boardwalk_cad_fields.dart';
+import 'circular_clarifier_cad_fields.dart';
+import 'blade_laydown_cad_fields.dart';
+import 'cricket_nets_cad_fields.dart';
+import 'skate_transition_cad_fields.dart';
+import 'park_fence_cad_fields.dart';
+import 'transformer_bund_cad_fields.dart';
+import 'football_pitch_cad_fields.dart';
+import 'guyed_mast_cad_fields.dart';
 import 'recycling_dropoff_cad_fields.dart';
 import 'spillway_cad_fields.dart';
 import 'battery_yard_cad_fields.dart';
@@ -10,7 +26,23 @@ import 'plaza_paving_cad_fields.dart';
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false, bool detentionBasin = false, bool evHub = false, bool orchard = false, bool switchbackRamp = false, bool teachingLab = false, bool hotelWing = false, bool basketball = false, bool rainwater = false, bool lapPool = false, bool publicMarket = false, bool raisedBeds = false, bool amphitheatre = false, bool parkLoop = false, bool windrowYard = false, bool galleryPanels = false, bool angledParking = false, bool coldRacks = false, bool twinTank = false, bool tennis = false, bool memorialNiche = false, bool bicycleRack = false, bool playground = false, bool athleticsTrack = false, bool vehicleLift = false, bool publicToilet = false, bool shelterCanopy = false, bool plazaPaving = false, bool rainGarden = false, bool jumpRunway = false, bool switchbackStair = false, bool cinemaSeating = false, bool parkingRamp = false, bool batteryYard = false, bool spillway = false, bool recyclingDropoff = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false, bool detentionBasin = false, bool evHub = false, bool orchard = false, bool switchbackRamp = false, bool teachingLab = false, bool hotelWing = false, bool basketball = false, bool rainwater = false, bool lapPool = false, bool publicMarket = false, bool raisedBeds = false, bool amphitheatre = false, bool parkLoop = false, bool windrowYard = false, bool galleryPanels = false, bool angledParking = false, bool coldRacks = false, bool twinTank = false, bool tennis = false, bool memorialNiche = false, bool bicycleRack = false, bool playground = false, bool athleticsTrack = false, bool vehicleLift = false, bool publicToilet = false, bool shelterCanopy = false, bool plazaPaving = false, bool rainGarden = false, bool jumpRunway = false, bool switchbackStair = false, bool cinemaSeating = false, bool parkingRamp = false, bool batteryYard = false, bool spillway = false, bool recyclingDropoff = false, bool guyedMast = false, bool footballPitch = false, bool transformerBund = false, bool parkFence = false, bool skateTransition = false, bool cricketNets = false, bool bladeLaydown = false, bool circularClarifier = false, bool boardwalk = false, bool coolingLoop = false, bool weighbridge = false, bool boulderingBay = false, bool silageBunker = false, bool aquaculturePond = false, bool dockLeveller = false, bool facadeLouvre = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (facadeLouvre) facadeLouvreMode: 'Office: measured façade louvre and profile-angle shading',
+  if (dockLeveller) dockLevellerMode: 'Warehouse: measured dock leveller and truck-bed height range',
+  if (aquaculturePond) aquaculturePondMode: 'Farm: measured aquaculture pond and geometric water volume',
+  if (silageBunker) silageBunkerMode: 'Farm: measured silage bunker and geometric fill',
+  if (boulderingBay) boulderingBayMode: 'Climbing: measured indoor bouldering bay',
+  if (weighbridge) weighbridgeMode: 'Freight terminal: measured weighbridge and axle placement',
+  if (coolingLoop) coolingLoopMode: 'District cooling: measured pipe loop and clearance band',
+  if (boardwalk) boardwalkMode: 'Public space: measured raised boardwalk and support set-out',
+  if (circularClarifier) circularClarifierMode: 'Sewage treatment: measured circular clarifier geometry',
+  if (bladeLaydown) bladeLaydownMode: 'Wind support: measured blade laydown and pad reserves',
+  if (cricketNets) cricketNetsMode: 'Cricket: measured practice lanes and crease set-out',
+  if (skateTransition) skateTransitionMode: 'Skate: measured circular transition and deck',
+  if (parkFence) parkFenceMode: 'Public space: measured fence panels and gate opening',
+  if (transformerBund) transformerBundMode: 'Transformer yard: measured two-plinth bund',
+  if (footballPitch) footballPitchMode: 'Football: measured pitch, marking arcs and run-off',
+  if (guyedMast) guyedMastMode: 'Telecom tower: measured guyed mast siting',
   if (recyclingDropoff) recyclingDropoffMode: 'Recycling centre: measured container drop-off',
   if (spillway) spillwayMode: 'Flood control: measured spillway and bed profile',
   if (batteryYard) batteryYardMode: 'Battery storage: measured equipment yard',
