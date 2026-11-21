@@ -181,6 +181,44 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('surveyed promenade saves limit and pad records without a building footprint', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Waterfront Promenade');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('promenade_mode', 'Surveyed promenade: path and lookout pads');
+    expect(find.byKey(const ValueKey('Plot geometry (required)')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Waterfront');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    await pick('pmr_land_side', 'Left');
+    for (final entry in const {
+      'pmr_grid': 'Example projected grid', 'pmr_axis': '1000,2000;1060,2080',
+      'pmr_limits': '10,-1,13;40,2,12;70,0,11;100,-2,14', 'pmr_path': '5', 'pmr_width': '3',
+      'pmr_shore_gap': '2', 'pmr_inland_gap': '3', 'pmr_pads': 'L1,20,55,1;L2,75,90,2',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['pmr_pads'], 'L1,20,55,1;L2,75,90,2');
+    expect(find.text('Surveyed promenade CAD'), findsOneWidget);
+    expect(find.text('Share promenade DXF'), findsOneWidget);
+    expect(find.text('Share lookout schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('rail platform survey mode saves without a plot footprint and opens the plan', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
