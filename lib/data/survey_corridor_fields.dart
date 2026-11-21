@@ -8,6 +8,7 @@ const surveyCorridorCadModes = {'survey_polyline','survey_circular'};
 final surveyCorridorMode = planningChoice('corridor_cad_mode', 'Corridor drawing', {
   'straight': 'Straight corridor zoning', 'survey_polyline': 'Survey points: multi-segment corridor CAD',
   'survey_circular': 'Tangent survey with measured circular bends',
+  'survey_profile': 'Longitudinal profile: survey levels and proposed grades',
 }, required: false);
 
 const surveyCorridorFields = <RequirementField>[

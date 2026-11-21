@@ -152,6 +152,12 @@ class _PlanPainter extends CustomPainter {
     Color color(String layer) => switch (layer) {
       'SURVEY_AXIS' => const Color(0xff1e648b),
       'SURVEY_STATIONS' => const Color(0xff823a75),
+      'PROFILE_GROUND' => const Color(0xffaa5c19),
+      'PROFILE_DESIGN' => const Color(0xff265e99),
+      'PROFILE_STATIONS' => const Color(0xff8993a6),
+      'PROFILE_FILL' => const Color(0xff237d42),
+      'PROFILE_CUT' => const Color(0xffa13445),
+      'PROFILE_CURVE_POINTS' => const Color(0xff823a75),
       'WARD_ROUTE' => const Color(0xff237d42),
       'WARD_BEDS' => const Color(0xff265e99),
       'WARD_COUNTER' => const Color(0xffaa5c19),

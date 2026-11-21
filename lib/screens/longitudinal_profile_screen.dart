@@ -1,0 +1,75 @@
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
+
+import '../models/project_brief.dart';
+import '../services/floor_plan_cad.dart';
+import '../services/longitudinal_profile_generator.dart';
+import 'automatic_floor_plan_screen.dart';
+
+class LongitudinalProfileScreen extends StatefulWidget {
+  const LongitudinalProfileScreen({super.key, required this.name, required this.brief});
+  final String name;
+  final ProjectBrief brief;
+
+  @override
+  State<LongitudinalProfileScreen> createState() => _LongitudinalProfileScreenState();
+}
+
+class _LongitudinalProfileScreenState extends State<LongitudinalProfileScreen> {
+  late final _result = LongitudinalProfileGenerator().generate(widget.brief);
+  bool _sharing = false;
+
+  Future<void> _share(BuildContext context, FloorPlanCad cad) async {
+    if (_sharing) return;
+    final box = context.findRenderObject();
+    final origin = box is RenderBox ? box.localToGlobal(Offset.zero) & box.size : null;
+    final name = widget.name.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]+'), '_');
+    setState(() => _sharing = true);
+    try {
+      await Share.shareXFiles([XFile.fromData(Uint8List.fromList(ascii.encode(cad.toDxf())), mimeType: 'application/dxf')],
+        fileNameOverrides: ['${name.isEmpty ? 'project' : name}_longitudinal_profile.dxf'], sharePositionOrigin: origin);
+    } catch (_) {
+      if (mounted) ScaffoldMessenger.of(this.context).showSnackBar(const SnackBar(content: Text('Could not share the DXF.')));
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
+  }
+
+  String _m(num mm) => (mm / 1000).toStringAsFixed(3);
+
+  @override
+  Widget build(BuildContext context) {
+    final cad = _result.drawing, stations = _result.stations;
+    return Scaffold(appBar: AppBar(title: const Text('Longitudinal profile CAD')), body: SafeArea(child: ListView(
+      padding: const EdgeInsets.all(16), children: [
+        Text(widget.name, style: Theme.of(context).textTheme.headlineSmall),
+        const SizedBox(height: 8),
+        if (cad == null) ...[
+          const Text('No profile drawing generated'),
+          const Text('Your brief was saved. Edit it and save to retry.'),
+          if (_result.issue case final issue?) ListTile(leading: const Icon(Icons.info_outline), title: Text(issue)),
+        ] else ...[
+          Text('Chainage ${_m(stations.first.chainageMm)}–${_m(stations.last.chainageMm)} m · ${_result.curves.length} vertical curves'),
+          Text('Plot base level ${_m(_result.datumMm)} m · ${_result.exaggeration}× vertical exaggeration (also in DXF)'),
+          const Text('Orange: surveyed ground · Blue: proposed grade · Green/red: fill/cut at survey points · Purple: vertical curve controls.'),
+          CadPlanPreview(drawing: cad),
+          Builder(builder: (button) => Align(alignment: Alignment.centerLeft, child: FilledButton.icon(icon: const Icon(Icons.ios_share),
+            onPressed: _sharing ? null : () => _share(button, cad), label: const Text('Share profile DXF')))),
+          const Text('Levels below are true values. Vertical differences are not earthwork volumes; no grade, sight-distance, drainage or pavement compliance is verified.'),
+          ExpansionTile(title: const Text('Survey station levels (m)'), children: [
+            for (final s in stations) ListTile(dense: true, title: Text('Ch ${_m(s.chainageMm)}'),
+              subtitle: Text('Ground ${_m(s.groundMm)} · Proposed ${_m(s.designMm)} · '
+                '${s.differenceMm.abs() < .5 ? 'Match' : s.differenceMm > 0 ? 'Fill ${_m(s.differenceMm)}' : 'Cut ${_m(-s.differenceMm)}'}')),
+          ]),
+          if (_result.curves.isNotEmpty) ExpansionTile(title: const Text('Vertical curves (m)'), children: [
+            for (final c in _result.curves) ListTile(dense: true, title: Text('${c.outSlope > c.inSlope ? 'Sag' : 'Crest'} · ${_m(c.lengthMm)} m'),
+              subtitle: Text('BVC ${_m(c.startMm)} @ ${_m(c.startLevelMm)} · EVC ${_m(c.endMm)} @ ${_m(c.levelAt(c.endMm))}')),
+          ]),
+        ],
+      ],
+    )));
+  }
+}
