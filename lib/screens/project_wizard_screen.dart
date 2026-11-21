@@ -9,6 +9,7 @@ import '../data/project_requirements.dart';
 import '../data/detailed_cad_fields.dart';
 import '../data/warehouse_cad_fields.dart';
 import '../data/truck_sweep_fields.dart';
+import '../data/paired_apartment_fields.dart';
 import '../data/cross_dock_cad_fields.dart';
 import '../data/healthcare_cad_fields.dart';
 import '../data/school_cad_fields.dart';
@@ -45,6 +46,8 @@ import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
 import 'truck_sweep_screen.dart';
+import 'paired_apartment_screen.dart';
+import '../services/paired_apartment_generator.dart';
 import '../services/truck_sweep_generator.dart';
 import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
@@ -157,7 +160,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _wantsParking => !_linearSite && _parking != null && _parking != ProjectParking.none;
   List<TaxonomyChoice> get _allSpaces => [
     for (final room in _program.spaces)
-      if ((!_mixedHomeCad && !_libraryCad && (!_hostelCad || hostelCadRoomIds.contains(room.id)) && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_surveySheetOnly && !_truckSweepCad) || _spaces.containsKey(room.id)) room,
+      if ((!_mixedHomeCad && !_libraryCad && (!_hostelCad || hostelCadRoomIds.contains(room.id)) && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_surveySheetOnly && !_truckSweepCad && !_pairedApartmentCad) || _spaces.containsKey(room.id)) room,
     if (_libraryEligible)
       for (final room in libraryCadRooms)
         if (_libraryCad || _spaces.containsKey(room.id)) room,
@@ -214,6 +217,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _warehouseEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && warehouseLoadingTypes.contains(_type?.id);
   bool get _crossDockEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && crossDockTypes.contains(_type?.id);
   bool get _crossDockCad => _crossDockEligible && _answers['cad_output'] == 'warehouse_cross_dock';
+  bool get _pairedApartmentEligible => pairedApartmentEligible(_category?.id,_group?.id,_type?.id);
+  bool get _pairedApartmentCad => _pairedApartmentEligible && _answers['cad_output']=='paired_apartments';
   bool get _truckSweepCad => _warehouseEligible && _answers['cad_output']=='truck_reverse_sweep';
   bool get _warehouseCad => _warehouseEligible && _answers['cad_output'] == 'warehouse_loading';
   bool get _clinicEligible => _category?.id == 'institutional' && _group?.id == 'healthcare' && separatedClinicTypes.contains(_type?.id);
@@ -265,7 +270,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_surveyCorridorEligible) surveyCorridorMode,
     if (_junctionEligible) tJunctionCadMode,
     if (_stormwaterEligible) stormwaterCadMode,
-    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible, mixedShopHome: _mixedEligible, crossDock: _crossDockEligible, officeWorkplace: _officeEligible, diningService:_diningEligible,cattleShed:_cattleEligible,assembly:_assemblyEligible,libraryReading:_libraryEligible,badminton:_badmintonEligible,hostel:_hostelEligible,greenhouse:_greenhouseEligible,sharedCore:_sharedCoreEligible,inpatientWard:_inpatientWardEligible,truckSweep:_warehouseEligible),
+    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible, mixedShopHome: _mixedEligible, crossDock: _crossDockEligible, officeWorkplace: _officeEligible, diningService:_diningEligible,cattleShed:_cattleEligible,assembly:_assemblyEligible,libraryReading:_libraryEligible,badminton:_badmintonEligible,hostel:_hostelEligible,greenhouse:_greenhouseEligible,sharedCore:_sharedCoreEligible,inpatientWard:_inpatientWardEligible,truckSweep:_warehouseEligible,pairedApartments:_pairedApartmentEligible),
     if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
     if (_g1Cad && _wantsParking) ...[
       ...dwellingParkingCommonFields,
@@ -293,6 +298,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_retailCad) ...[...enclosedCadFields.take(5), ...retailCadFields],
     if (_warehouseCad) ...warehouseLoadingFields,
     if (_truckSweepCad) ...truckSweepFields,
+    if (_pairedApartmentCad) ...[...enclosedCadFields.where((field)=>field.id!='cad_corridor'),...pairedApartmentFields],
     if (_crossDockCad) ...crossDockFields,
     if (_enclosedCad || _clinicCad || _officeCad || _schoolCad || _libraryCad || _mixedHomeCad) ...[...enclosedCadFields, cadWidthMode],
   ];
@@ -638,7 +644,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,stormwaterCadMode,...stormwaterCadFields,...truckSweepFields,truckSweepObstacles]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,stormwaterCadMode,...stormwaterCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -727,6 +733,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     }
     if (_packhouseCad && (_floorCount != 1 || !const {'North','East','South','West'}.contains(_facing))) {
       return 'The packhouse flow needs one ground floor and a cardinal receiving frontage.';
+    }
+    if (_pairedApartmentCad && (_floorCount!=1 || !const {'North','East','South','West'}.contains(_facing))) {
+      return 'Paired apartment CAD needs one ground floor and a cardinal shared frontage.';
     }
     if (_truckSweepCad && (!_isRectangular || !const {'North','East','South','West'}.contains(_facing))) {
       return 'Truck sweep CAD needs a measured rectangular or square plot and a cardinal approach.';
@@ -969,6 +978,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         builder: (_) => PackhouseCadScreen(name: name, brief: brief, widthFt: width ?? 0,
           depthFt: length ?? 0, facing: facing),
       ));
+    } else if (PairedApartmentGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => PairedApartmentScreen(
+        name:name,brief:brief,widthFt:width??0,depthFt:length??0,facing:facing)));
     } else if (TruckSweepGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => TruckSweepScreen(
         name:name,brief:brief,widthFt:width??0,depthFt:length??0,facing:facing)));
@@ -1179,7 +1191,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       ],
       _fieldPanel(_frontPlanning.where((f) =>
         const {'surveyed_plot_area', 'route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
-      if ((_home || _vastu || _enclosedCad || _warehouseCad || _crossDockCad || _clinicCad || _retailCad || _officeCad || _diningCad || _cattleCad || _schoolCad || _libraryCad || _packhouseCad || _assemblyCad || _badmintonCad || _hostelCad || _greenhouseCad || _sharedCoreCad || _inpatientWardCad || _truckSweepCad || _mixedHomeCad) && !_linearSite) ...[
+      if ((_home || _vastu || _enclosedCad || _warehouseCad || _crossDockCad || _clinicCad || _retailCad || _officeCad || _diningCad || _cattleCad || _schoolCad || _libraryCad || _packhouseCad || _assemblyCad || _badmintonCad || _hostelCad || _greenhouseCad || _sharedCoreCad || _inpatientWardCad || _truckSweepCad || _pairedApartmentCad || _mixedHomeCad) && !_linearSite) ...[
         _facingPicker(required: true),
         if (_vastu && _facing != null && _facing != 'Not decided')
           const Text('Vastu review: consider northeast for puja, southeast for kitchen and southwest for the main bedroom when feasible. These are preferences, not layout or approval checks.'),
@@ -1272,10 +1284,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(_truckSweepCad ? 'The swept-path sheet draws the measured apron, one truck and one dock. Leave separate Space selections empty and enter fixed apron obstacles in Site.' : _stormwaterCad ? 'The surveyed drainage nodes define the run. Leave separate Space selections empty; this mode does not draw pumps, side branches or other structures.' : _longProfileCad ? 'The longitudinal profile uses surveyed and proposed levels only. Leave separate Space selections empty.' : _inpatientWardCad ? 'The ward template draws the bed bays, nursing lobby and washroom reserve. Enter an even patient bed count (2–20) and leave separate Space selections empty.' : _sharedCoreCad ? 'The shared-core fields draw the shop, stock room, office and meeting room. Leave separate Space selections empty.' : _junctionCad ? 'The survey fields define the three carriageways and right-of-way boundaries. Leave separate Space selections empty.' : _greenhouseCad ? 'The greenhouse dimensions already define the bay, benches and aisles. Leave separate Space selections empty; remove any selections from a previous drawing mode.' : _hostelCad ? 'Add 1–6 identical Bedrooms, one Warden Room and one Toilets/Baths reserve. Enter clear room dimensions in Details. Enter the resident count and 2, 4, 6 or 8 beds per bedroom in Facility setup.' : _badmintonCad ? 'Add one or two Field/Court spaces (measured marked rectangle), one Athlete Change room and optionally one Spectator Seating strip. For viewing, its clear depth equals the full inside hall depth; enter seats and aisle measurements separately.' : _libraryCad ? 'Add one Checkout/Return, Open Book Stacks and Quiet Reading room. Children’s reading, staff book processing and a toilet reserve are optional. Enter clear room dimensions in Details.' : _assemblyCad ? 'Add one Raw Material Receiving, Production Line, Quality Control and Dispatch room. Incoming Inspection, Raw Store and Finished Goods are optional. Enter the clear process-room width: gross width minus three walls and the staff passage.' : _cattleCad ? 'Pen rows, troughs and lanes come from the measured shed fields. Leave additional Space selections empty.' : _diningCad ? 'Add one Toilets, Dining, Kitchen and Wash room. Dining spans the plate; Kitchen and Wash fit side-by-side behind it. Enter seats in multiples of four.' : _officeCad ? 'Add one Reception, at least one Meeting Room and one Open Workstation room. Enter the individual desk count in Facility setup, not as a room quantity.' : _schoolCad ? 'Add measured school rooms. For a rear fenced playground, select Playground once, enter its clear size in Details, then enter access and fence measurements in Site.' : _crossDockCad ? 'The cross-dock drawing uses the measured banks, staging and staff access; leave separate space selections empty.' : _stackedCad ? 'Add the measured dwelling rooms only and assign them all to the first floor. Room width runs along the stair side; room length runs away from it. The shop and stair use their own inputs.' : _mixedCad ? 'Choose measured dwelling rooms only: living room, closed kitchen, shared bathroom(s) and the bedroom count you entered. The shop comes from the separate fixture dimensions.' : _surveyCorridorCad ? 'This CAD mode uses only the left-to-right band list in Site. Leave these discrete space selections empty.' : _packhouseCad ? 'Add one receiving, grading, packaging and dispatch room. An ambient finished store is optional. Each clear room width must match the clear building width.' : _retailCad ? 'The retail fixture plan already draws sales, display, checkout and stock. Do not add separate rooms for this drawing.' : _warehouseCad ? 'The measured loading plan already draws its staging, storage, bays and routes. Do not add separate rooms for this drawing.' :
+            Text(_pairedApartmentCad ? 'Enter two units and select 1 BHK in the unit mix. This template draws both mirrored flats and the shared lobby directly; leave separate Space selections empty.' : _truckSweepCad ? 'The swept-path sheet draws the measured apron, one truck and one dock. Leave separate Space selections empty and enter fixed apron obstacles in Site.' : _stormwaterCad ? 'The surveyed drainage nodes define the run. Leave separate Space selections empty; this mode does not draw pumps, side branches or other structures.' : _longProfileCad ? 'The longitudinal profile uses surveyed and proposed levels only. Leave separate Space selections empty.' : _inpatientWardCad ? 'The ward template draws the bed bays, nursing lobby and washroom reserve. Enter an even patient bed count (2–20) and leave separate Space selections empty.' : _sharedCoreCad ? 'The shared-core fields draw the shop, stock room, office and meeting room. Leave separate Space selections empty.' : _junctionCad ? 'The survey fields define the three carriageways and right-of-way boundaries. Leave separate Space selections empty.' : _greenhouseCad ? 'The greenhouse dimensions already define the bay, benches and aisles. Leave separate Space selections empty; remove any selections from a previous drawing mode.' : _hostelCad ? 'Add 1–6 identical Bedrooms, one Warden Room and one Toilets/Baths reserve. Enter clear room dimensions in Details. Enter the resident count and 2, 4, 6 or 8 beds per bedroom in Facility setup.' : _badmintonCad ? 'Add one or two Field/Court spaces (measured marked rectangle), one Athlete Change room and optionally one Spectator Seating strip. For viewing, its clear depth equals the full inside hall depth; enter seats and aisle measurements separately.' : _libraryCad ? 'Add one Checkout/Return, Open Book Stacks and Quiet Reading room. Children’s reading, staff book processing and a toilet reserve are optional. Enter clear room dimensions in Details.' : _assemblyCad ? 'Add one Raw Material Receiving, Production Line, Quality Control and Dispatch room. Incoming Inspection, Raw Store and Finished Goods are optional. Enter the clear process-room width: gross width minus three walls and the staff passage.' : _cattleCad ? 'Pen rows, troughs and lanes come from the measured shed fields. Leave additional Space selections empty.' : _diningCad ? 'Add one Toilets, Dining, Kitchen and Wash room. Dining spans the plate; Kitchen and Wash fit side-by-side behind it. Enter seats in multiples of four.' : _officeCad ? 'Add one Reception, at least one Meeting Room and one Open Workstation room. Enter the individual desk count in Facility setup, not as a room quantity.' : _schoolCad ? 'Add measured school rooms. For a rear fenced playground, select Playground once, enter its clear size in Details, then enter access and fence measurements in Site.' : _crossDockCad ? 'The cross-dock drawing uses the measured banks, staging and staff access; leave separate space selections empty.' : _stackedCad ? 'Add the measured dwelling rooms only and assign them all to the first floor. Room width runs along the stair side; room length runs away from it. The shop and stair use their own inputs.' : _mixedCad ? 'Choose measured dwelling rooms only: living room, closed kitchen, shared bathroom(s) and the bedroom count you entered. The shop comes from the separate fixture dimensions.' : _surveyCorridorCad ? 'This CAD mode uses only the left-to-right band list in Site. Leave these discrete space selections empty.' : _packhouseCad ? 'Add one receiving, grading, packaging and dispatch room. An ambient finished store is optional. Each clear room width must match the clear building width.' : _retailCad ? 'The retail fixture plan already draws sales, display, checkout and stock. Do not add separate rooms for this drawing.' : _warehouseCad ? 'The measured loading plan already draws its staging, storage, bays and routes. Do not add separate rooms for this drawing.' :
               'Select spaces or components, then configure each one. This is not a code-required room schedule.'),
             const SizedBox(height: 8),
-            if (!_mixedHomeCad && !_libraryCad && !_hostelCad && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_surveySheetOnly && !_truckSweepCad) OutlinedButton.icon(onPressed: _addCustomSpace, icon: const Icon(Icons.add), label: const Text('Add an unlisted space')),
+            if (!_mixedHomeCad && !_libraryCad && !_hostelCad && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_surveySheetOnly && !_truckSweepCad && !_pairedApartmentCad) OutlinedButton.icon(onPressed: _addCustomSpace, icon: const Icon(Icons.add), label: const Text('Add an unlisted space')),
             for (final space in _allSpaces)
               Column(
                 key: ValueKey(space.id),
@@ -1429,7 +1441,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
     child: _selectionList(_stormwaterCad ? 'Record the surveyed gravity-run nodes, cover and fall requirements.' : _longProfileCad ? 'Record the surveyed ground and proposed levels against the same benchmark.' : _junctionCad ? 'Record your T-junction survey controls and measured widths and radii.' : _linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
-      if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_crossDockCad && !_clinicCad && !_retailCad && !_schoolCad && !_officeCad && !_diningCad && !_cattleCad && !_packhouseCad && !_libraryCad && !_assemblyCad && !_badmintonCad && !_hostelCad && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_truckSweepCad && !_mixedHomeCad) _facingPicker(),
+      if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_crossDockCad && !_clinicCad && !_retailCad && !_schoolCad && !_officeCad && !_diningCad && !_cattleCad && !_packhouseCad && !_libraryCad && !_assemblyCad && !_badmintonCad && !_hostelCad && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_truckSweepCad && !_pairedApartmentCad && !_mixedHomeCad) _facingPicker(),
       if (_stormwaterCad) const Text('Enter upstream to downstream. Use projected metre coordinates and ground/invert levels on one datum. Intermediate ground samples use cumulative plan distance from the first node.')
       else if (_longProfileCad) const Text('Use increasing metre chainages in both lists. Proposed endpoints must match the survey extent; give zero curve length at the ends or at a straight grade break.')
       else if (_junctionCad) const Text('Enter four projected coordinate pairs in A; J; B; C order. A and B are opposite ends of the straight main tangent; C is the perpendicular branch end.')
@@ -1548,6 +1560,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           const Text('Saving checks the surveyed length, chainages and offset band geometry. Conflicting geometry blocks DXF rather than generating straight zoning.')
         else if (_packhouseCad)
           const Text('Saving checks exact stage lengths, transfer openings, both handling pads and the continuous front-to-rear goods lane. Invalid layouts do not fall back to zoning.')
+        else if (_pairedApartmentCad)
+          const Text('Saving checks the shared lobby, independent flat doors, wet rooms, kitchen clearances and windows. Failed fit blocks DXF.')
         else if (_truckSweepCad)
           const Text('Saving checks the clearance envelope continuously along the approach, the 90-degree turn and the straight docking leg. Collisions block DXF.')
         else if (_inpatientWardCad)
