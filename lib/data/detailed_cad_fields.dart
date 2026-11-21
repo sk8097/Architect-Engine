@@ -5,7 +5,10 @@ RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSe
   if (diningService) 'dining_service': 'Dine-in: seating, kitchen pass and dish return',
   if (officeWorkplace) 'office_workplace': 'Office: visitor rooms and measured staff workstations',
   if (crossDock) 'warehouse_cross_dock': 'Cross-dock: opposing inbound and outbound banks',
-  if (mixedShopHome) 'mixed_shop_home': 'Shop + dwelling: side-by-side with independent entries',
+  if (mixedShopHome) ...{
+    'mixed_shop_home': 'Shop + dwelling: side-by-side with independent entries',
+    'mixed_shop_below_home': 'Shop below dwelling: independent stair and entries',
+  },
   if (packhouseFlow) 'packhouse_flow': 'Packhouse: receiving, grading, packing and dispatch',
   if (schoolArrival) 'school_arrival': 'Primary school: visitor lobby and classroom route',
   if (dwellingG1) 'dwelling_g1': 'G+1 house with measured indoor staircase',

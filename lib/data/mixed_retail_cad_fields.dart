@@ -29,3 +29,12 @@ final mixedRetailCadFields = <RequirementField>[
     min:.001,max:300,unit:'m',required:true),
   const RequirementField('mx_bedrooms','Bedrooms in the dwelling',kind:RequirementKind.integer,min:1,max:5,required:true),
 ];
+
+final stackedRetailCadFields = <RequirementField>[
+  planningChoice('ms_access','Independent shop and home walks at the front boundary',{
+    'confirmed':'Confirmed independent access at both entry points','pending':'Not confirmed',
+  }),
+  ...mixedRetailCadFields.where((field)=>const {'mx_shop_walk','mx_home_walk','mx_bedrooms'}.contains(field.id)),
+];
+
+final stackedHomeLevel = planningChoice('floor_level','Place this dwelling room on',{'1':'First floor above shop'});

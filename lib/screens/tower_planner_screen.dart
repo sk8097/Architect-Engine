@@ -304,6 +304,9 @@ class TowerPlanScreen extends StatefulWidget {
   const TowerPlanScreen.dwelling({super.key, required this.projectName, required TowerResult this.generated, required double this.areaSqft})
     : brief = null, title = 'G+1 house CAD', note =
       'Plan-view stairs and roof only. Verify stair sections, headroom, openings, handrails, parapet height, roof structure, drainage and local code before construction.';
+  const TowerPlanScreen.stackedRetail({super.key,required this.projectName,required TowerResult this.generated,required double this.areaSqft})
+    : brief=null,title='Shop below dwelling CAD',note=
+      'Concept only. The private stair and divider show geometric separation, not rated construction. Verify stair section and headroom, fire/egress and accessibility, structure, acoustics and utilities separately.';
   final String projectName, title;
   final String? note;
   final double? areaSqft;
@@ -387,6 +390,8 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           else if (sheet.siteZones.any((zone)=>zone.layer=='PARKING_BAYS'))
             Text('${sheet.siteZones.where((zone) => zone.layer == 'PARKING_BAYS').length} open bays · '
               'Vehicle approach and separate pedestrian entrance walk. No vehicle swept-path, curb cut, slope or access approval verified.'),
+          if (sheet.siteZones.any((zone)=>zone.layer=='MIXED_DIVIDER'))
+            const Text('Orange: shop walk. Green: home walk. Purple: solid ground-floor divider. No internal shop-to-stair door.'),
           if (sheet.range=='Roof terrace')
             const Text('Green: the clear open deck. Purple: stair-head walk. The remaining roof is unallocated.'),
           for (final stair in sheet.plan.stairs)

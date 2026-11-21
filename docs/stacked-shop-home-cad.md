@@ -1,0 +1,11 @@
+# Shop below dwelling — measured concept CAD
+
+Select **Mixed Use → Mixed-use development → Residential + Retail → Automatic drawing → Shop below dwelling: independent stair and entries**. Choose two floors, Vertical Mixed Use (or leave arrangement unspecified), a measured rectangular or square plot, a common floor plate, cardinal shop frontage and two independent front approaches. The concept is one new shop below one dwelling; no shared lobby, lift, parking, mezzanine, terrace or rear loading is generated.
+
+The private stair sits in a full-depth strip on the right as seen from the shop frontage. Enter its clear width, floor-to-floor rise, riser count, going and depth of each landing. The strip uses the clear stair width plus two walls; the remaining width is the ground shop and upper dwelling. The ground shop is drawn from its fixture, aisle, checkout, queue and stock measurements. Its entrance and the home entrance have separately measured frontage walks. A solid divider runs between the shop and the stair; there is no connecting door.
+
+Select measured dwelling rooms only and assign them to **First floor above shop**. Include one living room, one closed kitchen, at least one shared bathroom and the measured bedroom count. The first-floor passage runs from right to left and opens into the upper stair landing. Enter room clear width **along the stair side**, and depth **away from the stair side**, rather than along the shop frontage. The solver keeps the treads aligned on both sheets, checks the door fits the upper landing, and draws any window on a true exterior edge. Remaining sealed reserves are not occupiable. Gross occupied sheets both count against any supplied FAR/FSI allowance in this concept.
+
+Save previews both measured sheets. Reopen **Shop below dwelling CAD** from the project menu and share either sheet alone or share both in one editable DXF. Unsupported geometry or non-fitting dimensions leave the brief saved and block export, rather than falling back to a different drawing.
+
+The stair is plan-view only. This does not verify stair sections, headroom, fire rating, slab structure or openings, or egress, acoustics, accessibility, services and mixed-use approvals. Front paths stop at the plot boundary.
