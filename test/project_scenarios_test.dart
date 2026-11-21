@@ -52,7 +52,7 @@ void main() {
     await tester.tap(variant);
     await tester.pumpAndSettle();
     expect(find.text('Configuration'), findsOneWidget);
-    expect(find.text('2 BHK'), findsOneWidget);
-    expect(find.textContaining('enter your bedroom count'), findsOneWidget);
+    expect(find.text('2 BHK'), findsNothing); // Plot inputs come first.
+    expect(find.byKey(const ValueKey('Plot geometry (required)')), findsOneWidget);
   });
 }

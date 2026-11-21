@@ -96,6 +96,8 @@ class AutomaticFloorPlanGenerator {
     } else if (brief.parking != ProjectParking.none) {
       issues.add('Your parking requirement is saved, but this generator cannot draw it yet.');
     }
+    if (values['terrace_needed'] == 'yes') issues.add('Your terrace and access requirements are saved, but this generator cannot draw them yet.');
+    if (values['puja_needed'] == 'yes') issues.add('Your puja-space requirement is saved, but this generator cannot draw it yet.');
     final houseForm = values['house_form'];
     if (houseForm != null && houseForm != 'single_floor') issues.add('Only the single-floor house form is supported.');
     final kitchen = values['kitchen_type'];

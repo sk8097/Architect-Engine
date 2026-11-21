@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
 import '../data/project_scenarios.dart';
+import '../data/space_planning.dart';
 import '../models/project_brief.dart';
 import '../models/project_model.dart';
 import '../models/project_requirements_snapshot.dart';
@@ -84,16 +85,154 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     for (final item in _customSpaces.entries) TaxonomyChoice(item.key, item.value),
   ];
   List<RequirementField> get _facilitySchema => facilityFields(_group!, _type!);
+  String get _programId => _type?.programId ?? _group?.programId ?? '';
+  bool get _home => _programId == 'home';
+  int get _floorCount => int.tryParse(_floors.text.trim()) ?? 0;
+  bool get _terrace => _answers['terrace_needed'] == 'yes';
+  bool get _vastu => const {'review', 'user'}.contains(_answers['vastu']);
+  Iterable<int> get _levels => Iterable<int>.generate(_floorCount.clamp(0, 100).toInt());
+  int get _bedrooms => int.tryParse('${_facilityAnswers['bedrooms'] ?? ''}') ??
+    int.tryParse(RegExp(r'^([1-5])_(?:bhk|bedroom)$').firstMatch(_configurationId ?? '')?.group(1) ?? '') ??
+    (const {'1_rk', 'studio'}.contains(_configurationId) ? 0 : -1);
+  int get _baths => (int.tryParse('${_facilityAnswers['common_toilets'] ?? ''}') ?? 1) +
+    (int.tryParse('${_facilityAnswers['attached_toilets'] ?? ''}') ?? 0);
+  String _levelName(int n) => n == 0 ? 'Ground floor' : 'Floor $n';
+  List<RequirementField> get _essential => [
+    for (final field in _facilitySchema)
+      if ((planningEssentialIds[_programId] ?? const <String>{}).contains(field.id)) asRequired(field),
+    if (_home) ...[
+      for (final field in _facilitySchema)
+        if (const {'bedrooms', 'common_toilets', 'attached_toilets', 'kitchen_type'}.contains(field.id)) field,
+    ],
+  ];
+  String get _plotUnit => _answers['plot_unit'] == 'm' ? 'm' : 'ft';
+  double? _measuredFeet(TextEditingController controller) {
+    final n = positiveNumber(controller.text);
+    if (n == null) return null;
+    final feet = _plotUnit == 'm' ? n / .3048 : n;
+    return feet.isFinite ? feet : null;
+  }
+  void _changePlotUnit(String? choice) {
+    final next = choice ?? 'ft';
+    if (next == _plotUnit) return;
+    final width = _measuredFeet(_width), depth = _measuredFeet(_depth);
+    setState(() {
+      _answers['plot_unit'] = next;
+      if (width != null) _width.text = _dimensionInSelectedUnit(width);
+      if (depth != null) _depth.text = _dimensionInSelectedUnit(depth);
+      _sectionError = null;
+    });
+  }
+  String _dimensionInSelectedUnit(double feet) => _plotUnit == 'm'
+      ? (feet * .3048).toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '') : feet.toString();
+  List<RequirementField> get _frontPlanning => [
+    if (_isRectangular) planningChoice('plot_unit', 'Plot measurement unit', {'ft': 'Feet', 'm': 'Metres'}, required: false),
+    if (_customInfrastructure) customSiteKindField,
+    if (_type?.id == 'custom') customTypeField,
+    if (_configurationId == 'custom') customConfigurationField,
+    if (_linearSite)
+      ...alignmentFields.take(3).map((field) => field.id == 'alignment_reference' ? field : asRequired(field))
+    else if (_shapeId != null && !_isRectangular)
+      asRequired(surveyedPlotFields.first),
+    if (!_linearSite) planningChoice('vastu', 'Vastu preference', {
+      'none': 'No Vastu preference', 'review': 'Consider Vastu', 'user': 'Use my Vastu preferences', 'undecided': 'Not decided',
+    }, required: false),
+    if (!_linearSite) planningChoice('terrace_needed', 'Accessible terrace?', {'yes': 'Yes', 'no': 'No'}, required: false),
+    if (_home) ...residentialPlanningFields(_vastu),
+    if (!_linearSite) ...accessPlanningFields(_floorCount, _terrace, _wantsParking),
+    if (_terrace && _answers['terrace_use'] is Iterable)
+      for (final zone in (_answers['terrace_use'] as Iterable).whereType<String>())
+        if (const {'open', 'covered', 'enclosed', 'garden'}.contains(zone))
+          planningArea('terrace_area_$zone', 'Area for $zone terrace zone'),
+  ];
+  List<RequirementField> _levelFields(int level) => [
+    if (level > 0) planningArea('level_area_$level', 'Available floor area'),
+    if (_floorCount > 1) planningArea('level_access_$level', 'Stair, landing and lift allowance'),
+    if (_home && _floorCount > 1) ...[
+      RequirementField('level_bedrooms_$level', 'Bedrooms on this floor', kind: RequirementKind.integer, min: 0, required: true),
+      RequirementField('level_baths_$level', 'Bathrooms on this floor', kind: RequirementKind.integer, min: 0, required: true),
+    ],
+  ];
+  List<RequirementField> get _floorPlanning => _linearSite ? [] : [
+    if (_home && _floorCount > 1)
+      planningChoice('main_kitchen_floor', 'Main kitchen and living-room floor', {
+        for (final n in _levels) '$n': _levelName(n),
+      }),
+    for (final n in _levels) ..._levelFields(n),
+  ];
+  Set<String> get _earlyIds => {..._frontPlanning.map((f) => f.id), 'surveyed_plot_area', 'route_length', 'right_of_way', 'alignment_reference', 'vastu', 'vastu_notes'};
+  bool _earlyOptionalSize(String id) => _home && const {
+    'master_bedroom','secondary_bedroom','childrens_bedroom','guest_bedroom','elderly_accessible_bedroom',
+    'family_living_room','open_kitchen','closed_kitchen','shared_bathroom','attached_bathroom',
+    'staircase','lift','terrace','prayer_puja_room',
+  }.contains(id);
+  bool _coveredByCore(String id) => _earlyOptionalSize(id) ||
+      const {'staircase','lift','terrace'}.contains(id) && (_floorCount > 1 || _terrace);
+  int? _spaceLevel(Map<String, Object> data) {
+    final level = '${data['floor_level'] ?? ''}'.trim().toLowerCase();
+    if (const {'', 'ground', 'ground floor', 'g'}.contains(level)) return 0;
+    return int.tryParse(level.replaceFirst(RegExp(r'^floor\s+'), ''));
+  }
+  PlanningSize? _sizeFor(String id) => _home ? homeRoomSizes[id] : null;
+  ({double? minimum, double? typical, double? width, double? depth}) _roomAllocation(String id) {
+    final room = _spaceDetails[id] ?? const <String, Object>{};
+    final fallback = _sizeFor(id);
+    final width = positiveNumber(room['width']);
+    final length = positiveNumber(room['length']);
+    final unit = room['area_unit'];
+    final conversion = unit == 'sqm' ? sqftPerSqm : 1.0;
+    final min = unit == null ? null : positiveNumber(room['area_min']);
+    final target = unit == null ? null : positiveNumber(room['area_target']);
+    final fromSides = width == null || length == null ? null : width * length * sqftPerSqm;
+    final supplied = [if (min != null) min * conversion, if (fromSides != null) fromSides];
+    final least = supplied.isNotEmpty ? supplied.reduce((a,b) => a > b ? a : b) :
+      (target == null ? fallback?.minimum : target * conversion);
+    return (minimum: least, typical: target == null ? (fallback?.typical ?? least) : target * conversion,
+      width: width == null ? fallback?.width : width / .3048,
+      depth: length == null ? fallback?.depth : length / .3048);
+  }
+  AreaBudget _budget(int level) {
+    final width = _isRectangular ? _measuredFeet(_width) : null;
+    final depth = _shapeId == 'square' ? width : (_isRectangular ? _measuredFeet(_depth) : null);
+    final area = positiveNumber(_answers['surveyed_plot_area']);
+    final intNumber = (String key) => int.tryParse('${_answers[key] ?? ''}') ?? 0;
+    final home = !_home ? (minimum: 0.0, typical: 0.0) : _floorCount > 1
+      ? homeLevelAllowance(intNumber('level_bedrooms_$level'), intNumber('level_baths_$level'), _answers['main_kitchen_floor'] == '$level')
+      : dwellingAllowance(_bedrooms < 0 ? 0 : _bedrooms, _baths);
+    final allowance = (_floorCount > 1 ? positiveNumber(_answers['level_access_$level']) ?? 0.0 : 0.0) + (level == 0 ?
+      ((_terrace && _floorCount == 1 ? positiveNumber(_answers['ground_access_area']) ?? 0.0 : 0) +
+       (_wantsParking ? positiveNumber(_answers['parking_sqft']) ?? 0.0 : 0)) : 0);
+    final puja = _home && level == 0 && _answers['puja_needed'] == 'yes' ? pujaSizes[_answers['puja_form']] : null;
+    var minimum = home.minimum + allowance + (puja?.minimum ?? 0.0);
+    var typical = home.typical + allowance + (puja?.typical ?? 0.0);
+    var unknown = false;
+    for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
+      if (_coveredByCore(entry.key) || _spaceLevel(_spaceDetails[entry.key] ?? const {}) != level) continue;
+      final allocation = _roomAllocation(entry.key);
+      if (allocation.minimum == null) { unknown = true; continue; }
+      minimum += allocation.minimum! * entry.value;
+      final guess = allocation.typical ?? allocation.minimum!;
+      typical += (guess < allocation.minimum! ? allocation.minimum! : guess) * entry.value;
+    }
+    return estimatePlanningArea(width: level == 0 ? width : null, depth: level == 0 ? depth : null,
+      surveyedSqft: level > 0 ? positiveNumber(_answers['level_area_$level']) :
+        (_isRectangular || area == null ? null : area * sqftPerSqm),
+      rules: _answers, minimum: minimum, typical: typical, unknown: unknown);
+  }
+  AreaBudget get _roofBudget {
+    final zones = _answers['terrace_use'];
+    final used = zones is Iterable ? zones.whereType<String>().fold<double>(0,
+      (sum, zone) => sum + (positiveNumber(_answers['terrace_area_$zone']) ?? 0)) : 0.0;
+    return estimatePlanningArea(surveyedSqft: positiveNumber(_answers['terrace_sqft']), minimum: used, typical: used);
+  }
   List<RequirementField> get _infoSchema => [
     ...projectInformationFields,
     if (_actionId != null && !const {'new_design', 'feasibility', 'concept_design', 'master_planning'}.contains(_actionId)) previousDesignField,
-    if (_type?.id == 'custom') customTypeField,
-    if (_customInfrastructure) customSiteKindField,
-    if (_configurationId == 'custom') customConfigurationField,
   ];
   List<RequirementField> get _siteSchema => [
     ...siteCommonFields,
-    if (_linearSite) ...alignmentFields else ...surveyedPlotFields,
+    for (final field in (_linearSite ? alignmentFields : surveyedPlotFields))
+      if (!_earlyIds.contains(field.id)) field,
   ];
   List<RequirementField> get _ruleSchema => _linearSite
       ? jurisdictionFields.take(5).toList() : jurisdictionFields;
@@ -108,9 +247,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       }),
   ];
   List<RequirementField> get _designSchema => _linearSite
-      ? preferenceFields.where((f) => f.id == 'sustainability').toList() : preferenceFields;
+      ? preferenceFields.where((f) => f.id == 'sustainability').toList()
+      : preferenceFields.where((f) => !_earlyIds.contains(f.id)).toList();
   List<RequirementField> get _generalSchema => [
-    ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
+    ..._frontPlanning, ..._floorPlanning, ..._infoSchema, ..._siteSchema, ..._ruleSchema, ..._operationalSchema,
     ...technicalFields, ..._designSchema, ...deliveryFields,
   ];
   ProjectScenario? get _currentScenario => scenarioForRequirements(
@@ -175,6 +315,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       if (requirements != null) {
         _unsupportedBrief = _unsupportedBrief || requirements.version != requirementsSchemaVersion;
         _answers.addAll(requirements.answers);
+        if (_plotUnit == 'm') {
+          if (project.width > 0) _width.text = _dimensionInSelectedUnit(project.width);
+          if (project.length > 0) _depth.text = _dimensionInSelectedUnit(project.length);
+        }
         _customSpaces.addAll(requirements.customSpaces);
         _spaceDetails.addAll(requirements.spaceDetails);
         for (final entry in _spaceDetails.entries) {
@@ -299,7 +443,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       return;
     }
     final issue = switch (_step) {
-      4 => _spaceProgramIssue(),
+      3 => _planningIssue(),
+      4 => _spaceProgramIssue() ?? _planningIssue(checkRooms: true),
+      7 => _planningIssue(checkRooms: true),
       6 => !_linearSite && _answers['survey_boundary']?.toString().trim().isNotEmpty == true && _answers['coordinate_unit'] == null
           ? 'Select the survey coordinate unit when entering a boundary.' : null,
       8 => _facilityIssue(),
@@ -313,6 +459,80 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     }
     FocusScope.of(context).unfocus();
     setState(() { _step++; _sectionError = null; });
+  }
+
+  String? _planningIssue({bool checkRooms = false}) {
+    if (_linearSite) {
+      if (positiveNumber(_answers['route_length']) == null || positiveNumber(_answers['right_of_way']) == null) {
+        return 'Enter the measured route length and available right-of-way.';
+      }
+      return null;
+    }
+    if (_shapeId == null) return 'Select the geometry of your site.';
+    if (_budget(0).total <= 0) return 'Enter the measured site size before continuing.';
+    if (_vastu && (_facing == null || _facing == 'Not decided')) return 'Enter the measured frontage direction for Vastu suggestions.';
+    if (_home && (_floorCount < 1 || _floorCount > 100)) return 'Enter the total floor count, including the ground floor.';
+    if (_home && _facing == null) return 'Select the frontage direction or mark it unknown.';
+    if (_home && _bedrooms < 0) return 'Enter the bedroom count or choose a configuration with a known count.';
+    if (_home && _parking == null) return 'Choose whether you need parking.';
+    if (_home && _baths < 1) return 'A dwelling needs at least one bathroom in this brief.';
+    final facility = _facilityIssue();
+    if (facility != null) return facility;
+    if (_floorCount > 1 && _home) {
+      int sum(String name) => _levels.fold(0, (total, n) => total + (int.tryParse('${_answers['level_${name}_$n'] ?? ''}') ?? 0));
+      if (sum('bedrooms') != _bedrooms || sum('baths') != _baths) {
+        return 'The bedroom and bathroom counts on individual floors must add up to your total requirements.';
+      }
+    }
+    if (_terrace && _roofBudget.remaining < -0.001) return 'The requested terrace zones exceed the available terrace area.';
+    for (final level in {0, ..._levels}) {
+      final area = _budget(level);
+      if (area.remaining < -0.001) return '${_levelName(level)} needs more area than you have entered. Review the budget and your selections.';
+      if (_home && area.width != null && area.depth != null &&
+          (_floorCount <= 1 || _answers['main_kitchen_floor'] == '$level') &&
+          !homeRoomSizes['family_living_room']!.fits(area.width!, area.depth!)) {
+        return 'The measured width and depth cannot fit the concept living-room allowance.';
+      }
+    }
+    if (checkRooms) {
+      for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
+        final label = _customSpaces[entry.key] ?? taxonomyChoice(_program.spaces, entry.key)?.label ?? entry.key;
+        final detail = _spaceDetails[entry.key] ?? const <String, Object>{};
+        final level = _spaceLevel(detail);
+        if (level == null || level < 0 || (level > 0 && level >= _floorCount)) return '$label: choose an existing floor by level number (0 for ground).';
+        if (_coveredByCore(entry.key)) continue;
+        final allocation = _roomAllocation(entry.key);
+        if (allocation.minimum == null) return '$label: enter an area with units or both clear dimensions in its details.';
+        final area = _budget(level);
+        if (area.width != null && area.depth != null && allocation.width != null && allocation.depth != null &&
+            !PlanningSize(allocation.width!, allocation.depth!, allocation.minimum!).fits(area.width!, area.depth!)) {
+          return '$label does not fit the available width and depth.';
+        }
+      }
+    }
+    return null;
+  }
+
+  Widget _areaSummary() {
+    final ground = _budget(0);
+    String number(double n) => n.toStringAsFixed(0);
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      const SizedBox(height: 8),
+      Text('Plot: ${number(ground.total)} sqft  •  Usable estimate: ${number(ground.available)} sqft',
+        style: Theme.of(context).textTheme.labelMedium),
+      SingleChildScrollView(scrollDirection: Axis.horizontal, child: Row(children: [
+        for (final n in {0, ..._levels})
+          Padding(padding: const EdgeInsets.only(right: 12), child: Text(
+            '${_levelName(n)}: ${number(_budget(n).minimum)} planned / ${number(_budget(n).remaining)} left',
+            style: Theme.of(context).textTheme.labelSmall)),
+        if (_terrace) Text('Terrace: ${number(_roofBudget.minimum)} planned / ${number(_roofBudget.remaining)} left',
+          style: Theme.of(context).textTheme.labelSmall),
+      ])),
+      if ({0, ..._levels}.any((n) => _budget(n).unknown)) const Text('Not counted: spaces without size inputs.'),
+      if (_step == 3 || _step == 4)
+        Text('Ground floor typical: ${number(ground.typical)} sqft • Concept estimates only',
+          style: Theme.of(context).textTheme.labelSmall),
+    ]);
   }
 
   String? _spaceProgramIssue() => validateSpaceProgram({
@@ -342,13 +562,15 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
 
   Future<void> _save() async {
     if (_saving) return;
+    final issue = _planningIssue(checkRooms: true);
+    if (issue != null) { setState(() => _sectionError = issue); return; }
     final messenger = ScaffoldMessenger.of(context);
     final provider = context.read<ProjectProvider>();
     final notifications = context.read<NotificationProvider>();
     final project = widget.existingProject;
     final name = _name.text.trim();
-    final width = _isRectangular ? double.tryParse(_width.text.trim()) : null;
-    final length = _shapeId == 'square' ? width : (_isRectangular ? double.tryParse(_depth.text.trim()) : null);
+    final width = _isRectangular ? _measuredFeet(_width) : null;
+    final length = _shapeId == 'square' ? width : (_isRectangular ? _measuredFeet(_depth) : null);
     final facing = _linearSite ? 'Not decided' : _facing ?? 'Not decided';
     final layout = _currentScenario?.configuration?.label ?? '';
     final previous = project?.brief;
@@ -476,6 +698,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                     Text(_steps[_step], style: theme.textTheme.headlineSmall),
                     if (_step > 0)
                       Text(_selectionPath, style: theme.textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
+                    if (!_unsupportedBrief && _step >= 3 && !_linearSite && _budget(0).total > 0)
+                      _areaSummary(),
                     Expanded(
                       child: SingleChildScrollView(
                         key: ValueKey(_step),
@@ -533,23 +757,107 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     ]);
   }
 
-  Widget _buildConfiguration() => Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _dropdown('${_program.configurationLabel} (optional)',
-            _configurationId, _program.configurations,
-            (value) => setState(() {
-              if (_configurationId != value) _answers.remove(customConfigurationField.id);
-              _configurationId = value;
-            }),
-          ),
+  Widget _buildConfiguration() => Form(
+    key: _sectionForms[_step],
+    child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      if (_customInfrastructure) _fieldPanel([customSiteKindField]),
+      if (!_linearSite) ...[
+        _dropdown('Plot geometry (required)', _shapeId, plotShapes, (value) => setState(() => _shapeId = value), required: true),
+        const SizedBox(height: 12),
+        if (_isRectangular) ...[
+          _dropdown('Plot units', _plotUnit, const [TaxonomyChoice('ft', 'Feet'), TaxonomyChoice('m', 'Metres')], _changePlotUnit),
           const SizedBox(height: 12),
-          if (_facilitySchema.any((field) => field.id == 'bedrooms'))
-            const Text('You can skip this label and enter your bedroom count under Facility requirements. Next, choose the rooms and features you actually want.')
-          else
-            const Text('Skip this label if it does not describe what you need. You can specify spaces and requirements on the next pages.'),
+          _dimension(_width, _shapeId == 'square' ? 'Plot side ($_plotUnit)' : 'Plot width / frontage ($_plotUnit)'),
+          if (_shapeId == 'rectangular') ...[
+            const SizedBox(height: 12),
+            _dimension(_depth, 'Plot depth ($_plotUnit)'),
+          ],
+          const SizedBox(height: 12),
         ],
-      );
+      ],
+      _fieldPanel(_frontPlanning.where((f) =>
+        const {'surveyed_plot_area', 'route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
+      if ((_home || _vastu) && !_linearSite) ...[
+        _facingPicker(required: true),
+        if (_vastu && _facing != null && _facing != 'Not decided')
+          const Text('Vastu review: consider northeast for puja, southeast for kitchen and southwest for the main bedroom when feasible. These are preferences, not layout or approval checks.'),
+      ],
+      if (_linearSite ? positiveNumber(_answers['route_length']) != null && positiveNumber(_answers['right_of_way']) != null : _budget(0).total > 0) ...[
+      const SizedBox(height: 12),
+      if (!_linearSite) ...[
+        TextFormField(
+          key: const ValueKey('floor_count'),
+          controller: _floors,
+          decoration: InputDecoration(labelText: _home ? 'Floors above grade (required)' : 'Floors above grade (optional)',
+            helperText: 'Include the ground floor. Up to 100 levels in this brief.'),
+          keyboardType: TextInputType.number,
+          onChanged: (_) => setState(() => _sectionError = null),
+          validator: (value) {
+            if (!_home && (value ?? '').trim().isEmpty) return null;
+            final n = int.tryParse((value ?? '').trim());
+            return n != null && n >= (_home ? 1 : 0) && n <= 100 ? null : 'Enter a valid floor count (up to 100).';
+          },
+        ),
+        const SizedBox(height: 12),
+      ],
+      _dropdown('${_program.configurationLabel} (optional)', _configurationId, _program.configurations,
+        (value) => setState(() {
+          if (_configurationId != value) { _answers.remove(customConfigurationField.id); _sectionError = null; }
+          _configurationId = value;
+        }), available: (option) {
+          if (!_home || _floorCount > 1) return true;
+          final area = _budget(0);
+          final bedrooms = int.tryParse(RegExp(r'^([1-5])_(?:bhk|bedroom)$').firstMatch(option.id)?.group(1) ?? '');
+          return bedrooms == null || area.total <= 0 || dwellingAllowance(bedrooms, _baths).minimum <= area.available;
+        }),
+      const SizedBox(height: 12),
+      if (_home) const Text('Kitchen and at least one bathroom are included. Enter a bedroom count if you skip the configuration label.'),
+      _fieldPanel(_essential, facility: true),
+      if (!_linearSite) ...[
+        _dropdown(_home ? 'Parking (required)' : 'Parking (optional)', _parking?.name, [
+          for (final parking in ProjectParking.values) TaxonomyChoice(parking.name, parking.label),
+        ], (value) => setState(() => _parking = value == null ? null : ProjectParking.values.byName(value)), required: _home),
+        const SizedBox(height: 12),
+      ],
+      if (_isRectangular) ExpansionTile(
+        title: const Text('Known setbacks (optional)'),
+        maintainState: true,
+        children: [_fieldPanel(jurisdictionFields.where((f) => f.id.endsWith('_setback')).toList())],
+      ),
+      _fieldPanel(_frontPlanning.where((f) =>
+        !const {'plot_unit','custom_site_kind','surveyed_plot_area','route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
+      if (_floorCount > 1 && !_linearSite) ...[
+        _fieldPanel(_floorPlanning.where((f) => f.id == 'main_kitchen_floor').toList()),
+        for (final level in _levels) ...[
+          const Divider(),
+          Text(_levelName(level), style: Theme.of(context).textTheme.titleSmall),
+          _fieldPanel(_levelFields(level)),
+        ],
+      ],
+      ],
+    ]),
+  );
+
+  Widget _facingPicker({bool required = false}) => _dropdown(
+    required ? 'Front-facing side (required)' : 'Front-facing side (optional)', _facing, [
+    for (final direction in _directions)
+      TaxonomyChoice(direction, direction == 'Not decided' ? 'Unknown / survey required' : direction),
+  ], (value) => setState(() => _facing = value), required: required);
+
+  bool _canAddSpace(String id) {
+    final size = _sizeFor(id);
+    if (_linearSite || size == null || _coveredByCore(id)) return true;
+    return {0, ..._levels}.any((n) => _budget(n).fits(size));
+  }
+
+  Widget? _spaceHint(String id) {
+    if (_linearSite) return null;
+    if (_coveredByCore(id)) return const Text('Already allowed for in the main requirements; optional room details.');
+    final size = _sizeFor(id);
+    if (size == null) return const Text('Enter your size in Details if selected.');
+    if (!_spaces.containsKey(id) && !_canAddSpace(id)) return const Text('Not enough space in the entered floor budgets.');
+    return Text('Concept minimum ${size.minimum.toStringAsFixed(0)} sqft • Typical ${size.typical.toStringAsFixed(0)} sqft');
+  }
 
   Widget _buildSpaces() => Form(
         key: _spaceForm,
@@ -567,8 +875,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                   CheckboxListTile(
                     contentPadding: EdgeInsets.zero,
                     title: Text(space.label),
+                    subtitle: _spaceHint(space.id),
                     value: _spaces.containsKey(space.id),
-                    onChanged: (checked) => setState(() {
+                    onChanged: !_spaces.containsKey(space.id) && !_canAddSpace(space.id) ? null : (checked) => setState(() {
                       if (checked == true) {
                         _spaces[space.id] = '1';
                       } else {
@@ -582,7 +891,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                       decoration: InputDecoration(labelText: '${space.label} quantity (required)'),
                       keyboardType: TextInputType.number,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (value) => _spaces[space.id] = value,
+                      onChanged: (value) => setState(() => _spaces[space.id] = value),
                       validator: (value) => (int.tryParse(value ?? '') ?? 0) > 0 ? null : 'Enter a positive quantity.',
                     ),
                     Align(
@@ -674,7 +983,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     return RequirementFields(fields: fields, values: values,
       onChanged: (id, value) {
         if (value == null) { values.remove(id); } else { values[id] = value; }
-        if (_sectionError != null) setState(() => _sectionError = null);
+        setState(() => _sectionError = null);
       },
       onChoiceChanged: () => setState(() {}),
     );
@@ -705,28 +1014,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
-      if (!_linearSite) ...[
-        _dropdown('Plot geometry (optional)', _shapeId, plotShapes, (value) => setState(() {
-          if (_shapeId != value) { _width.clear(); _depth.clear(); _shapeId = value; }
-        })),
-        const SizedBox(height: 12),
-        if (_isRectangular) ...[
-          _dimension(_width, _shapeId == 'square' ? 'Plot side (ft)' : 'Plot width / frontage (ft)'),
-          if (_shapeId == 'rectangular') ...[
-            const SizedBox(height: 12),
-            _dimension(_depth, 'Plot depth (ft)'),
-          ],
-          const SizedBox(height: 12),
-        ] else if (_shapeId != null) ...[
-          const Text('Record survey dimensions below. Boundary notes are not converted to plan geometry yet.'),
-          const SizedBox(height: 12),
-        ],
-        _dropdown('Front-facing side (optional)', _facing, [
-          for (final direction in _directions)
-            TaxonomyChoice(direction, direction == 'Not decided' ? 'Unknown / survey required' : direction),
-        ], (value) => setState(() => _facing = value)),
-        const SizedBox(height: 12),
-      ],
+      if (!_linearSite && !_vastu && !_home) _facingPicker(),
       _fieldPanel(_siteSchema),
     ]),
   );
@@ -734,20 +1022,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildFacility() => Form(
     key: _sectionForms[_step],
     child: _selectionList('Provide capacities and requirements for ${_type!.label}. Do not enter estimated constraints as verified data.', [
-      if (!_linearSite) ...[
-        TextFormField(
-          controller: _floors,
-          decoration: const InputDecoration(labelText: 'Floors above grade (optional)', helperText: 'Include the ground floor. Leave blank if unknown or not applicable.'),
-          keyboardType: TextInputType.number,
-          validator: (value) => (value ?? '').trim().isEmpty || (int.tryParse(value!.trim()) ?? -1) >= 0 ? null : 'Enter a non-negative whole number.',
-        ),
-        const SizedBox(height: 12),
-        _dropdown('Parking (optional)', _parking?.name, [
-          for (final parking in ProjectParking.values) TaxonomyChoice(parking.name, parking.label),
-        ], (value) => setState(() => _parking = value == null ? null : ProjectParking.values.byName(value))),
-        const SizedBox(height: 12),
-      ],
-      _fieldPanel(_facilitySchema, facility: true),
+      _fieldPanel(_facilitySchema.where((field) => !_essential.any((early) => early.id == field.id)).toList(), facility: true),
       const Divider(),
       _fieldPanel(_operationalSchema),
     ]),
@@ -756,29 +1031,25 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _dimension(TextEditingController controller, String label) => TextFormField(
         key: ValueKey(label),
         controller: controller,
-        decoration: InputDecoration(labelText: label, helperText: 'Optional; enter measured dimensions only.'),
+        decoration: InputDecoration(labelText: '$label (required)'),
+        onChanged: (_) => setState(() => _sectionError = null),
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
         validator: (input) {
-          if ((input ?? '').trim().isEmpty) {
-            if (_shapeId == 'rectangular' && (_width.text.trim().isNotEmpty || _depth.text.trim().isNotEmpty)) {
-              return 'Enter both dimensions or leave both blank.';
-            }
-            return null;
-          }
+          if ((input ?? '').trim().isEmpty) return 'Enter the measured dimension.';
           final number = double.tryParse(input!.trim());
-          final width = double.tryParse(_width.text.trim());
-          final depth = _shapeId == 'square' ? width : double.tryParse(_depth.text.trim());
+          final width = _measuredFeet(_width);
+          final depth = _shapeId == 'square' ? width : _measuredFeet(_depth);
           if (width != null && depth != null && !(width * depth).isFinite) {
             return 'Enter dimensions with a valid plot area.';
           }
           return number != null && number.isFinite && number > 0 && (number * 304.8).isFinite
-              ? null : 'Enter a positive dimension in feet.';
+              ? null : 'Enter a positive dimension in $_plotUnit.';
         },
       );
 
   // Use a distinct sentinel to let a user clear an optional field.
   Widget _dropdown(String label, String? selected, List<TaxonomyChoice> options,
-      ValueChanged<String?> onChanged) {
+      ValueChanged<String?> onChanged, {bool required = false, bool Function(TaxonomyChoice)? available}) {
     final current = taxonomyChoice(options, selected)?.id ?? '';
     return DropdownButtonFormField<String>(
       key: ValueKey(label),
@@ -788,8 +1059,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       items: [
         const DropdownMenuItem(value: '', child: Text('Not specified')),
         for (final option in options)
-          DropdownMenuItem(value: option.id, child: Text(option.label, overflow: TextOverflow.ellipsis)),
+          DropdownMenuItem(value: option.id, enabled: available?.call(option) ?? true,
+            child: Text(available?.call(option) == false ? '${option.label} — not enough area' : option.label, overflow: TextOverflow.ellipsis)),
       ],
+      validator: required ? (value) => value == null || value.isEmpty ? 'Select an option.' : null : null,
       onChanged: (value) => onChanged(value == '' ? null : value),
     );
   }
@@ -818,10 +1091,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           _reviewRow('Layout label (derived from bedroom count)', _currentScenario!.configuration!.label),
         if (!_linearSite) _reviewRow('Plot geometry', taxonomyChoice(plotShapes, _shapeId)?.label),
         if (!_linearSite && _shapeId == 'square') ...[
-          _reviewRow('Measured plot side', width.isEmpty ? null : '$width ft'),
-          if (width.isNotEmpty) _reviewRow('Plot footprint (derived from square)', '$width × $width ft'),
+          _reviewRow('Measured plot side', width.isEmpty ? null : '$width $_plotUnit'),
+          if (width.isNotEmpty) _reviewRow('Plot footprint (derived from square)', '$width × $width $_plotUnit'),
         ] else if (!_linearSite)
-          _reviewRow('Plot dimensions', width.isEmpty || depth.isEmpty ? null : '$width × $depth ft'),
+          _reviewRow('Plot dimensions', width.isEmpty || depth.isEmpty ? null : '$width × $depth $_plotUnit'),
         if (!_linearSite) _reviewRow('Site orientation', _facing == 'Not decided' ? 'Unknown / survey required' : _facing),
         if (!_linearSite) _reviewRow('Floors above grade', _floors.text.trim()),
         if (!_linearSite) _reviewRow('Parking', _parking?.label),

@@ -72,11 +72,42 @@ void main() {
     return projects;
   }
 
+  Future<void> enterField(WidgetTester tester, String id, String value) async {
+    final field = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(TextFormField));
+    await tester.ensureVisible(field);
+    await tester.enterText(field, value);
+    await tester.pumpAndSettle();
+  }
+
+  Future<void> enterHomeSite(WidgetTester tester, {String width = '40', String depth = '60'}) async {
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (ft)')), width);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (ft)')), depth);
+    await tester.pumpAndSettle();
+    await choose(tester, 'Front-facing side (required)', 'South');
+  }
+
+  Future<void> enterHomeBasics(WidgetTester tester) async {
+    final floors = find.byKey(const ValueKey('floor_count'));
+    await tester.ensureVisible(floors);
+    await tester.enterText(floors, '1');
+    await tester.pumpAndSettle();
+    await choose(tester, 'Parking (required)', 'No parking');
+    final puja = find.byKey(const ValueKey('puja_needed'));
+    await tester.ensureVisible(puja);
+    await tester.tap(find.descendant(of: puja, matching: find.byType(DropdownButtonFormField<String>)));
+    await tester.pumpAndSettle();
+    await tap(tester, 'No');
+  }
+
   Future<void> selectVilla(WidgetTester tester) async {
     await tap(tester, 'Residential');
     await tap(tester, 'House / low-rise dwelling');
     await tap(tester, 'Villa');
+    await enterHomeSite(tester);
     await choose(tester, 'House configuration (optional)', '2 BHK');
+    await enterHomeBasics(tester);
     await tap(tester, 'Continue');
     await tap(tester, 'Garden');
   }
@@ -95,20 +126,6 @@ void main() {
     expect(find.text('Enter a project name.'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).first, 'North View');
     await tap(tester, 'Continue');
-    await choose(tester, 'Plot geometry (optional)', 'Rectangular');
-    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (ft)')), '40');
-    await tap(tester, 'Continue');
-    expect(find.text('Enter both dimensions or leave both blank.'), findsOneWidget);
-    await tester.enterText(find.byKey(const ValueKey('Plot depth (ft)')), '60');
-    await tap(tester, 'Continue'); // Site to jurisdiction.
-    await tap(tester, 'Continue'); // Jurisdiction to facility.
-    await choose(tester, 'Parking (optional)', 'No parking');
-    final bedrooms = find.descendant(of: find.byKey(const ValueKey('bedrooms')), matching: find.byType(TextFormField));
-    await tester.ensureVisible(bedrooms);
-    await tester.enterText(bedrooms, '3');
-    await tap(tester, 'Continue');
-    expect(find.textContaining('Bedroom count must match'), findsOneWidget);
-    await tester.enterText(bedrooms, '2');
     await goToReview(tester);
     expect(find.text('Review'), findsOneWidget);
     expect(find.text('40 × 60 ft'), findsOneWidget);
@@ -124,9 +141,9 @@ void main() {
     expect(selected.typeId, 'villa');
     expect(selected.configurationId, '2_bhk');
     expect(selected.spaceQuantities, {'garden': 2});
-    expect(stored.brief!.floorCount, isNull);
+    expect(stored.brief!.floorCount, 1);
     expect(stored.brief!.parking, ProjectParking.none);
-    expect(stored.brief!.requirements!.answers['bedrooms'], 2);
+    expect(stored.brief!.requirements!.answers['puja_needed'], 'no');
   });
 
   testWidgets('back and a category change keep the site but reset dependent choices', (tester) async {
@@ -135,7 +152,6 @@ void main() {
     await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, 'Site A');
     await tap(tester, 'Continue');
-    await choose(tester, 'Plot geometry (optional)', 'Irregular Polygon');
     for (var i = 0; i < 6; i++) {
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
@@ -144,14 +160,18 @@ void main() {
     await tap(tester, 'Warehouse / logistics');
     await tap(tester, 'General Warehouse');
     expect(find.text('2 BHK'), findsNothing);
+    expect(find.text('Rectangular'), findsOneWidget);
+    await choose(tester, 'Plot geometry (required)', 'Irregular Polygon');
+    await enterField(tester, 'surveyed_plot_area', '250');
     await choose(tester, 'Storage layout (optional)', 'Rack Storage');
+    await enterField(tester, 'clear_height', '6');
+    await enterField(tester, 'commodity', 'Packed cartons');
     await tap(tester, 'Continue');
     expect(find.text('Garden'), findsNothing);
     expect(find.text('Loading Bay'), findsOneWidget);
     await tap(tester, 'Continue');
     expect(find.text('Site A'), findsOneWidget);
     await tap(tester, 'Continue');
-    expect(find.text('Irregular Polygon'), findsOneWidget);
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     final saved = projects.projects.single;
@@ -166,14 +186,16 @@ void main() {
     await tap(tester, 'Infrastructure / Public Works');
     await tap(tester, 'Transport infrastructure');
     await tap(tester, 'Road');
-    await tap(tester, 'Continue'); // Configuration.
-    await tap(tester, 'Continue'); // Components.
+    await tap(tester, 'Continue'); // Missing measured corridor inputs.
+    expect(find.text('Configuration'), findsOneWidget);
+    expect(find.byKey(const ValueKey('Plot geometry (required)')), findsNothing);
+    await enterField(tester, 'route_length', '1200.5');
+    await enterField(tester, 'right_of_way', '12');
+    await enterField(tester, 'transport_survey', 'Survey A / local access road');
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, 'New road');
     await tap(tester, 'Continue');
-    expect(find.byKey(const ValueKey('Plot geometry (optional)')), findsNothing);
-    final field = find.descendant(of: find.byKey(const ValueKey('route_length')), matching: find.byType(TextFormField));
-    await tester.ensureVisible(field);
-    await tester.enterText(field, '1200.5');
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     expect(projects.projects.single.brief!.requirements!.answers['route_length'], 1200.5);
@@ -186,20 +208,15 @@ void main() {
     await tap(tester, 'House / low-rise dwelling');
     await tap(tester, 'Independent House');
     await tap(tester, 'Continue');
+    expect(find.text('Configuration'), findsOneWidget);
+    expect(find.text('Select an option.'), findsAtLeastNWidgets(1));
+    await enterHomeSite(tester, width: '30', depth: '40');
+    expect(find.textContaining('Plot: 1200 sqft'), findsOneWidget);
+    await enterField(tester, 'bedrooms', '2');
+    await enterHomeBasics(tester);
+    await tap(tester, 'Continue');
     await tap(tester, 'Continue');
     await tester.enterText(find.byType(TextFormField).first, 'Test House');
-    await tap(tester, 'Continue');
-    await choose(tester, 'Plot geometry (optional)', 'Rectangular');
-    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (ft)')), '30');
-    await tester.enterText(find.byKey(const ValueKey('Plot depth (ft)')), '40');
-    await choose(tester, 'Front-facing side (optional)', 'South');
-    await tap(tester, 'Continue');
-    await tap(tester, 'Continue');
-    await tester.enterText(find.byType(TextFormField).first, '1');
-    await choose(tester, 'Parking (optional)', 'No parking');
-    final bedrooms = find.descendant(of: find.byKey(const ValueKey('bedrooms')), matching: find.byType(TextFormField));
-    await tester.ensureVisible(bedrooms);
-    await tester.enterText(bedrooms, '2');
     await goToReview(tester);
     await tap(tester, 'Save project brief');
     expect(projects.projects.single.name, 'Test House');
