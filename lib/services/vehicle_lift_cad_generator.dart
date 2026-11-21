@@ -66,7 +66,8 @@ class VehicleLiftCadGenerator {
     if (inside + 2 * (postW + outside) > bayW) return stop('The lift posts and their outside clearances do not fit within each bay.');
     if (postD > vl) return stop('The centred lift-post depth must not exceed the depicted vehicle length.');
     if (rise >= postH) return stop('The submitted raised vehicle base must be below the depicted post tops.');
-    final roof = rise + vh, actualMargin = clear - math.max(roof, postH);
+    final roof = rise + vh;
+    final actualMargin = clear - (roof > postH ? roof : postH);
     if (actualMargin < overhead) return stop('The raised vehicle or lift posts leave less than the supplied overhead margin.');
     final width = count * bayW + 2 * wall, depth = front + vl + rear + 2 * wall;
     for (final (edge, remaining) in [('left', west), ('right', pw - west - width), ('front', south), ('rear', pd - south - apron - depth)]) {
