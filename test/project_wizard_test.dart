@@ -316,6 +316,38 @@ void main() {
     expect(find.text('Share rain garden plan DXF'), findsOneWidget);
   });
 
+  testWidgets('pedestrian underpass saves both surveyed profiles in the specialist mode', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Transport infrastructure');
+    await tap(tester, 'Underpass');
+    final mode = find.descendant(of: find.byKey(const ValueKey('underpass_mode')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Surveyed pedestrian underpass: grade and headroom');
+    expect(find.byKey(const ValueKey('route_length')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Pedestrian underpass');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    for (final entry in const {
+      'up_grid': 'Example grid', 'up_datum': 'Local RL', 'up_axis': '500000,2000000;500060,2000080',
+      'up_walk': '5,100.8;25,99.8;45,99.6;65,99.8;85,100.8', 'up_soffit': '23,102.5;35,102.25;55,102.25;67,102.5',
+      'up_clear': '4', 'up_min_width': '4', 'up_wall': '0.3', 'up_corridor': '5', 'up_head': '2.55', 'up_grade': '5',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['up_head'], 2.55);
+    expect(find.text('Share underpass plan DXF'), findsOneWidget);
+  });
+
   testWidgets('streetscape wall saves sampled levels and opens measured CAD', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
