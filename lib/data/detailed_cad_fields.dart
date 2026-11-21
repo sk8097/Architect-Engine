@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (clinicSeparated) 'clinic_separated': 'Outpatient clinic: separate patient and service routes',
   if (warehouseLoading) 'warehouse_loading': 'Warehouse loading and staff routes',
   'building': 'Measured enclosed floor plan (walls and doors)',
   'zones': 'Site / open-space zoning only',

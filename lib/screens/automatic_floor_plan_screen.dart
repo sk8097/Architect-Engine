@@ -14,12 +14,13 @@ import '../services/floor_plan_cad.dart';
 class AutomaticFloorPlanScreen extends StatefulWidget {
   const AutomaticFloorPlanScreen({super.key, required this.projectName,
     required this.brief, required this.frontageFt, required this.depthFt, required this.facing,
-    this.customResult, this.title = 'Automatic floor plan', this.siteZones = const []});
+    this.customResult, this.title = 'Automatic floor plan', this.siteZones = const [], this.entryDescription, this.drawingLegend});
 
   final String projectName, facing;
   final ProjectBrief brief;
   final FloorPlanResult? customResult;
   final String title;
+  final String? entryDescription, drawingLegend;
   final List<MeasuredZone> siteZones;
   final double frontageFt, depthFt;
 
@@ -75,7 +76,7 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
                 ListTile(contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.error_outline), title: Text(issue)),
             ] else ...[
-              Text('${plan.sheetTitle ?? plan.configurationLabel} concept • ${plan.facing} entry', style: theme.textTheme.titleLarge),
+              Text('${plan.sheetTitle ?? plan.configurationLabel} concept • ${widget.entryDescription ?? '${plan.facing} entry'}', style: theme.textTheme.titleLarge),
               const Text('Not for construction. Drawing units: millimetres.'),
               const SizedBox(height: 8),
               Builder(builder: (buttonContext) => Align(
@@ -89,7 +90,8 @@ class _AutomaticFloorPlanScreenState extends State<AutomaticFloorPlanScreen> {
               const SizedBox(height: 12),
               CadPlanPreview(plan: plan, drawing: _drawing!),
               const SizedBox(height: 8),
-              if (widget.siteZones.isNotEmpty)
+              if (widget.drawingLegend != null) Text(widget.drawingLegend!)
+              else if (widget.siteZones.isNotEmpty)
                 const Text('Orange: vehicle route • Green: staff route • Blue: dock bays. Pinch to zoom.')
               else const Text('Black: walls • Blue: windows • Green: door swings • N: north. Pinch to zoom.'),
               const SizedBox(height: 10),
@@ -152,6 +154,8 @@ class _PlanPainter extends CustomPainter {
       'DOORS' => const Color(0xff127d4d),
       'WINDOWS' => const Color(0xff0072a7),
       'DIMENSIONS' => const Color(0xff455977),
+      'PATIENT_ROUTE' => const Color(0xff006f91),
+      'SERVICE_ROUTE' => const Color(0xffa65f17),
       'VEHICLE_ROUTE' => const Color(0xffac4d0b),
       'WALK_ROUTE' => const Color(0xff237e44),
       'DOCK_BAYS' || 'DOCK_OPENINGS' => const Color(0xff1666a5),

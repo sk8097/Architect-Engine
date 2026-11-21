@@ -8,6 +8,7 @@ import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
 import '../data/detailed_cad_fields.dart';
 import '../data/warehouse_cad_fields.dart';
+import '../data/healthcare_cad_fields.dart';
 import '../data/project_scenarios.dart';
 import '../data/space_planning.dart';
 import '../models/project_brief.dart';
@@ -22,6 +23,8 @@ import 'tower_planner_screen.dart';
 import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
+import 'healthcare_cad_screen.dart';
+import '../services/healthcare_cad_generator.dart';
 import '../services/warehouse_loading_generator.dart';
 import '../services/enclosed_cad_generator.dart';
 
@@ -136,10 +139,13 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _enclosedCad => !_linearSite && _answers['cad_output'] == 'building';
   bool get _warehouseEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && warehouseLoadingTypes.contains(_type?.id);
   bool get _warehouseCad => _warehouseEligible && _answers['cad_output'] == 'warehouse_loading';
+  bool get _clinicEligible => _category?.id == 'institutional' && _group?.id == 'healthcare' && separatedClinicTypes.contains(_type?.id);
+  bool get _clinicCad => _clinicEligible && _answers['cad_output'] == 'clinic_separated';
   List<RequirementField> get _cadFields => [
-    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible),
+    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible),
+    if (_clinicCad) ...clinicCadFields,
     if (_warehouseCad) ...warehouseLoadingFields,
-    if (_enclosedCad) ...[...enclosedCadFields, cadWidthMode],
+    if (_enclosedCad || _clinicCad) ...[...enclosedCadFields, cadWidthMode],
   ];
   List<RequirementField> get _frontPlanning => [
     if (_isRectangular) planningChoice('plot_unit', 'Plot measurement unit', {'ft': 'Feet', 'm': 'Metres'}, required: false),
@@ -448,7 +454,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -506,6 +512,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         return 'Warehouse loading CAD already draws measured staging, storage and loading areas. Remove additional room selections or choose a different drawing type.';
       }
     }
+    if (_clinicCad) {
+      if (_floorCount != 1) return 'Separate clinic route CAD requires one ground floor.';
+      if (!const {'South','North','East','West'}.contains(_facing)) return 'Choose the measured cardinal patient entrance side.';
+    }
     if (_enclosedCad && _floorCount != 1) return 'Measured enclosed CAD requires one floor. The high-rise planner is separate.';
     if (_enclosedCad && !const {'South','North','East','West'}.contains(_facing)) return 'Choose the cardinal frontage for the measured enclosed plan.';
     if (_home && (_floorCount < 1 || _floorCount > 100)) return 'Enter the total floor count, including the ground floor.';
@@ -532,13 +542,16 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       }
     }
     if (checkRooms) {
-      if (_enclosedCad && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) return 'Add at least one measured interior room.';
+      if ((_enclosedCad || _clinicCad) && activeSpaceQuantities(_spaces, _spaceDetails).isEmpty) return 'Add at least one measured interior room.';
       for (final entry in activeSpaceQuantities(_spaces, _spaceDetails).entries) {
         final label = _customSpaces[entry.key] ?? taxonomyChoice(_program.spaces, entry.key)?.label ?? entry.key;
         final detail = _spaceDetails[entry.key] ?? const <String, Object>{};
         final level = _spaceLevel(detail);
         if (level == null || level < 0 || (level > 0 && level >= _floorCount)) return '$label: choose an existing floor by level number (0 for ground).';
-        if (_enclosedCad && (positiveNumber(detail['width']) == null || positiveNumber(detail['length']) == null)) {
+        if (_clinicCad && !const {'patient','service'}.contains(detail['hc_route'])) {
+          return '$label: choose the patient or staff/service route in Space details.';
+        }
+        if ((_enclosedCad || _clinicCad) && (positiveNumber(detail['width']) == null || positiveNumber(detail['length']) == null)) {
           return '$label: measured enclosed CAD needs clear width and length in Space details.';
         }
         if (_coveredByCore(entry.key)) continue;
@@ -675,7 +688,12 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     unawaited(notifications.addNotification('success', title, '$name • ${_type!.label}').catchError(
       (Object error, StackTrace stack) => debugPrint('Unable to save project notification: $error'),
     ));
-    if (WarehouseLoadingGenerator.requested(brief)) {
+    if (HealthcareCadGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
+        builder: (_) => HealthcareCadScreen(name: name, brief: brief, widthFt: width ?? 0,
+          depthFt: length ?? 0, facing: facing),
+      ));
+    } else if (WarehouseLoadingGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void, void>(MaterialPageRoute(
         builder: (_) => WarehouseLoadingScreen(name: name, brief: brief, widthFt: width ?? 0,
           depthFt: length ?? 0, facing: facing),
@@ -830,7 +848,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       ],
       _fieldPanel(_frontPlanning.where((f) =>
         const {'surveyed_plot_area', 'route_length','right_of_way','alignment_reference','vastu'}.contains(f.id)).toList()),
-      if ((_home || _vastu || _enclosedCad || _warehouseCad) && !_linearSite) ...[
+      if ((_home || _vastu || _enclosedCad || _warehouseCad || _clinicCad) && !_linearSite) ...[
         _facingPicker(required: true),
         if (_vastu && _facing != null && _facing != 'Not decided')
           const Text('Vastu review: consider northeast for puja, southeast for kitchen and southwest for the main bedroom when feasible. These are preferences, not layout or approval checks.'),
@@ -1021,7 +1039,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
           else if (referenced.contains(space.id))
             TaxonomyChoice(space.id, '${space.label} (excluded)'),
       ]),
-      if (_enclosedCad) cadWindowField,
+      if (_enclosedCad || _clinicCad) cadWindowField,
+      if (_clinicCad) clinicRoomRoute,
     ];
   }
 
@@ -1072,7 +1091,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _buildSite() => Form(
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
-      if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad) _facingPicker(),
+      if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_clinicCad) _facingPicker(),
       _fieldPanel(_siteSchema),
     ]),
   );
@@ -1170,7 +1189,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         const SizedBox(height: 12),
         const Text('Survey and local rules have not been verified. Specialist review may be required.'),
         const SizedBox(height: 8),
-        if (_warehouseCad)
+        if (_clinicCad)
+          const Text('Saving checks and draws independent patient and staff/service wings. No internal transfer or specialist clinical approval is inferred.')
+        else if (_warehouseCad)
           const Text('Saving checks the measured warehouse shell, loading bays and separate approach routes. A blocked drawing will not fall back to zoning.')
         else if (_enclosedCad)
           const Text('Saving attempts a measured floor plan with walls, doors and connected passage. A blocked drawing will not fall back to zoning.')

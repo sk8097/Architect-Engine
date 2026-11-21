@@ -11,7 +11,8 @@ import 'tower_plan_generator.dart';
 class EnclosedCadGenerator {
   static bool requested(ProjectBrief? brief) => brief?.requirements?.answers['cad_output'] == 'building';
 
-  TowerResult generate(ProjectBrief brief, {required double widthFt, required double depthFt, required String facing}) {
+  TowerResult generate(ProjectBrief brief, {required double widthFt, required double depthFt, required String facing,
+    bool Function(AutomaticFloorPlan)? extraAcceptance}) {
     TowerResult stop(String reason) => TowerResult(const [], [reason]);
     final selection = brief.taxonomy;
     final request = brief.requirements;
@@ -169,7 +170,7 @@ class EnclosedCadGenerator {
         if (required is Iterable && required.any((id) => !rooms.any((other) => other.id != r.id && typesById[other.id] == id && adjoining(r.bounds, other.bounds)))) return false;
         if (separate is Iterable && rooms.any((other) => other.id != r.id && separate.contains(typesById[other.id]) && adjoining(r.bounds, other.bounds))) return false;
       }
-      return true;
+      return extraAcceptance?.call(plan) ?? true;
     }
     return TowerPlanGenerator().generateEnclosed(shell, spaces, exactWidths: data['cad_width_mode'] != 'minimum', accepts: accepts);
   }

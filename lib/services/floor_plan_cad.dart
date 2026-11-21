@@ -70,17 +70,19 @@ class FloorPlanCad {
         continue;
       }
       final room = rooms[opening.to]!;
+      final layer = opening.to.startsWith('patient_') ? 'PATIENT_ROUTE' :
+        opening.to.startsWith('service_') ? 'SERVICE_ROUTE' : 'DOORS';
       if (horizontal) {
         final inward = room.bottom == b.top ? 1 : -1;
         final y = inward == 1 ? b.top : b.bottom;
-        line('DOORS', b.left, y, b.left, y + inward * b.width);
-        _arcs.add(CadArc('DOORS', CadPoint(b.left, y), b.width,
+        line(layer, b.left, y, b.left, y + inward * b.width);
+        _arcs.add(CadArc(layer, CadPoint(b.left, y), b.width,
           inward == 1 ? 0 : 270, inward == 1 ? 90 : 360));
       } else {
         final inward = room.left == b.right ? 1 : -1;
         final x = inward == 1 ? b.right : b.left;
-        line('DOORS', x, b.bottom, x + inward * b.depth, b.bottom);
-        _arcs.add(CadArc('DOORS', CadPoint(x, b.bottom), b.depth,
+        line(layer, x, b.bottom, x + inward * b.depth, b.bottom);
+        _arcs.add(CadArc(layer, CadPoint(x, b.bottom), b.depth,
           inward == 1 ? 0 : 90, inward == 1 ? 90 : 180));
       }
     }
@@ -95,7 +97,14 @@ class FloorPlanCad {
         line('CORE_RESERVES', b.left + ix, b.bottom + iy, b.right - ix, b.bottom + iy);
         line('CORE_RESERVES', b.left + ix, b.top - iy, b.right - ix, b.top - iy);
       }
-      if (room.id == 'internal_passage' && b.heightLongerThanWidth) {
+      if (room.id == 'patient_internal_passage' || room.id == 'service_internal_passage') {
+        final layer = room.id.startsWith('patient_') ? 'PATIENT_ROUTE' : 'SERVICE_ROUTE';
+        final vertical = b.heightLongerThanWidth;
+        final edge = vertical ? b.left + b.width / 4 : b.bottom + b.depth / 4;
+        if (vertical) { line(layer, edge, b.bottom, edge, b.top); }
+        else { line(layer, b.left, edge, b.right, edge); }
+        _labels.add(CadLabel(layer, CadPoint(center, y), room.label.toUpperCase(), 180, angle: vertical ? 90 : 0));
+      } else if (room.id == 'internal_passage' && b.heightLongerThanWidth) {
         _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y), 'PASSAGE', 180, angle: 90));
       } else {
         _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y + 120), room.label.toUpperCase(), 180));
@@ -264,7 +273,7 @@ class FloorPlanCad {
     const layers = {'0': 7, 'PLOT': 8, 'WALLS': 7, 'DOORS': 3, 'WINDOWS': 5,
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
-      'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8};
+      'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2};
     pair(0, 'SECTION'); pair(2, 'HEADER');
     pair(9, r'$ACADVER'); pair(1, 'AC1009');
     pair(9, r'$LUNITS'); pair(70, 2);
