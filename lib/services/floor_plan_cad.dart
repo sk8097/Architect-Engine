@@ -359,6 +359,15 @@ class FloorPlanCad {
     bounds = PlanRect(0, bottom, right, 0);
   }
 
+  /// Standalone CAD sheets already expressed in the shared drawing geometry.
+  FloorPlanCad.fromEntities({required PlanRect bounds, required Iterable<CadLine> lines,
+    Iterable<CadArc> arcs = const [], Iterable<CadLabel> labels = const []}) {
+    this.bounds = bounds;
+    _lines.addAll(lines);
+    _arcs.addAll(arcs);
+    _labels.addAll(labels);
+  }
+
   late final PlanRect bounds;
   final _lines = <CadLine>[];
   final _arcs = <CadArc>[];
@@ -418,6 +427,7 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'JUNCTION_ROW': 8, 'JUNCTION_EDGE': 7, 'JUNCTION_CURB': 3, 'JUNCTION_AXIS': 5, 'JUNCTION_CONTROLS': 6,
       'GREENHOUSE_BENCHES': 94, 'GREENHOUSE_AISLES': 8, 'GREENHOUSE_HEADLAND': 30,
       'GREENHOUSE_APPROACH': 30, 'GREENHOUSE_IRR_HEADER': 5, 'GREENHOUSE_IRR_LATERALS': 4,
       'HOSTEL_BEDS': 5, 'HOSTEL_LOCKERS': 30, 'HOSTEL_BED_CLEAR': 8, 'HOSTEL_AISLES': 3,
