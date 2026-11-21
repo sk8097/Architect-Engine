@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (sharedCore) 'shared_core_shop_office': 'Shop below office: shared lobby, stair and shaft',
   if (greenhouse) 'greenhouse_benches': 'Greenhouse: measured bench banks and work aisles',
   if (hostel) 'hostel_shared_rooms': 'Hostel: shared bedrooms, beds and lockers',
   if (badminton) 'badminton_hall': 'Indoor badminton: measured courts and separate viewing',

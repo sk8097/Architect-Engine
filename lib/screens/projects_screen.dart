@@ -20,6 +20,8 @@ import 'library_cad_screen.dart';
 import 'badminton_cad_screen.dart';
 import 'hostel_cad_screen.dart';
 import 'greenhouse_cad_screen.dart';
+import 'shared_core_cad_screen.dart';
+import '../services/shared_core_cad_generator.dart';
 import '../services/greenhouse_cad_generator.dart';
 import '../services/hostel_cad_generator.dart';
 import '../services/badminton_cad_generator.dart';
@@ -210,6 +212,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'shared_core_shop_office' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => SharedCoreCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if (val == 'mixed_shop_below_home' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => StackedRetailCadScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
@@ -349,6 +356,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'plan', child: Text('Automatic floor plan')),
                                 if (DwellingG1Generator.requested(project.brief))
                                   const PopupMenuItem(value: 'dwelling_g1', child: Text('G+1 house CAD')),
+                                if (SharedCoreCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'shared_core_shop_office',child:Text('Shop below office CAD')),
                                 if (StackedRetailCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'mixed_shop_below_home',child:Text('Shop below dwelling CAD')),
                                 if (MixedRetailCadGenerator.requested(project.brief))

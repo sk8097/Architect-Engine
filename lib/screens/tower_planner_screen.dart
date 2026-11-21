@@ -307,6 +307,9 @@ class TowerPlanScreen extends StatefulWidget {
   const TowerPlanScreen.stackedRetail({super.key,required this.projectName,required TowerResult this.generated,required double this.areaSqft})
     : brief=null,title='Shop below dwelling CAD',note=
       'Concept only. The private stair and divider show geometric separation, not rated construction. Verify stair section and headroom, fire/egress and accessibility, structure, acoustics and utilities separately.';
+  const TowerPlanScreen.sharedCore({super.key, required this.projectName, required TowerResult this.generated, required double this.areaSqft})
+    : brief = null, title = 'Shop below office CAD', note =
+      'Concept only. Shaft is a sealed dimensional reserve; no lift, utility design, structural or fire rating is implied. Verify stairs, headroom, occupancy, fire exits and accessible access separately.';
   final String projectName, title;
   final String? note;
   final double? areaSqft;
@@ -390,6 +393,8 @@ class _TowerPlanScreenState extends State<TowerPlanScreen> {
           else if (sheet.siteZones.any((zone)=>zone.layer=='PARKING_BAYS'))
             Text('${sheet.siteZones.where((zone) => zone.layer == 'PARKING_BAYS').length} open bays · '
               'Vehicle approach and separate pedestrian entrance walk. No vehicle swept-path, curb cut, slope or access approval verified.'),
+          if (sheet.siteZones.any((zone)=>zone.layer=='SHARED_CORE_SHAFT'))
+            const Text('Orange: shared approach. Green: common lobby. Purple: aligned shaft reserve.'),
           if (sheet.siteZones.any((zone)=>zone.layer=='MIXED_DIVIDER'))
             const Text('Orange: shop walk. Green: home walk. Purple: solid ground-floor divider. No internal shop-to-stair door.'),
           if (sheet.range=='Roof terrace')
