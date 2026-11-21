@@ -1,0 +1,11 @@
+# Surveyed bus stop lay-by CAD
+
+Choose **Infrastructure / Public Works → Transport infrastructure → Bus Stop → Bus stop drawing → Surveyed lay-by: bus berths, boarding strip and shelter reserve**. The mode uses surveyed road-edge data instead of a building plot. Use Linear Corridor, Node / Interchange or no arrangement. Leave separate Space selections empty.
+
+Supply your projected metre grid and two `Easting,Northing` controls along a straight existing road edge in the direction of travel (separate them with `;` or a line break). Chainage increases from the first control. Choose left or right as viewed in the direction of travel. The surveyed segment, up to 2 km, and the supplied constant perpendicular roadside width define the available envelope.
+
+Enter the start chainage, entry and exit taper lengths, bay width, and **1–4 inline berths** of equal length, with a positive gap between berths (zero for one berth). The boarding strip runs along the full-width portion. The shelter reserve is centred parallel to the berths, beyond the clear boarding strip. It leaves an open connection of at least the supplied clear length at **both** ends, between the boarding strip and the rear pedestrian path. That path runs from entry-taper start to exit-taper end. The road-edge line is a survey reference, not a barrier through the bay. The plan does not verify that the path connects to existing paths beyond the drawn limits.
+
+Example: edge controls `500000,2000000;500060,2000080` give **100 m** of available road edge. With start chainage **10 m**, tapers of **12 m** and **10 m**, and two **15 m** berths separated by **3 m**, the exit ends at chainage **65 m**. A **3.2 m** bay, **2.0 m** boarding strip, **1.5 m** shelter reserve depth and **1.8 m** rear path need **8.5 m** of roadside width. An **8 m** long shelter reserve leaves **12.5 m** at either end of the boarding strip. These are example inputs, not dimensional standards.
+
+A fitting brief generates a layered editable DXF in projected millimetres. Reopen it from Projects under **Surveyed bus stop lay-by CAD**. Failed fit keeps the brief but blocks export. This is a geometry check only: no swept-path simulation, vehicle size acceptance, traffic or sight-distance check, kerb detailing, drainage, accessibility, road safety or authority approval.
