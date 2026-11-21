@@ -1,0 +1,11 @@
+# Commercial office workplace CAD
+
+Use **Commercial → Office / workplace → Small Office, Branch Office, Professional Office or Startup Office → Automatic drawing → Office: visitor rooms and measured staff workstations**. The template is for a single tenant, fixed desks and one new ground-floor building on a measured rectangular or square plot. Leave the workplace layout on Open Workspace or unspecified.
+
+Enter the building size, cardinal entrance, offsets, wall, passage and door measurements. Choose one **Reception**, at least one **Meeting Room** and one **Open Workstation** room, and enter their clear dimensions. Visitor lounge and accessible toilet go on the visitor side if included; private cabin, pantry, quiet room, lockers, print/copy, archive and IT/server room go on the staff side if included. The template draws their rooms and doors, not their specialist fittings. Reception touches the front edge. The front passage depth locates the visitor-to-staff threshold; each room's opening must fit entirely on its assigned side.
+
+Enter **Workstations** as the total number of individual desks (1–200), not as the Open Workstation room quantity. Set desk span and depth, chair clearance depth, gap between desks, and the shared aisle width. A cross-aisle meets the actual workspace door and connects to the main aisle between two desk rows. Chair zones abut that aisle without reducing its supplied clear width. No desks or clearances are silently shrunk or omitted. The number that fits depends on the actual dimensions, not the maximum input count.
+
+Save generates the in-app preview from inputs. Reopen **Office workplace CAD** from the project menu. Editable DXF includes the walls, door swings and optional measured windows, with `OFFICE_VISITOR_ROUTE`, `OFFICE_STAFF_ROUTE`, `OFFICE_THRESHOLD`, `OFFICE_DESKS`, `OFFICE_CHAIR_CLEAR` and `OFFICE_AISLES` layers. Unsupported or non-fitting briefs remain saved without a CAD export or automatic substitution with zoning.
+
+This is not an engineered or code-checked occupancy, egress, accessibility, ergonomic, building-services or access-control drawing. Multiple tenancies, separate staff exterior entrances, flexible desk models, parking, basements and surveyed alterations are not supported by this template.

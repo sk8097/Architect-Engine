@@ -12,6 +12,8 @@ import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
 import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
+import 'office_cad_screen.dart';
+import '../services/office_cad_generator.dart';
 import 'packhouse_cad_screen.dart';
 import 'survey_corridor_screen.dart';
 import '../services/survey_corridor_generator.dart';
@@ -213,6 +215,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'office_workplace' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => OfficeCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if (val == 'school_arrival' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => SchoolCadScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -286,6 +293,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'retail_fixtures', child: Text('Retail fixture CAD')),
                                 if (PackhouseCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'packhouse_flow', child: Text('Packhouse goods-flow CAD')),
+                                if (OfficeCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'office_workplace',child:Text('Office workplace CAD')),
                                 if (SchoolCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'school_arrival', child: Text('Primary school CAD')),
                                 if (HealthcareCadGenerator.requested(project.brief))

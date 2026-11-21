@@ -46,7 +46,7 @@ class FloorPlanCad {
     for (final zone in siteZones) {
       final b = zone.bounds;
       box(zone.layer, b);
-      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE'}.contains(zone.layer)) continue;
+      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR'}.contains(zone.layer)) continue;
       final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
       if (zone.direction case final direction?) {
         final (dx,dy) = switch(direction) {
@@ -93,6 +93,7 @@ class FloorPlanCad {
       final room = rooms[opening.to]!;
       final layer = opening.to.startsWith('patient_') ? 'PATIENT_ROUTE' :
         opening.from == AutomaticFloorPlan.entry && opening.to == 'school_learning_route' ? 'SCHOOL_PLAY_WALK' :
+        opening.from == 'office_visitor_route' && opening.to == 'office_staff_route' ? 'OFFICE_THRESHOLD' :
         opening.from == 'school_arrival_route' && opening.to == 'school_learning_route' ? 'SCHOOL_THRESHOLD' :
         opening.to.startsWith('service_') ? 'SERVICE_ROUTE' : opening.to == 'retail_stock' ? 'RETAIL_SERVICE' : 'DOORS';
       if (horizontal) {
@@ -131,10 +132,11 @@ class FloorPlanCad {
         final offset = vertical ? b.width / 3 : b.depth / 3;
         _labels.add(CadLabel('STAIRS', CadPoint(center + (vertical ? offset : 0), y + (vertical ? 0 : offset)),
           '${measured.up ? 'UP' : 'DOWN'} - ${measured.risers} RISERS', 145, angle: vertical ? 90 : 0));
-      } else if (const {'patient_internal_passage','service_internal_passage','school_arrival_route','school_learning_route'}.contains(room.id)) {
+      } else if (const {'patient_internal_passage','service_internal_passage','school_arrival_route','school_learning_route','office_visitor_route','office_staff_route'}.contains(room.id)) {
         final layer = switch (room.id) {
           'patient_internal_passage' => 'PATIENT_ROUTE', 'service_internal_passage' => 'SERVICE_ROUTE',
-          'school_arrival_route' => 'SCHOOL_ARRIVAL', _ => 'SCHOOL_LEARNING',
+          'school_arrival_route' => 'SCHOOL_ARRIVAL', 'office_visitor_route' => 'OFFICE_VISITOR_ROUTE',
+          'office_staff_route' => 'OFFICE_STAFF_ROUTE', _ => 'SCHOOL_LEARNING',
         };
         final vertical = b.heightLongerThanWidth;
         final edge = vertical ? b.left + b.width / 4 : b.bottom + b.depth / 4;
@@ -375,6 +377,8 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'OFFICE_VISITOR_ROUTE': 30, 'OFFICE_STAFF_ROUTE': 5, 'OFFICE_THRESHOLD': 6,
+      'OFFICE_DESKS': 4, 'OFFICE_CHAIR_CLEAR': 8, 'OFFICE_AISLES': 3,
       'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'GROUND_PLATE_REFERENCE': 8, 'TERRACE_ACCESS': 6, 'TERRACE_DECK': 3, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,
       'SCHOOL_ARRIVAL': 30, 'SCHOOL_LEARNING': 5, 'SCHOOL_THRESHOLD': 6, 'SCHOOL_ENTRY_WALK': 30, 'SCHOOL_PLAYGROUND': 3, 'SCHOOL_PLAY_WALK': 4, 'SCHOOL_PLAY_FENCE': 8,
       'MIXED_SHOP_ACCESS': 30, 'MIXED_HOME_ACCESS': 3, 'MIXED_DIVIDER': 6,
