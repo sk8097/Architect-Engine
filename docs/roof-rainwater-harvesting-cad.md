@@ -1,0 +1,11 @@
+# Roof rainwater harvesting CAD
+
+Choose **Infrastructure → Water / wastewater / stormwater → Rainwater Harvesting System → Automatic drawing → Roof rainwater: measured catchment and tank storage**. Choose Storage or Drainage System. This is one roof and one above-ground tank bank, without parking or separate Space selections. The plot must be a cardinally aligned rectangle or square. Width is west–east and depth south–north; set the southwest corner as the local origin. Setbacks use south as front and west as left.
+
+Enter the horizontal roof catchment dimensions and offsets, not the sloped roof surface length. Enter the tank service envelope's west/south offsets, 1–8 identical tanks, inside and outside diameters, useful water depth above unusable storage, and minimum clear service space. The tanks sit in a single east–west row. The service spacing is used once between neighbours and around all sides. The roof and service envelope must fit the plot and supplied setbacks without overlapping one another.
+
+The event runoff estimate in litres is horizontal area (m²) × rainfall (mm) × runoff coefficient. First flush cannot divert more than the available runoff. Useful capacity is computed from the **inside** diameter and useful depth of all tanks, and checked against the supplied storage target. The estimate reports net inflow, volume stored and excess **assuming the tanks start empty**. Excess is not a hydraulic overflow design.
+
+Example: on a **40 × 30 m** plot, put a **20 × 16 m** roof at (3, 5) m and the tank service envelope at (26, 8) m. Use two tanks of 2.2 m outside and 2.0 m inside diameter with 1.5 m useful depth and 0.8 m service spacing. A **42 mm** event, 0.8 runoff coefficient and 400 L first flush yield **10,352 L** net inflow. The bank can hold **9,424.778 L**, leaving **927.222 L** excess if empty at the start. These are example inputs, not design standards.
+
+Save to preview and export a layered editable **DXF** with roof, service envelope, native tank arcs and the event summary. Reopen **Roof rainwater harvesting CAD** in Projects. Failed fit or capacity keeps the brief but blocks export. No roof structure, water quality, gutters, pipe or overflow sizing, foundation or seasonal storage balance is designed or verified.

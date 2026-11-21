@@ -4,6 +4,8 @@ The New Project wizard captures a project brief. Selectable types and requested 
 
 ## How choices are organized
 
+See the [Scenario Library](scenario-library.md) for separately identified catalogue entries and generation status.
+
 - [`project_taxonomy.dart`](../lib/data/project_taxonomy.dart) contains the eight categories, scoped type IDs, known configurations and space catalogues. New options are added under the existing relevant parent where possible. Farmhouse as a dwelling and farmhouse as an operating farm are intentionally separate scopes.
 - [`project_requirements.dart`](../lib/data/project_requirements.dart) defines typed fields, units, validation, applicability, and explicit option IDs. Facility inputs inherit a shared profile and can add type-specific prompts. For example, a multiplex asks for screens and seats; cold storage asks for chambers and temperature zones; roads and bridges use alignment data and do not ask for a building footprint.
 - Custom type and configuration require a description; custom spaces require a distinct name. Known options should be added to the registry rather than handled solely through Custom.
@@ -22,4 +24,4 @@ Changing category, subcategory or type clears its dependent configuration, facil
 
 - Type identity is `(categoryId, subcategoryId, typeId)`. Versions and option IDs, not labels, identify selections. The separate requirements schema stores typed common/facility answers and per-space details; existing project briefs still load. Unknown schema versions are not editable in the wizard.
 - Units shown in forms are the units of the stored values. Plot width and depth in the existing project model are in feet; the room area unit is stored with the room record. A future canonical geometry model must explicitly normalize these inputs to millimetres at its boundary.
-- Authority inputs are user-supplied. Providing a reference is not verification. Formal rule-set checks, file-backed surveys, generated models, and model-driven exports are not part of the brief workflow. The separate CAD editor is unchanged.
+- Authority inputs are user-supplied. Providing a reference is not verification. Formal rule-set checks and file-backed surveys are not implemented. Saving a supported 1 BHK or 2 BHK brief automatically opens a concept CAD plan with DXF export or a blocking explanation. See [automatic floor plan](automatic-floor-plan.md). The separate CAD editor is unchanged.

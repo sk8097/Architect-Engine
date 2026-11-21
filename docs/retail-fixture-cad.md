@@ -1,0 +1,7 @@
+# Retail fixture CAD
+
+In New Project select **Commercial → Retail / shopping → Shop** (or a supported single-shop type), then **Automatic drawing → Retail displays, checkout and stock**. Enter one store and one ground floor, the measured rectangular plot and shop shell, cardinal customer frontage, offsets, walls, and both door widths. Enter the display-row count and dimensions, clear aisle width, checkout/queue dimensions and clear stock depth. A positive optional rear approach depth draws a second stock door and an on-plot strip with the same width as that door.
+
+The layout checks that the exact rows and aisles fit across the sale floor, the checkout and queue fit without blocking the display connector, and the aisle network reaches the entrance, display rows and stock door. Supplied sales/stock area targets and parcel setbacks are checked. The app draws the walls, swing doors, stock partition, fixtures and route/queue rectangles in editable DXF layers. Blocked requests have no DXF fallback. Reopen from the project menu.
+
+Stock replenishment can pass through the sales area using the stock door. The optional rear approach is not a delivery/road access design. A geometrically connected aisle network does not certify egress, accessibility, customer capacity, delivery practices, door operation or statutory compliance. Existing fit-outs, multi-tenant shops, malls, parking and additional rooms are not part of this template.

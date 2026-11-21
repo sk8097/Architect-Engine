@@ -1,0 +1,11 @@
+# Shop below office with a shared core
+
+Select **Mixed Use → Mixed-use development → Office + Retail** or **Shop-Cum-Office (SCO)**, with **Vertical Mixed Use** and exactly two floors including ground. Choose **Automatic drawing → Shop below office: shared lobby, stair and shaft**. This template uses the same rectangular plate on both floors and one measured cardinal entrance. In the SCO Facility fields, if supplying an arrangement select **G+1**; optional shop/office area targets are compared with the net enclosed wing areas, excluding walls and the core.
+
+Enter the measured plan, plot offsets, walls, doors and common approach width. Enter the ground lobby depth and minimum upper lobby depth, stair width/rise/risers/going/end landings, and the depth of the aligned service-shaft reserve. The right-side core matches the measured stair width. The ground lobby opens separately to the shop sales floor and stair, so the office route does not go through the shop. The upper flight opens to its own landing lobby, then the office workspace. Enter front sales and front meeting depths: a partition and door give access to rear stock on ground and to the front meeting room from the upper workspace. Leave separate Space selections empty.
+
+For example, a **13 × 18 m** envelope on a **95 × 110 ft** plot with 3 m left and 4 m front offsets can use 0.2 m walls, 1 m doors, a 1.6 m approach, a 3 m ground lobby, and an 11 m sales floor depth. Try a 2.2 m wide straight stair with **20 risers**, 3.4 m total rise, 0.28 m going and 1.4 m end landings. An upper lobby minimum of 2 m and a 1.5 m shaft reserve fit with a 5 m meeting room depth.
+
+**Save** generates two concept sheets, and **Shop below office CAD** in Projects reopens them. Export either sheet or a combined editable DXF. The app checks the supplied setbacks, FSI/coverage, both door networks and measured core fit. If a constraint conflicts, the brief stays saved but both sheets are blocked.
+
+The shaft is a sealed space reserve, not designed utilities. No lift, separate entries, sanitary facilities, retail/office fixtures, service-loading, terrace, parking, construction detailing, fire rating, egress, headroom or accessibility is designed. Seek specialist review before treating a shared stair as usable for any actual occupancy.

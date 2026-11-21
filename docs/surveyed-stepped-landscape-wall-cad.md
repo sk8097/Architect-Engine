@@ -1,0 +1,13 @@
+# Surveyed stepped landscape wall CAD
+
+Choose **Infrastructure / Public Works → Public realm / landscape / waste → Streetscape**. Under **Streetscape drawing**, select **Surveyed stepped landscape wall: profile and quantities**. Use Linear Corridor or Public Open Space, or leave the arrangement blank. Leave separate Space selections empty.
+
+Enter a projected metre-grid reference, one elevation datum, and two straight wall centreline controls A and B, at most 2 km apart. Chainage starts at A. Looking from A toward B, specify which side has the higher (back) ground. The wall has a constant horizontal thickness centred on the baseline.
+
+Enter 2–80 increasing `chainage,proposed front ground level,proposed back ground level` samples. The first and last samples define the wall span. Front/back traces are piecewise linear and back ground cannot be lower than front ground. Enter 1–40 `end chainage,base level,top level` runs. Each starts at the previous end, or at the first sample for Run 1. The last run must end at the last sample. Both record lists are in metres and can use semicolons or line breaks.
+
+Run base and top are level. At every ground knot and both run ends, the app checks the submitted **minimum base depth below front ground**, **minimum top margin above back ground**, and **maximum exposed height above front ground**. Interpolated levels are used between knots; both adjoining runs are checked at their shared station. These constraints are user inputs, not engineering defaults. Gross wall-envelope volume for each run is `length × thickness × (top − base)`, including both visible and buried parts of the entered wall envelope. There are no footing or material deductions.
+
+**Example:** A `(1000,2000)`, B `(1060,2080)`, back on the left and a **0.40 m** wall. Ground `10,100,101;40,100.3,101.6;70,100.6,102.1;90,100.8,102.4` with steps `35,99.5,101.7;65,99.8,102.3;90,100.1,102.6` produces an **80 m** wall. Gross volume is **77.000 m³** (**22 + 30 + 25 m³**). The maximum exposed front height is **2.050 m**, minimum base depth **0.450 m**, and minimum top margin **0.200 m**.
+
+Export editable layered DXFs for the **projected plan** and **true-scale longitudinal profile** (local ordinate measured above the labelled RL zero), plus a **CSV** of run limits, top/base levels and gross volumes. Reopen through Projects → **Surveyed stepped landscape wall CAD**. A failed check saves the brief and a reason but blocks all exports without generic fallback. This is envelope geometry only: it does not verify loads, foundations, earth pressure, drainage, slope stability, barriers, utilities or construction approval.

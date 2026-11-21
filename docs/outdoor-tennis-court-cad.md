@@ -1,0 +1,11 @@
+# Measured outdoor tennis court CAD
+
+Choose **Institutional & Public Utility → Sports / recreation / public amenities → Sports Complex**, **Sports Club**, **Training Centre** or **Recreation Centre**. Under **Automatic drawing**, select **Outdoor tennis: measured court bank**. Select Outdoor or leave Activity setting blank. Leave building floors, parking and separate Space selections empty.
+
+Use a cardinally aligned rectangular or square plot, with width west–east and depth south–north. Courts run north–south and repeat eastward. Measure the **outside of the first run-off envelope** from the west and south plot edges. Setbacks use left = west, right = east, front = south, rear = north.
+
+Enter one set of dimensions for 1–4 identical courts. Markings use centrelines: enter the doubles and singles widths, baseline-to-baseline length, net-to-service-line distance, and the length of each baseline centre mark. Enter net-post centre offsets from the doubles sidelines; post centres must fit inside the side allowance. The side allowance **includes** the net posts and is not an unobstructed side clearance. Enter the two end run-offs separately. Use a positive gap between envelopes for multiple courts, or zero for a single court. The gap is not checked as an accessible path or escape route.
+
+**Example:** Two courts on a **42 × 44 m** plot, offset **2 m west-edge to bank** and **3 m south-edge to bank**. Each measured court is **10.97 × 23.77 m** doubles, with **8.23 m** singles width, **6.4 m** net-to-service distance, **0.10 m** centre marks and **0.914 m** post offsets. With **3 m** each side, **6 m south** / **7 m north** run-off and a **4 m** between-envelope gap, the bank measures **37.940 × 36.770 m**. The individual envelopes total **1,247.974 m²** excluding the gap. These are example inputs, not certified dimensions.
+
+The editable DXF uses local millimetres and separates the plot, supplied setbacks, individual run-off envelopes, doubles, singles, service/centre markings and net/post centrelines. Reopen under **Outdoor tennis court CAD** in Projects. A failed check preserves the brief, reports the cause and withholds the DXF rather than drawing generic zoning. No line widths, post footprints/foundations, grading, drainage, surface specs, fencing, access design or rulebook certification are included.

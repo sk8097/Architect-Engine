@@ -1,0 +1,11 @@
+# Measured indoor badminton layout
+
+Select **Institutional & Public Utility → Sports / recreation / public amenities → Indoor Arena, Sports Complex, Sports Club, Training Centre or Recreation Centre → Automatic drawing → Indoor badminton: measured courts and separate viewing**. Use one new ground-floor indoor hall on a measured rectangular or square plot with a cardinal entrance. No parking, terrace, additional sports, or outside facilities are drawn.
+
+Add one or two **Field/Court** spaces (identical playing rectangles) and one **Athlete Change** room. Enter the marked court width and length, not the full clear envelope, and match the total Facility court count. Enter the supplied side and end clearances, singles inset, short service distance from the net and doubles long service inset from each baseline. Court lines and net positions are generated as editable entities; the complete non-overlapping clearance envelopes must fit within the playing hall. The player entrance serves both the changing reserve and the playing hall via a lobby. The hall door swings toward the lobby, away from playing clearance.
+
+For viewing, select one **Spectator Seating** room, measured as a right-side strip with full inside shell depth. In Site enter its aisle width and measured seat footprint; in Facility enter the seat count (1–200, subject to actual fit). The strip has its own exterior door and approach. Seats form a single row along the glazed section of the partition; there is no opening for spectator circulation into the playing hall. Glazing is shown in plan only, without material/rating specifications. Leave spectator count zero or unspecified if you do not request a viewing strip.
+
+Save generates the drawing, or saves the brief and reports a specific blocker with no fallback if it does not fit. Reopen **Indoor badminton CAD** from the project menu. Editable DXF separates the court lines, net, run-offs, player approach, viewing aisle, glazing and seats into layers.
+
+No competition certification, building height, surface, lighting, net installation or structural glazing is designed. Changing and viewing enclosures are concept reserves. Accessibility, occupancy, emergency egress and crowd safety require separate review.

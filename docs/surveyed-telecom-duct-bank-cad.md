@@ -1,0 +1,11 @@
+# Surveyed telecom duct bank CAD
+
+Choose **Infrastructure / Public Works → Energy / utilities / communications → Telecom Network**. Under **Telecom network drawing**, select **Surveyed duct bank: cover and utility crossings**. Leave Facility arrangement blank or select Outdoor Yard. Leave separate Space selections empty. Other project modes are unchanged.
+
+In **Site / plot / land**, enter two projected metre-grid centreline controls A and B, up to 2 km apart, plus one common elevation datum. Enter 2–80 increasing `chainage,ground level,proposed bank top level` samples in metres, separated by semicolons or line breaks. Chainage starts at A. First and last samples define the bank ends. Both level lines are piecewise linear. Use constant outside width perpendicular to A–B and constant vertical bank depth. Cover is **centreline ground minus bank top**; the minimum occurs at a sample.
+
+Enter 1–30 increasing `ID,chainage,existing lower level,existing upper level` records. Each envelope is checked at one station only, with the bank top interpolated and the bottom equal to top minus depth. The clearance is between the nearest faces of the disjoint envelopes, whether the recorded utility is above or below. Overlaps or insufficient separation block both sheets. Plan ticks show checked stations, **not** utility alignments. This does not check widthwise cover, crossed utility skew, clearance upstream/downstream of the station, or unrecorded utilities.
+
+**Example:** A `(500000,2000000)`, B `(500060,2000080)`, bank **1.2 m wide × 0.6 m deep**. Levels `10,102,100;40,101.1,100.2;90,103,100.7` give an **80 m** bank with **0.900 m** minimum cover at **Ch 40 m**. Crossings `U1,25,98.9,99.2;U2,70,100.9,101.05` give **0.300 m below** at U1 and **0.400 m above** at U2 (where the existing utility is relative to the bank). The sample minima are not design standards.
+
+Export editable layered **DXFs**: a plan in projected millimetres and a true-scale longitudinal profile with X as chainage in millimetres and Y measured above the labelled local RL zero. Reopen the brief in Projects via **Surveyed telecom duct bank CAD**. Failed geometry checks save the brief with a reason but do not fall back to generic CAD. No excavation, utility strike prevention, clearance approval, structure, cable pull, chamber, or installation design is provided.

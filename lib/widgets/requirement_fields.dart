@@ -85,7 +85,7 @@ class RequirementFields extends StatelessWidget {
           decoration: InputDecoration(labelText: label),
           keyboardType: switch (field.kind) {
             RequirementKind.integer => TextInputType.number,
-            RequirementKind.decimal => const TextInputType.numberWithOptions(decimal: true),
+            RequirementKind.decimal => TextInputType.numberWithOptions(decimal: true, signed: (field.min ?? 0) < 0),
             _ => TextInputType.multiline,
           },
           minLines: 1,

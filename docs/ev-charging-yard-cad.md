@@ -1,0 +1,11 @@
+# Measured EV charging yard CAD
+
+Choose **Infrastructure → Energy / utilities / communications → EV Charging Hub → Automatic drawing → EV charging yard: measured bays, equipment and transfer route**. Use an outdoor yard, one measured rectangle or square, and a cardinal frontage. Enter no floors or separate Space selections. If you also enter a separate car count, match it to the charging bay count. There is one charger pad per bay.
+
+Looking in from the selected frontage, the layout runs from left to right as **pedestrian walk → equipment strip → 90° charging bays → drive aisle**. Both walk and drive touch the frontage at their own entries. Enter 2–40 bays, including the first designated transfer bay. Enter the two bay widths along the aisle, parking depth perpendicular to it, and clear drive extension behind the last bay. The transfer strip is next to the frontmost bay and runs across its depth and the equipment strip to the walk; it contains no charger equipment. A clear connection passes beside each centred pad at the head of every bay.
+
+The entered offsets and setbacks apply to the yard footprint. Only the drive aisle and pedestrian walk continue through the front setback to the street edge; the transfer strip, pads and bays stay behind it. The measured charger pads must fit in the equipment strip and leave the entered clear passage on each side along the row.
+
+Example: on a **24 × 38 m** plot, use six bays with **2.6 m** standard widths, a **3.4 m** designated bay, **5 m** parking depth and a **1.5 m** transfer strip. Start the walk 2 m from the left and the transfer strip 4 m from the front. Use a **2 m** walk, **1.2 m** equipment strip, **0.8 × 0.8 m** pads, minimum **0.75 m** passage beside each pad, **6 m** drive aisle and **4 m** rear extension. The standard bay leaves **0.900 m** on each side of the centred pad. These are example inputs, not standards.
+
+Save to preview and share an editable, layered DXF in local millimetres. Reopen **EV charging yard CAD** from Projects. If the measured yard or its clear passages do not fit, the brief remains saved and export is blocked with a reason. This drawing does not determine vehicle turnaround, driveway tie-in, levels, curbs, pedestrian crossing safety, accessibility compliance, cable reach or electrical service capacity.

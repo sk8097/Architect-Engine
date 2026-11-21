@@ -1,0 +1,11 @@
+# Secondary-school teaching lab CAD
+
+Choose **Institutional & Public Utility → Education → Secondary School or Senior Secondary School → Automatic drawing → Teaching lab: measured bench banks and enclosed prep room**. Choose **Single Building**, one ground floor, a measured rectangular or square plot and cardinal frontage. Leave separate Spaces, parking and terrace requests empty. This draws one teaching block rather than the full school.
+
+Enter the gross building envelope, wall and door dimensions, plot offsets and the measured fixture and circulation dimensions. Each of the two student bench banks has the same number of rows. Each row uses the entered bench depth, clear student-use strip immediately behind it and a separate clear cross aisle. The cross aisle connects the unobstructed centre aisle to the outside side aisle. The model checks that the bench width can hold the entered number of places at the supplied frontage per student; it does not certify occupancy or furniture ergonomics.
+
+The front teaching band accommodates the exterior door swing, teacher counter and work zone without narrowing the centre aisle. A second aligned door connects the rear cross aisle to an enclosed prep room. Its working zone and counter stay to the side of the prep access, beyond the door-swing depth. All measurements are user inputs, not dimensional standards.
+
+Example: on a **25 × 29 m** plot, use an envelope of **12 × 16 m**, 0.2 m walls, 1.2 m door openings and left/front offsets of 3 m/4 m. Enter three rows in each bank, four places per bench at 0.78 m frontage per place, and benches of **3.4 × 0.8 m**. Use 0.75 m student-use strips, 1 m cross aisles, a 2 m centre aisle and 1.2 m minimum side aisles. The teaching band is 3 m deep, with a 2.2 × 0.7 m teacher counter and 1 m work depth. Use 1.2 m minimum rear aisle depth and a 3.1 m prep room with a 3 × 0.65 m counter and 0.9 m work depth. This yields **24 measured student places**.
+
+Save to preview and export the editable, layered DXF. Reopen **Teaching lab CAD** in Projects. No export or generic zoning is substituted if the measured fit fails; the brief stays saved with the reason. The drawing does not specify experiments, apparatus, plumbing, gas, ventilation, emergency egress, accessibility or regulatory compliance.

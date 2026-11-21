@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/project_brief.dart';
 import '../models/project_model.dart';
+import '../models/tower_brief.dart';
 
 class ProjectProvider extends ChangeNotifier {
   static const _storageKey = 'ae_projects_v1';
@@ -72,11 +73,12 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
     ProjectBrief? brief,
+    TowerBrief? tower,
   }) => _mutate(() {
     final now = DateTime.now();
     return [
       ProjectModel(id: _newId(now), name: name, length: length, width: width,
-        bhk: bhk, floors: floors, facing: facing, brief: brief,
+        bhk: bhk, floors: floors, facing: facing, brief: brief, tower: tower,
         createdAt: now, updatedAt: now),
       ..._projects,
     ];
@@ -91,13 +93,14 @@ class ProjectProvider extends ChangeNotifier {
     required String floors,
     required String facing,
     ProjectBrief? brief,
+    TowerBrief? tower,
   }) => _mutate(() {
     final index = _projects.indexWhere((project) => project.id == id);
     if (index == -1) throw StateError('The project no longer exists.');
     final original = _projects[index];
     return [..._projects]..[index] = ProjectModel(
       id: id, name: name, length: length, width: width, bhk: bhk,
-      floors: floors, facing: facing, brief: brief ?? original.brief,
+      floors: floors, facing: facing, brief: brief ?? original.brief, tower: tower ?? original.tower,
       createdAt: original.createdAt, updatedAt: DateTime.now(),
     );
   });
@@ -108,7 +111,7 @@ class ProjectProvider extends ChangeNotifier {
     return [
       ProjectModel(id: _newId(now), name: '${original.name} (Copy)',
         length: original.length, width: original.width, bhk: original.bhk,
-        floors: original.floors, facing: original.facing, brief: original.brief,
+        floors: original.floors, facing: original.facing, brief: original.brief, tower: original.tower,
         createdAt: now, updatedAt: now),
       ..._projects,
     ];

@@ -1,0 +1,11 @@
+# Public rain garden CAD
+
+Choose **Infrastructure / Public Works → Public realm / landscape / waste → Public Garden**. Under **Automatic drawing**, select **Public garden: rain-garden ponding and media layers**. Leave the arrangement blank or choose Public Open Space. Leave floors, parking and separate Space selections empty. The raised-bed drawing remains available as a separate option.
+
+The flat bed at the top of the planting media is the section datum. Enter its west–east width and south–north depth. Each opposing bank pair uses the same horizontal run per unit rise; the pairs can have different slopes. The level design water surface is at the entered ponding depth, and the level rim adds the entered freeboard. The rectangular maintenance envelope extends a constant horizontal width past the rim on all sides. Locate the **full envelope** from the west and south plot edges. Submitted setbacks use west as left and south as front.
+
+At height `z` above the bed, the area is `(bed width + 2 × slope WE × z) × (bed depth + 2 × slope SN × z)`. The surface ponding volume integrates that area from the bed to the design water surface, **not** to the rim. The planting media and aggregate layers are separate rectangular prisms directly below the bed. Their quantities are gross material volumes: no void storage, waste or compaction adjustment is included.
+
+**Example:** A 14 × 18 m plot, envelope offsets 1 m west and 2 m south, **6 × 8 m** flat bed, bank slopes **3H:1V** west/east and **4H:1V** south/north. **0.25 m** ponding and **0.15 m** freeboard give a rim of **8.400 × 11.200 m** and **15.250 m³** of surface ponding. With a **1.20 m** reserve, the full envelope is **10.800 × 13.600 m**. The **0.60 m** planting-media and **0.25 m** aggregate layers give **28.800 m³** and **12.000 m³** gross respectively. These example dimensions are not design standards.
+
+Export separate editable layered DXFs for the **plan** and **true-scale west–east section A–A**, in local millimetres. Reopen through Projects → **Rain garden CAD**. A failed check preserves the brief with a reason and blocks both exports without generic fallback. This geometry tool does not calculate storm runoff, infiltration, drawdown, groundwater clearance, overflow, underdrains, earthwork or construction details.

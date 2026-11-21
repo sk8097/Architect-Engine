@@ -1,0 +1,11 @@
+# Measured greenhouse bench CAD
+
+Choose **Rural / Agricultural → Farm / farmhouse / agricultural estate → Greenhouse Farm**, with **Production Site** as the arrangement. Under **Automatic drawing** choose **Greenhouse: measured bench banks and work aisles**. The template covers one new rectangular, ground-floor greenhouse and a measured rectangular or square plot. Leave separate Space selections empty: the drawing does not include a residence, tool rooms, parking or a multi-house campus.
+
+Enter the envelope, offsets, wall thickness and door opening. Enter the same number of bench rows on both sides (1–16 per side), bench width and section length, and clear dimensions for the parallel aisles, longitudinal main aisle, middle cross-aisle and front/rear working space. The door opens into the front working space. The middle cross-aisle splits every bench row, linking both banks and all side aisles; the front and rear work areas also connect the aisles. Any spare width is added to the two exterior aisles and spare depth to the front/rear working spaces.
+
+For example, a **12.8 × 20 m** envelope with a **0.15 m** enclosure, **1.2 m** door and **1.6 m** main aisle fits **3 rows per side**, each divided into two **1.2 × 7.5 m** sections. Use **0.6 m** side aisles, **1.4 m** middle cross-aisle and minimum **1.5 m / 1.2 m** front/rear working spaces. The footprint of the twelve growing benches totals 108 m². A sample plot is 85 × 105 ft with 3 m left and 4 m front offsets; confirm the actual site and limits for each project.
+
+If selected, **Concept routes to bench centerlines** adds a connected schematic from the entrance to the centre cross-aisle header, with one lateral per bench section. This is editable plan linework, not specified piping, head loss, pressure, irrigation demand, heights or installation locations. No structural frame, glazing, ventilation, drainage, accessibility or emergency egress is designed.
+
+**Save** opens the preview; **Greenhouse bench CAD** in Projects regenerates it from the saved brief. DXF has separate layers for benches, aisles, working zones and optional irrigation linework. If the layout cannot fit the dimensions or supplied footprint limits, only the brief is retained and DXF is blocked.

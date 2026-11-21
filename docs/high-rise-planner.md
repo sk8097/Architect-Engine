@@ -1,0 +1,12 @@
+# High-rise concept planner
+
+Open **Projects → High-rise planner (up to 100 levels)**, or select **Special / Complex → High-complexity buildings → High-Rise / Supertall Building** in New Project.
+
+1. Enter 2–100 levels (level 1 is ground), rectangular plot and ground plate, west/south offsets and ground entrance side. Dimensions are entered in metres and stored in millimetres.
+2. Enter the source of the supplied core/circulation dimensions, walls, corridor, door widths, and stair/lift/shaft reserves. A common-plate project keeps the previous convention: reserve widths are minima, depths are exact. If any group has an inset plate, core widths **and** depths are exact on every floor, including ground. The app does not size cores for code or occupancy.
+3. Assign every level once to contiguous floor groups. For a narrower upper group turn on **Inset plate for this group** and supply west, south, east and north insets measured **from the ground plate**, not the preceding group. Ground uses zero insets, and each higher plate must fit inside the one below. Repeat the same insets for a new use/layout group at the same footprint. The corridor keeps its transverse position; if upper frontages are inset, the core starts farther inside on all levels and lower floors keep the extra approach length. Non-core rooms use minimum widths across the lane and exact room depths. Ground has its own entry sheet.
+4. **Save & generate CAD** stores the brief and checks the full set. An invalid fit shows a reason with no DXF. Valid results show each floor group's plate, gross/planned/unallocated area, schedule, and editable layered DXF per sheet or for all sheets arranged in model space. Each selected-sheet export retains plot coordinates and inset plates carry a `GROUND_PLATE_REFERENCE` outline. Reopen or edit from Projects.
+
+## Scope
+
+This is a local concept solver for rectangular common or stepped-in plates and one aligned core, not a structural design. It does not design exposed rooftop areas, cantilevers/transfer structures, separate towers, basements, engineered stairs/lifts/shafts, parking, egress, floor heights, refuge strategy, building services, setbacks/approvals, or code compliance. A parking-labeled room is only a reserve, not a parking plan. Unallocated area can be enclosed and unused. The solver's fixed corridor and lane search are intentionally limited; a rejected fit is not evidence that no design is possible.

@@ -1,0 +1,11 @@
+# Measured orchard planting CAD
+
+Choose **Rural / Agricultural → Farm / farmhouse / agricultural estate → Orchard Estate or Plantation Estate → Automatic drawing → Orchard: measured planting rows and access loop**. Use a Production Site with no floors, parking or separate Space selections.
+
+Enter a cardinally aligned rectangle or square. Plot width is west–east, depth south–north; the southwest corner is the origin. Enter the planting row direction, counts, centre-to-centre spacing across and along rows, diameter reserved for mature canopies, and clear headland and side-lane widths. The two headlands and two side lanes make a continuous access loop around the canopy limits. Enter the west and south offsets of the loop's outermost corner. For north–south rows, numbering starts in the southwest and runs east across rows and north along them. For east–west rows, it starts in the northwest and runs south across rows and east along them. The largest supported block contains 3,000 trees.
+
+Enter optional rectangular exclusions as `ID,west offset,south offset,width,depth` in metres, separated by newlines or semicolons. The app checks circular canopy overlaps with each exclusion and rejects obstructions in the access loop. It also checks tree spacing against canopy diameter, plus the plot edges and supplied setbacks (south = front, west = left). Shared boundaries are allowed; include any required buffer in the measured input. The app never silently drops or moves a conflicting tree.
+
+Example: for an **80 × 65 m** plot, enter four north–south rows with five trees each, 7 m row pitch, 6 m tree pitch, 4 m canopy diameter, 5 m headlands and 3 m side lanes. Offset the loop 8 m east and 10 m north of the southwest corner. The loop occupies **31 × 38 m**; the first and last tree centres are **(13, 17) m** and **(34, 41) m**.
+
+Save to preview and export a layered editable **DXF in local millimetres** and a **CSV with tree IDs and east/north offsets in local metres**. The files do not contain projected or GPS coordinates. A blocked layout preserves the brief but offers neither export. Reopen from **Orchard planting CAD** in Projects. These are measured layout checks, not crop spacing recommendations, surveyed setting-out certification, equipment turnaround, irrigation or drainage design.
