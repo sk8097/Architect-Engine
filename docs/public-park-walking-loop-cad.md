@@ -1,0 +1,11 @@
+# Public park walking loop CAD
+
+Choose **Infrastructure / Public Works → Public realm / landscape / waste → Public Park** (or **Institutional & Public Utility → Sports / recreation / public amenities → Public Park**). Under **Automatic drawing**, choose **Public park: measured walking loop and lawn reserve**. Use an open-space/outdoor arrangement or leave it blank, with no above-grade floors, parking or separate Space selections.
+
+Use a cardinally aligned rectangular or square plot. Plot width runs west–east and depth south–north; offsets use the southwest corner. Supply the full centreline spans, centreline corner radius and uniform clear path width. Straight segments must remain positive, and the inner curve radius must remain positive. The inner and outer arc centres coincide with the centreline arc centres, with radii offset by half the path width.
+
+Enter offsets to the **outside** of the loop and the width and signed shift of the south approach (negative is west). The approach begins at the south plot edge; it may cross the front setback. The loop envelope itself must fit all supplied setbacks. The approach opening lies wholly on the south straight, within the tangent points, and must not be wider than the path. The centred rectangular lawn reserve and its minimum clear distance must fit within the actual rounded inside edge, not just its bounding rectangle.
+
+Example: on a **50 × 40 m** plot, enter a **40 × 28 m** centreline span, **6 m** corner radius and **3 m** path width. An outer offset of **3 m west / 4 m south**, a **2 m** approach shifted **4 m west**, and a **32 × 20 m** lawn with **1 m** minimum clearance fit. The outer envelope is **43 × 31 m**, the centreline lap is **125.699 m**, and the loop path and approach areas are **377.097 m²** and **8.000 m²**, respectively. Areas are separate; the approach terminates at the outer loop edge. These are example inputs, not dimensional standards.
+
+A fitting brief exports a layered editable DXF in millimetres, with tangent **native CAD arcs** and straight lines. Reopen under **Public park walking loop CAD** in Projects. Failed checks preserve the brief but block export. This is plan geometry, not grading, paving, drainage, accessibility or course certification.
