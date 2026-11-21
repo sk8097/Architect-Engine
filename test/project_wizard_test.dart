@@ -181,6 +181,43 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('outdoor tennis opt-in saves measured inputs and opens the DXF preview', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Institutional & Public Utility');
+    await tap(tester, 'Sports / recreation / public amenities');
+    await tap(tester, 'Sports Complex');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '42');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '44');
+    await tester.pumpAndSettle();
+    await choose(tester, 'Activity setting (optional)', 'Outdoor');
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')),
+      matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Outdoor tennis: measured court bank');
+    for (final entry in const {
+      'tc_count': '2', 'tc_doubles': '10.97', 'tc_singles': '8.23', 'tc_length': '23.77',
+      'tc_service': '6.4', 'tc_mark': '0.1', 'tc_post': '0.914', 'tc_side': '3', 'tc_south_end': '6',
+      'tc_north_end': '7', 'tc_gap': '4', 'tc_west': '2', 'tc_south': '3',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Outdoor courts');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.brief!.taxonomy!.spaceQuantities, isEmpty);
+    expect(saved.brief!.requirements!.answers['tc_count'], 2);
+    expect(find.text('Outdoor tennis court CAD'), findsOneWidget);
+    expect(find.text('Share tennis court DXF'), findsOneWidget);
+  });
+
   testWidgets('road uses route inputs and does not require building plot fields', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
