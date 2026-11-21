@@ -25,6 +25,7 @@ import '../services/dwelling_g1_generator.dart';
 import '../services/retail_cad_generator.dart';
 import '../services/healthcare_cad_generator.dart';
 import '../services/warehouse_loading_generator.dart';
+import '../services/cross_dock_cad_generator.dart';
 import '../services/enclosed_cad_generator.dart';
 import '../services/concept_zoning_generator.dart';
 import 'scenario_library_screen.dart';
@@ -224,7 +225,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
-                                if (val == 'warehouse_loading' && project.brief != null) {
+                                if ((val == 'warehouse_loading' || val == 'warehouse_cross_dock') && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => WarehouseLoadingScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
                                     depthFt: project.length, facing: project.facing)));
@@ -289,6 +290,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'school_arrival', child: Text('Primary school CAD')),
                                 if (HealthcareCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'clinic_separated', child: Text('Clinic route CAD')),
+                                if (CrossDockCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value: 'warehouse_cross_dock',child:Text('Warehouse cross-dock CAD')),
                                 if (WarehouseLoadingGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'warehouse_loading', child: Text('Warehouse loading CAD')),
                                 if (EnclosedCadGenerator.requested(project.brief))

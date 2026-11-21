@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (crossDock) 'warehouse_cross_dock': 'Cross-dock: opposing inbound and outbound banks',
   if (mixedShopHome) 'mixed_shop_home': 'Shop + dwelling: side-by-side with independent entries',
   if (packhouseFlow) 'packhouse_flow': 'Packhouse: receiving, grading, packing and dispatch',
   if (schoolArrival) 'school_arrival': 'Primary school: visitor lobby and classroom route',
