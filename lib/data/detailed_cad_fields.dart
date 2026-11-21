@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false, bool pairedApartments = false, bool solarFarm = false, bool detentionBasin = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (detentionBasin) 'basin_stage_storage': 'Detention / retention basin: plan, section and storage',
   if (solarFarm) 'solar_fixed_tilt': 'Solar farm: measured fixed-tilt rows and shade clearance',
   if (pairedApartments) 'paired_apartments': 'Paired 1 BHK flats: shared lobby and mirrored rooms',
   if (truckSweep) 'truck_reverse_sweep': 'Loading apron: rigid truck reverse swept path',
