@@ -119,7 +119,10 @@ void main() {
     await tester.pumpWidget(MaterialApp(home:OfficeCadScreen(name:'Measured office',brief:office(),
       widthFt:90,depthFt:100,facing:'South')));
     expect(find.text('Office workplace CAD'),findsOneWidget);
-    await tester.scrollUntilVisible(find.text('Share DXF'),300);
-    expect(find.text('Share DXF'),findsOneWidget);
+    expect(find.text('Save or share DXF'),findsOneWidget);
+    await tester.pumpWidget(MaterialApp(home:OfficeCadScreen(key:const ValueKey('blocked'),name:'Blocked office',
+      brief:office(answers:{'workstations':9}),widthFt:90,depthFt:100,facing:'South')));
+    expect(find.text('Save or share DXF'),findsNothing);
+    expect(find.textContaining('do not fit the measured workspace'),findsOneWidget);
   });
 }
