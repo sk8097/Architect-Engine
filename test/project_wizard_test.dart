@@ -181,6 +181,42 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('playground mode saves the Site equipment records and opens both exports', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Playground');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '24');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '25');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Playground: measured equipment and clearance zones');
+    await enterField(tester, 'py_path_west', '11');
+    await enterField(tester, 'py_path_width', '2');
+    await enterField(tester, 'py_gap', '2');
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Play area');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    const equipment = 'A1,4,5,3,4,1,2,2,1; B2,5,15,2,3,2,1,1,2; C3,16,6,3,3,1,1,2,1';
+    await enterField(tester, 'py_equipment', equipment);
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['py_equipment'], equipment);
+    expect(find.text('Playground clearance CAD'), findsOneWidget);
+    expect(find.text('Share playground DXF'), findsOneWidget);
+    expect(find.text('Share zone schedule CSV'), findsOneWidget);
+  });
+
   testWidgets('bicycle rack mode at a metro station does not require a traffic survey', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
