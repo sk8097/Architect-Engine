@@ -14,6 +14,8 @@ import 'truck_sweep_screen.dart';
 import 'solar_farm_screen.dart';
 import 'detention_basin_screen.dart';
 import 'ev_hub_screen.dart';
+import 'orchard_cad_screen.dart';
+import '../services/orchard_cad_generator.dart';
 import '../services/ev_hub_generator.dart';
 import '../services/detention_basin_generator.dart';
 import '../services/solar_farm_generator.dart';
@@ -348,6 +350,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
                                   return;
                                 }
+                                if (val == 'orchard_measured_rows' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => OrchardCadScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length)));
+                                  return;
+                                }
                                 if (val == 'ev_measured_hub' && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => EvHubScreen(
                                     name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
@@ -459,6 +466,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'warehouse_cross_dock',child:Text('Warehouse cross-dock CAD')),
                                 if (PairedApartmentGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'paired_apartments',child:Text('Paired apartment CAD')),
+                                if (OrchardCadGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'orchard_measured_rows',child:Text('Orchard planting CAD')),
                                 if (EvHubGenerator.requested(project.brief))
                                   const PopupMenuItem(value:'ev_measured_hub',child:Text('EV charging yard CAD')),
                                 if (DetentionBasinGenerator.requested(project.brief))
@@ -485,7 +494,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value:'survey_profile',child:Text('Longitudinal profile CAD')),
                                 if (SurveyCorridorGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'survey_polyline', child: Text('Survey corridor CAD')),
-                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !CrossJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !CorridorSectionGenerator.requested(project.brief) && !CorridorEarthworkGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && !TruckSweepGenerator.requested(project.brief) && !SolarFarmGenerator.requested(project.brief) && !DetentionBasinGenerator.requested(project.brief) && !EvHubGenerator.requested(project.brief) && !PairedApartmentGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
+                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !CrossJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !CorridorSectionGenerator.requested(project.brief) && !CorridorEarthworkGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && !TruckSweepGenerator.requested(project.brief) && !SolarFarmGenerator.requested(project.brief) && !DetentionBasinGenerator.requested(project.brief) && !EvHubGenerator.requested(project.brief) && !OrchardCadGenerator.requested(project.brief) && !PairedApartmentGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'zones', child: Text('Concept zoning CAD')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),
