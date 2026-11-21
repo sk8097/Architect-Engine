@@ -383,7 +383,7 @@ String? validatePlanPartition(AutomaticFloorPlan plan) {
 
 /// Shared geometric validation, not fire/egress or engineering certification.
 String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
-  String? indoorSeed, Set<String> sealedRooms = const {}}) {
+  String? indoorSeed, Set<String> sealedRooms = const {}, Set<String> secondaryExteriorDoorRooms = const {}}) {
   final partitionIssue = validatePlanPartition(plan);
   if (partitionIssue != null) return partitionIssue;
 
@@ -395,6 +395,7 @@ String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
   if (rooms.length != plan.rooms.length || rooms.containsKey(outside) || (expectedRoomCount != null && rooms.length != expectedRoomCount)) return 'Invalid room program.';
   final adjacent = <String, Set<String>>{};
   var entranceCount = 0;
+  final secondary = <String>{};
   for (final opening in plan.openings) {
     final from = rooms[opening.from], to = rooms[opening.to], bounds = opening.bounds;
     final exterior = opening.from == outside;
@@ -405,7 +406,6 @@ String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
         bounds.bottom != footprint.bottom && bounds.top != footprint.top) return 'Exterior opening misses the footprint edge.';
     if (opening.kind != PlanOpeningKind.door) continue;
     if (exterior) {
-      entranceCount++;
       final mirroredEdge = switch (plan.facing) {
         'North' => bounds.top == footprint.top,
         'East' => bounds.right == footprint.right,
@@ -413,11 +413,18 @@ String? validatePlanGeometry(AutomaticFloorPlan plan, {int? expectedRoomCount,
         'South' => bounds.bottom == footprint.bottom,
         _ => false,
       };
+      if (secondaryExteriorDoorRooms.contains(opening.to)) {
+        if (mirroredEdge || !secondary.add(opening.to)) return 'A secondary exterior door duplicates an entrance or is on the primary frontage.';
+        // Do not count an outdoor route as an indoor circulation connection.
+        continue;
+      }
+      entranceCount++;
       if (!mirroredEdge) return 'Entrance differs from the selected frontage.';
     }
     adjacent.putIfAbsent(opening.from, () => {}).add(opening.to);
     adjacent.putIfAbsent(opening.to, () => {}).add(opening.from);
   }
+  if (!secondary.containsAll(secondaryExteriorDoorRooms)) return 'A required secondary exterior door is missing.';
   if (indoorSeed != null && !rooms.containsKey(indoorSeed)) return 'Indoor circulation is missing.';
   final start = indoorSeed ?? outside;
   final reachable = <String>{start};

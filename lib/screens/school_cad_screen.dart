@@ -24,9 +24,13 @@ class _SchoolCadScreenState extends State<SchoolCadScreen> {
   Widget build(BuildContext context) => AutomaticFloorPlanScreen(projectName: widget.name, brief: widget.brief,
     frontageFt: widget.widthFt, depthFt: widget.depthFt, facing: widget.facing, title: 'Primary school CAD',
     entryDescription: 'Visitor lobby and separate learning passage',
-    drawingLegend: 'Orange: visitor arrival • Blue: student passage • Purple: internal threshold door.',
+    drawingLegend: _result.siteZones.any((zone)=>zone.id=='school_playground')
+      ? 'Orange: visitor arrival • Blue: student passage • Teal: rear play access • Green: play area • Grey: fence.'
+      : 'Orange: visitor arrival • Blue: student passage • Purple: internal threshold door.',
     siteZones: _result.siteZones,
-    customResult: FloorPlanResult(_result.plan, [if (_result.issue != null) _result.issue!], const [
+    customResult: FloorPlanResult(_result.plan, [if (_result.issue != null) _result.issue!], [
+      if (_result.siteZones.any((zone)=>zone.id=='school_playground'))
+        'The fenced playground has a door and walk from the student passage, but no designed secondary route to the street. It is not verified as an emergency exit.',
       'The internal door identifies the monitored threshold; hardware, locks and supervision are not specified.',
       'This is a circulation concept, not an egress plan. Exit count and travel distance, student capacity, accessibility, daylight and authority requirements need separate review.',
     ]));
