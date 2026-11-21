@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProjectBrief pool({Map<String,Object> edits = const {}, String type = 'swimming_pool', String configuration = 'outdoor'}) => ProjectBrief(
-  features: const [], parking: ProjectParking.none,
+  floorCount: null, features: const [], parking: ProjectParking.none,
   taxonomy: TaxonomySelection(version: projectTaxonomyVersion, categoryId: 'institutional', subcategoryId: 'sports',
     typeId: type, configurationId: configuration, plotShapeId: 'rectangular'),
   requirements: ProjectRequirementsSnapshot(version: requirementsSchemaVersion, answers: {
