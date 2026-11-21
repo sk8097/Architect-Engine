@@ -46,7 +46,7 @@ class FloorPlanCad {
     for (final zone in siteZones) {
       final b = zone.bounds;
       box(zone.layer, b);
-      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR'}.contains(zone.layer)) continue;
+      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR','FOOD_SEATS'}.contains(zone.layer)) continue;
       final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
       if (zone.direction case final direction?) {
         final (dx,dy) = switch(direction) {
@@ -73,7 +73,9 @@ class FloorPlanCad {
       final b = opening.bounds;
       final horizontal = b.width > b.depth;
       if (opening.kind == PlanOpeningKind.loadingDoor || opening.kind == PlanOpeningKind.materialOpening) {
-        final layer = opening.kind == PlanOpeningKind.loadingDoor ? 'DOCK_OPENINGS' : 'PACKHOUSE_OPENINGS';
+        final layer = opening.kind == PlanOpeningKind.loadingDoor ? 'DOCK_OPENINGS' : switch (opening.to) {
+          'food_kitchen' => 'FOOD_SERVE_PASS', 'food_wash' => 'FOOD_RETURN_PASS', _ => 'PACKHOUSE_OPENINGS',
+        };
         if (horizontal) { line(layer, b.left, (b.bottom + b.top) / 2, b.right, (b.bottom + b.top) / 2); }
         else { line(layer, (b.left + b.right) / 2, b.bottom, (b.left + b.right) / 2, b.top); }
         continue;
@@ -377,6 +379,8 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'FOOD_GUEST_AISLES': 3, 'FOOD_SERVE_PASS': 4, 'FOOD_RETURN_PASS': 30,
+      'FOOD_SERVICE_PADS': 6, 'FOOD_TABLES': 5, 'FOOD_SEATS': 8,
       'OFFICE_VISITOR_ROUTE': 30, 'OFFICE_STAFF_ROUTE': 5, 'OFFICE_THRESHOLD': 6,
       'OFFICE_DESKS': 4, 'OFFICE_CHAIR_CLEAR': 8, 'OFFICE_AISLES': 3,
       'RETAIL_QUEUE': 2, 'RETAIL_CHECKOUT': 6, 'RETAIL_SERVICE': 3, 'STAIRS': 5, 'GROUND_PLATE_REFERENCE': 8, 'TERRACE_ACCESS': 6, 'TERRACE_DECK': 3, 'PARKING_BAYS': 4, 'VEHICLE_APPROACH': 6, 'PEDESTRIAN_APPROACH': 3,

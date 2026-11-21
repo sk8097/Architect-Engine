@@ -1,0 +1,11 @@
+# Dine-in seating and service-pass CAD
+
+In **Commercial → Hospitality / food service → Restaurant, Café or Coffee Shop**, select **Automatic drawing → Dine-in: seating, kitchen pass and dish return**. Use one new ground-floor rectangular building, a cardinal customer entrance, and on-site cooking (casual/family dine-in or café). Confirm independent access to both rear service doors; the drawing checks the pads against the plot, not access beyond them.
+
+Add one **Toilets**, **Dining**, **Kitchen** and **Wash** space with clear dimensions in metres. The front strip is the left-hand toilet room and a customer lobby to its right. Dining spans the clear building width. Behind dining, Kitchen and Wash are side by side with aligned rear walls and one wall between them. Their clear widths plus that wall must equal the clear dining width. Building depth equals the toilet, dining and kitchen clear depths plus four wall thicknesses. Building and plot widths are measured along the front edge.
+
+In the drawing inputs, enter the two hatch widths and the depths of the dining-side hatch approaches and rear service pads. The customer route starts at the front, reaches the toilet reserve and dining via the lobby, and does not enter either rear service room. Food passes through the serving hatch, used dishes go to a separate return hatch, and each service room has its own rear door and pad. The front-of-house aisles are shared; the geometry does not constitute hygienic separation of all staff circulation.
+
+Enter the total seat count (4–200 in multiples of four) separately, and supply the table and chair clearance dimensions. The template checks actual fit in two rows with front and rear cross-aisles and clear longitudinal aisles. It does not remove seats, shrink furniture or export a different drawing when a request does not fit. Reopen **Dine-in service CAD** from the saved project's menu. The editable DXF includes `FOOD_GUEST_AISLES`, `FOOD_SERVE_PASS`, `FOOD_RETURN_PASS`, `FOOD_SERVICE_PADS`, `FOOD_TABLES` and `FOOD_SEATS` in addition to the building geometry.
+
+This concept does not size or specify kitchen equipment, fixtures, window openings, accessible seating/toilets, utilities, exhaust, fire systems, egress, parking or licensing. Separate storage, prep, delivery and waste rooms are not drawn by this template.
