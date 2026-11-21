@@ -216,8 +216,9 @@ class _PlanPainter extends CustomPainter {
         ..color = color(line.layer)..strokeWidth = line.layer == 'WALLS' ? 1.25 : 0.7);
     }
     for (final arc in drawing.arcs) {
+      final end=arc.end<arc.start?arc.end+360:arc.end;
       canvas.drawArc(Rect.fromCircle(center: xy(arc.center), radius: arc.radius.toDouble() * scale),
-        -arc.end * math.pi / 180, (arc.end - arc.start) * math.pi / 180, false,
+        -end * math.pi / 180, (end - arc.start) * math.pi / 180, false,
         Paint()..style = PaintingStyle.stroke..color = color(arc.layer)..strokeWidth = 0.8);
     }
     for (final label in drawing.labels) {

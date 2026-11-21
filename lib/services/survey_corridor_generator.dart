@@ -5,6 +5,7 @@ import '../data/project_taxonomy.dart';
 import '../data/survey_corridor_fields.dart';
 import '../models/project_brief.dart';
 import '../models/survey_corridor.dart';
+import 'survey_curve_geometry.dart';
 
 class SurveyCorridorResult {
   const SurveyCorridorResult(this.drawing, this.issue);
@@ -12,10 +13,10 @@ class SurveyCorridorResult {
   final String? issue;
 }
 
-/// Plan view of an open, surveyed polyline with constant symmetric ROW and
-/// straight mitred offsets. This does not interpolate engineering curves.
+/// Surveyed plan view with constant symmetric ROW: mitred lines or explicitly
+/// supplied circular radii at the tangent intersection points.
 class SurveyCorridorGenerator {
-  static bool requested(ProjectBrief? brief) => brief?.requirements?.answers['corridor_cad_mode'] == 'survey_polyline';
+  static bool requested(ProjectBrief? brief) => surveyCorridorCadModes.contains(brief?.requirements?.answers['corridor_cad_mode']);
 
   SurveyCorridorResult generate(ProjectBrief brief) {
     SurveyCorridorResult block(String message) => SurveyCorridorResult(null, message);
@@ -24,9 +25,10 @@ class SurveyCorridorGenerator {
       return block('Save the corridor brief with the current measured requirements.');
     }
     if (sel.categoryId != 'infrastructure' || sel.subcategoryId != 'transport' || !surveyCorridorTypes.contains(sel.typeId)) {
-      return block('Survey polyline CAD supports roads, streets, footpaths and cycle tracks only. Junctions and structures need specialist geometry.');
+      return block('Survey corridor CAD supports roads, streets, footpaths and cycle tracks only. Junctions and structures need specialist geometry.');
     }
     final a = snapshot.answers;
+    final circular=a['corridor_cad_mode']=='survey_circular';
     if ((sel.configurationId != null && sel.configurationId != 'linear_corridor') ||
         (sel.actionId != null && !const {'new_design','concept_design','feasibility'}.contains(sel.actionId)) ||
         (brief.floorCount ?? 0) != 0 || (brief.parking != null && brief.parking != ProjectParking.none)) {
@@ -64,6 +66,7 @@ class SurveyCorridorGenerator {
       }
       points.add(CorridorPoint((x*1000).round(),(y*1000).round()));
     }
+    if (circular && points.length<3) return block('Circular bend CAD requires at least three controls: start, one tangent intersection, and end.');
     final tangents = <(double,double)>[], stations = [CorridorStation(points.first,start.toDouble())];
     var length = 0.0;
     for (var i=0;i+1<points.length;i++) {
@@ -75,7 +78,7 @@ class SurveyCorridorGenerator {
       tangents.add((dx/segment,dy/segment));
       stations.add(CorridorStation(points[i+1],start+length));
     }
-    if ((length-stated).abs() > 50) {
+    if (!circular && (length-stated).abs() > 50) {
       return block('Survey points total ${(length/1000).toStringAsFixed(3)} m, not ${(stated/1000).toStringAsFixed(3)} m. Reconcile the surveyed route length to within 0.05 m.');
     }
     final spec = a['corridor_bands'];
@@ -100,6 +103,28 @@ class SurveyCorridorGenerator {
     if (used < row) {
       bands.add(CorridorBand('Unallocated ROW',row-used));
       boundaries.add(-row/2);
+    }
+    final group = taxonomyGroup(taxonomyCategory(sel.categoryId),sel.subcategoryId)!;
+    final type = taxonomyChoice(group.types,sel.typeId)!;
+    if (circular) {
+      final spec=a['corridor_curve_radii'];
+      if (spec is! String || spec.length>3000) return block('Enter one positive radius in metres per intermediate point.');
+      final entries=spec.split(RegExp(r'[;\r\n]+')).map((s)=>s.trim()).where((s)=>s.isNotEmpty).toList();
+      if (entries.length!=points.length-2) return block('Enter exactly one radius per intermediate point, in travel order.');
+      final radii=<double>[];
+      for(var i=0;i<entries.length;i++) {
+        final r=double.tryParse(entries[i]);
+        if (r==null || !r.isFinite || r<.001 || r>20000) return block('Point ${i+2}: radius must be positive and no greater than 20,000 m.');
+        radii.add(r*1000);
+      }
+      final fit=surveyCurves(points,radii,boundaries,start.toDouble());
+      final geometry=fit.geometry;
+      if (geometry==null) return block(fit.issue!);
+      if ((fit.length-stated).abs()>50) return block(
+        'Straight tangents plus circular arcs total ${(fit.length/1000).toStringAsFixed(3)} m, not ${(stated/1000).toStringAsFixed(3)} m. Reconcile the curved route length to within 0.05 m.');
+      return SurveyCorridorResult(SurveyCorridorDrawing(title:type.label,grid:grid,reference:reference,widthMm:row,
+        lengthMm:fit.length,stations:fit.stations,bands:bands,curves:geometry,
+        edges:[for(final path in geometry.edges) [path.first.from.rounded,...path.map((part)=>part.to.rounded)]]),null);
     }
     final mitres = <(double,double)>[];
     for (var i=0;i<points.length;i++) {
@@ -149,8 +174,6 @@ class SurveyCorridorGenerator {
         return block('An offset band crosses the surveyed centreline.');
       }
     }
-    final group = taxonomyGroup(taxonomyCategory(sel.categoryId),sel.subcategoryId)!;
-    final type = taxonomyChoice(group.types,sel.typeId)!;
     return SurveyCorridorResult(SurveyCorridorDrawing(title:type.label,grid:grid,reference:reference,
       widthMm:row,lengthMm:length,stations:stations,bands:bands,edges:edges),null);
   }

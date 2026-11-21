@@ -52,15 +52,17 @@ class _SurveyCorridorScreenState extends State<SurveyCorridorScreen> {
           const Text('Your brief was saved. Edit it and save to retry.'),
           if (_result.issue case final issue?) ListTile(leading:const Icon(Icons.info_outline),title:Text(issue)),
         ] else ...[
-          Text('${sheet.stations.length} survey points · ${(sheet.lengthMm/1000).toStringAsFixed(3)} m · ${(sheet.widthMm/1000).toStringAsFixed(3)} m ROW'),
+          Text('${sheet.stations.length} ${sheet.curves==null?'survey points':'alignment stations'} · ${(sheet.lengthMm/1000).toStringAsFixed(3)} m · ${(sheet.widthMm/1000).toStringAsFixed(3)} m ROW'),
           Text('Grid: ${sheet.grid} · Survey reference: ${sheet.reference}'),
           const Text('Blue: centreline · Purple: survey stations · Green: band divisions · Grey: ROW'),
           CadPlanPreview(drawing:cad),
           Builder(builder:(button)=>Align(alignment:Alignment.centerLeft,child:FilledButton.icon(icon:const Icon(Icons.ios_share),
             onPressed:_sharing?null:()=>_share(button,cad),label:const Text('Share corridor DXF')))),
-          const Text('Straight segments with mitred joins; not designed curves. No junctions, grade, drainage, road safety or land ownership verified.'),
+          if (sheet.curves==null) const Text('Straight segments with mitred joins; not designed curves.')
+          else const Text('Circular curves use supplied radii. PC/PT are the curve tangent points. No transition spirals, superelevation or design speed checks.'),
+          const Text('No junctions, grade, drainage, road safety or land ownership verified.'),
           ExpansionTile(title:const Text('Station schedule (metres)'),children:[for(final station in sheet.stations)
-            ListTile(dense:true,title:Text(station.label),subtitle:Text('E ${(station.point.easting/1000).toStringAsFixed(3)} · N ${(station.point.northing/1000).toStringAsFixed(3)}'))]),
+            ListTile(dense:true,title:Text(sheet.curves==null?station.label:'${station.mark} ${station.label}'),subtitle:Text('E ${(station.point.easting/1000).toStringAsFixed(3)} · N ${(station.point.northing/1000).toStringAsFixed(3)}'))]),
           ExpansionTile(title:const Text('Measured bands, left to right'),children:[for(final band in sheet.bands)
             ListTile(dense:true,title:Text(band.label),subtitle:Text('${(band.widthMm/1000).toStringAsFixed(3)} m'))]),
         ],

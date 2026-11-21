@@ -19,6 +19,10 @@ ProjectBrief brief({String type='road',String configuration='linear_corridor',Ma
       'corridor_bands':'Footway:2;Traveled way:7',...edits,
     }));
 
+ProjectBrief curve({Map<String,Object> edits=const {}})=>brief(edits:{
+  'corridor_cad_mode':'survey_circular','corridor_curve_radii':'20','route_length':91.416,...edits,
+});
+
 void main() {
   final generator=SurveyCorridorGenerator();
   test('measured bend retains grid coordinates, mitred offsets and cumulative chainage', () {
@@ -81,6 +85,90 @@ void main() {
     final zoning=ConceptZoningGenerator().generate(brief(edits:{'concept_straight_alignment':'confirmed'}),widthFt:0,depthFt:0);
     expect(zoning.sheets,isEmpty);
     expect(zoning.issues.single,contains('not straight zoning'));
+  });
+
+  test('native tangent and arc geometry keeps projected offsets and true chainages', () {
+    final input=ProjectBrief.fromMap(curve().toMap())!;
+    expect(SurveyCorridorGenerator.requested(input),isTrue);
+    final result=generator.generate(input);
+    expect(result.issue,isNull);
+    final sheet=result.drawing!, g=sheet.curves!;
+    expect(sheet.lengthMm,closeTo(91415.926536,0.001));
+    expect(sheet.stations.map((s)=>s.mark),['START','PC','PT','END']);
+    expect(sheet.stations.map((s)=>s.label),['0+980.25','1+020.25','1+051.67','1+071.67']);
+    expect(sheet.stations.map((s)=>(s.point.easting,s.point.northing)),[
+      (345000250,2110000500),(345040250,2110000500),(345060250,2110020500),(345060250,2110040500),
+    ]);
+    expect(g.axis.map((p)=>p.arc!=null),[false,true,false]);
+    final arc=g.axis[1].arc!;
+    expect(arc.centre.x,closeTo(345040250,.001));
+    expect(arc.centre.y,closeTo(2110020500,.001));
+    expect(g.edges.map((p)=>p[1].arc!.radius),[14000,16000,23000,26000]);
+    final cad=FloorPlanCad.fromSurveyCorridor(sheet);
+    expect(cad.lines.where((l)=>l.layer=='SURVEY_AXIS').length,2);
+    expect(cad.lines.where((l)=>l.layer=='RIGHT_OF_WAY').length,6);
+    expect(cad.arcs.where((a)=>a.layer=='CORRIDOR_BANDS').length,2);
+    expect(cad.arcs.where((a)=>a.layer=='RIGHT_OF_WAY').length,2);
+    final actual=cad.arcs.singleWhere((a)=>a.layer=='SURVEY_AXIS');
+    expect(actual.radius,20000);
+    expect(actual.start,closeTo(270,.000001));
+    expect(actual.end,closeTo(0,.000001));
+    final dxf=cad.toDxf();
+    expect(dxf,contains('PC 1+020.25'));
+    expect(dxf,contains('PT 1+051.67'));
+    expect(dxf,contains('345040250.000'));
+    expect(dxf,contains('0\nARC\n8\nSURVEY_AXIS\n'));
+  });
+
+  test('alternating bends keep distinct radii and do not duplicate a zero-offset band', () {
+    final result=generator.generate(curve(edits:{'corridor_points':'0,0;60,0;60,60;120,60',
+      'corridor_curve_radii':'15;25','corridor_bands':'Left:6;Right:6','route_length':162.832}));
+    expect(result.issue,isNull);
+    final sheet=result.drawing!, g=sheet.curves!;
+    expect(sheet.lengthMm,closeTo(162831.853071,.001));
+    expect(sheet.stations.map((s)=>s.mark),['START','PC','PT','PC','PT','END']);
+    expect(sheet.stations.map((s)=>(s.point.easting,s.point.northing)),[
+      (0,0),(45000,0),(60000,15000),(60000,35000),(85000,60000),(120000,60000),
+    ]);
+    expect(g.edges.first.where((p)=>p.arc!=null).map((p)=>p.arc!.radius),[9000,31000]);
+    expect(g.edges.last.where((p)=>p.arc!=null).map((p)=>p.arc!.radius),[21000,19000]);
+    final drawing=FloorPlanCad.fromSurveyCorridor(sheet);
+    expect(drawing.lines.where((l)=>l.layer=='CORRIDOR_BANDS'),isEmpty);
+    expect(drawing.arcs.where((a)=>a.layer=='CORRIDOR_BANDS'),isEmpty);
+    final clockwise=drawing.arcs.where((a)=>a.layer=='SURVEY_AXIS').last;
+    // The clockwise alignment portion is stored as a CCW DXF primitive.
+    expect(clockwise.start,closeTo(90,.000001));
+    expect(clockwise.end,closeTo(180,.000001));
+  });
+
+  test('bad radii, folded offsets, crossings and mismatched arc lengths block all CAD', () {
+    for (final (edits,issue) in <(Map<String,Object>,String)>[
+      ({'corridor_points':'0,0;100,0'},'at least three controls'),
+      ({'corridor_curve_radii':'20;30'},'exactly one radius'),
+      ({'corridor_curve_radii':'NaN'},'radius must be positive'),
+      ({'corridor_curve_radii':'6'},'half the ROW width'),
+      ({'corridor_curve_radii':'41'},'straight tangent'),
+      ({'corridor_points':'0,0;60,0;120,0'},'collinear controls'),
+      ({'route_length':100},'curved route length'),
+      ({'corridor_points':'0,0;40,0;40,30;20,30;20,-20','corridor_curve_radii':'7;7;7'},'crosses or touches itself'),
+      ({'corridor_points':'0,0;40,0;40,30;20,30;20,5','corridor_curve_radii':'7;7;7'},'cross or touch'),
+    ]) {
+      final result=generator.generate(curve(edits:edits));
+      expect(result.drawing,isNull,reason:issue);
+      expect(result.issue,contains(issue));
+    }
+    final fallback=ConceptZoningGenerator().generate(curve(),widthFt:0,depthFt:0);
+    expect(fallback.sheets,isEmpty);
+    expect(fallback.issues.single,contains('not straight zoning'));
+  });
+
+  testWidgets('circular corridor preview has PC/PT schedule and editable DXF', (tester) async {
+    await tester.pumpWidget(MaterialApp(home:SurveyCorridorScreen(name:'Curve',brief:curve())));
+    await tester.scrollUntilVisible(find.text('Station schedule (metres)'),200);
+    await tester.tap(find.text('Station schedule (metres)'));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(find.text('PT 1+051.67'),150);
+    expect(find.text('PT 1+051.67'),findsOneWidget);
   });
 
   testWidgets('survey CAD preview exposes DXF only when geometry is valid', (tester) async {

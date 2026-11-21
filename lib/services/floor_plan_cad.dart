@@ -193,20 +193,49 @@ class FloorPlanCad {
       for (var i=0;i+1<points.length;i++) { line(layer,points[i],points[i+1]); }
     }
     final edges = sheet.edges, axis = sheet.stations.map((s)=>s.point).toList();
-    trace('SURVEY_AXIS',axis);
-    for (var i=0;i<edges.length;i++) {
-      // If a band edge is exactly the centreline, it is already on SURVEY_AXIS.
-      final edge = edges[i];
-      final outer = i==0 || i==edges.length-1;
-      if (outer || !List.generate(edge.length,(j)=>edge[j].easting==axis[j].easting && edge[j].northing==axis[j].northing).every((same)=>same)) {
-        trace(outer?'RIGHT_OF_WAY':'CORRIDOR_BANDS',edge);
+    final curved=sheet.curves;
+    final all=<CadPoint>[];
+    if (curved==null) {
+      trace('SURVEY_AXIS',axis);
+      for (var i=0;i<edges.length;i++) {
+        final edge=edges[i], outer=i==0||i==edges.length-1;
+        // A zero-offset band is already represented on SURVEY_AXIS.
+        if (outer || !List.generate(edge.length,(j)=>edge[j].easting==axis[j].easting && edge[j].northing==axis[j].northing).every((same)=>same)) {
+          trace(outer?'RIGHT_OF_WAY':'CORRIDOR_BANDS',edge);
+        }
       }
+      line('RIGHT_OF_WAY',edges.first.first,edges.last.first);
+      line('RIGHT_OF_WAY',edges.first.last,edges.last.last);
+      all.addAll([...edges.first,...edges.last].map(cad));
+    } else {
+      CadPoint exact(SurveyPosition p)=>CadPoint(p.x,p.y);
+      void path(String layer,List<SurveyPrimitive> pieces) {
+        double degrees(double a)=>surveyAngle(a)*180/math.pi;
+        for (final p in pieces) {
+          final arc=p.arc;
+          if (arc==null) {
+            _lines.add(CadLine(layer,exact(p.from),exact(p.to)));
+          } else {
+            // DXF always traverses counterclockwise; flip a clockwise arc's endpoints.
+            final (start,end)=arc.sweep>0?(arc.start,arc.start+arc.sweep):(arc.start+arc.sweep,arc.start);
+            _arcs.add(CadArc(layer,exact(arc.centre),arc.radius,degrees(start),degrees(end)));
+          }
+        }
+      }
+      path('SURVEY_AXIS',curved.axis);
+      for (var i=0;i<curved.edges.length;i++) {
+        if(curved.offsets[i]==0) continue;
+        path(i==0||i==curved.edges.length-1?'RIGHT_OF_WAY':'CORRIDOR_BANDS',curved.edges[i]);
+      }
+      final first=curved.edges.first,last=curved.edges.last;
+      _lines.addAll([
+        CadLine('RIGHT_OF_WAY',exact(first.first.from),exact(last.first.from)),
+        CadLine('RIGHT_OF_WAY',exact(first.last.to),exact(last.last.to)),
+      ]);
+      all.addAll([...first,...last].expand((p)=>p.extrema).map(exact));
     }
-    line('RIGHT_OF_WAY',edges.first.first,edges.last.first);
-    line('RIGHT_OF_WAY',edges.first.last,edges.last.last);
-    final all = [...edges.first,...edges.last];
-    final left = all.map((p)=>p.easting).reduce(math.min), right = all.map((p)=>p.easting).reduce(math.max);
-    final bottom = all.map((p)=>p.northing).reduce(math.min), top = all.map((p)=>p.northing).reduce(math.max);
+    final left=all.map((p)=>p.x).reduce(math.min),right=all.map((p)=>p.x).reduce(math.max);
+    final bottom=all.map((p)=>p.y).reduce(math.min),top=all.map((p)=>p.y).reduce(math.max);
     final gap = (sheet.widthMm/10).clamp(200,1800).toDouble();
     final mid = (left+right)/2;
     _labels.addAll([
@@ -225,7 +254,7 @@ class FloorPlanCad {
       return math.sqrt(dx.toDouble()*dx+dy.toDouble()*dy);
     }
     var longest = 0;
-    for (var i=1;i+1<axis.length;i++) { if (length(i)>length(longest)) longest=i; }
+    for (var i=1;i+1<axis.length;i++) { if ((curved==null || curved.axis[i].arc==null) && length(i)>length(longest)) longest=i; }
     final dx = axis[longest+1].easting-axis[longest].easting, dy = axis[longest+1].northing-axis[longest].northing;
     final bearing = math.atan2(dy,dx)*180/math.pi;
     final upright = bearing > 90 ? bearing-180 : bearing < -90 ? bearing+180 : bearing;
@@ -242,7 +271,7 @@ class FloorPlanCad {
       final size=gap*.20;
       _lines.add(CadLine('SURVEY_STATIONS',CadPoint(p.easting-size,p.northing-size),CadPoint(p.easting+size,p.northing+size)));
       _lines.add(CadLine('SURVEY_STATIONS',CadPoint(p.easting-size,p.northing+size),CadPoint(p.easting+size,p.northing-size)));
-      _labels.add(CadLabel('SURVEY_STATIONS',CadPoint(p.easting,p.northing+gap*.55),'STA ${sheet.stations[i].label}',gap*.5));
+      _labels.add(CadLabel('SURVEY_STATIONS',CadPoint(p.easting,p.northing+gap*.55),'${sheet.stations[i].mark} ${sheet.stations[i].label}',gap*.5));
     }
     final labelSpan = math.max(52,(sheet.grid.length+sheet.reference.length+3)*.65)*gap*.31;
     bounds=PlanRect(math.min(left-gap,mid-labelSpan).floor(),(bottom-gap*1.5).floor(),
@@ -407,7 +436,7 @@ class FloorPlanCad {
     }
     for (final arc in _arcs) {
       pair(0, 'ARC'); pair(8, arc.layer); xyz(10, arc.center);
-      pair(40, number(arc.radius)); pair(50, number(arc.start)); pair(51, number(arc.end));
+      pair(40, number(arc.radius)); pair(50, arc.start.toStringAsFixed(10)); pair(51, arc.end.toStringAsFixed(10));
     }
     for (final label in _labels) {
       pair(0, 'TEXT'); pair(8, label.layer); xyz(10, label.at);

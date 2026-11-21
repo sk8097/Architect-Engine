@@ -187,7 +187,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool get _packhouseEligible => _category?.id == 'rural' && _group?.id == 'agro_processing' && packhouseCadTypes.contains(_type?.id);
   bool get _packhouseCad => _packhouseEligible && _answers['cad_output'] == 'packhouse_flow';
   bool get _surveyCorridorEligible => _category?.id == 'infrastructure' && _group?.id == 'transport' && surveyCorridorTypes.contains(_type?.id);
-  bool get _surveyCorridorCad => _surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_polyline';
+  bool get _surveyCorridorCad => _surveyCorridorEligible && surveyCorridorCadModes.contains(_answers['corridor_cad_mode']);
+  bool get _circularCorridor => _surveyCorridorCad && _answers['corridor_cad_mode']=='survey_circular';
   bool get _mixedEligible => _category?.id=='mixed_use' && _group?.id=='mixed_development' && _type?.id==mixedRetailCadType;
   bool get _mixedCad => _mixedEligible && _answers['cad_output']=='mixed_shop_home';
   List<RequirementField> get _cadFields => [
@@ -349,6 +350,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     for (final field in (_linearSite ? alignmentFields : surveyedPlotFields))
       if (!_earlyIds.contains(field.id) && !(_surveyCorridorCad && const {'concept_straight_alignment','corridor_bands'}.contains(field.id))) field,
     if (_surveyCorridorCad) ...[...surveyCorridorFields,surveyCorridorBands],
+    if (_circularCorridor) surveyCurveRadii,
     if (_schoolPlayground) ...schoolPlaygroundFields,
   ];
   List<RequirementField> get _ruleSchema => _linearSite
@@ -545,7 +547,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields, ...mixedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -1258,7 +1260,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     key: _sectionForms[_step],
     child: _selectionList(_linearSite ? 'Record alignment and corridor data from your survey.' : 'Record measured plot data and site conditions.', [
       if (!_linearSite && !_vastu && !_home && !_enclosedCad && !_warehouseCad && !_crossDockCad && !_clinicCad && !_retailCad && !_schoolCad && !_officeCad && !_diningCad && !_packhouseCad && !_mixedCad) _facingPicker(),
-      if (_surveyCorridorCad) const Text('Paste projected metre coordinates (not latitude/longitude) in travel order. ROW is constant and centred on the supplied axis; any unallocated width stays on the right.'),
+      if (_circularCorridor) const Text('Enter start, tangent intersection points and end in travel order. Supply one radius per intermediate point; route length must include arcs, not run through the intersection points.')
+      else if (_surveyCorridorCad) const Text('Paste projected metre coordinates (not latitude/longitude) in travel order. ROW is constant and centred on the supplied axis; any unallocated width stays on the right.'),
       _fieldPanel(_siteSchema),
     ]),
   );

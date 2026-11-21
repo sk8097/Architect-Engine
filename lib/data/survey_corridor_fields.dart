@@ -3,8 +3,11 @@ import 'space_planning.dart';
 
 const surveyCorridorTypes = {'road','street','footpath','cycle_track'};
 
+const surveyCorridorCadModes = {'survey_polyline','survey_circular'};
+
 final surveyCorridorMode = planningChoice('corridor_cad_mode', 'Corridor drawing', {
   'straight': 'Straight corridor zoning', 'survey_polyline': 'Survey points: multi-segment corridor CAD',
+  'survey_circular': 'Tangent survey with measured circular bends',
 }, required: false);
 
 const surveyCorridorFields = <RequirementField>[
@@ -16,3 +19,6 @@ const surveyCorridorFields = <RequirementField>[
 
 const surveyCorridorBands = RequirementField('corridor_bands',
   'Bands from left to right looking forward: Label:width in m; Label:width in m');
+
+const surveyCurveRadii = RequirementField('corridor_curve_radii',
+  'Bend radii in m for intermediate points in order (separate with ;)', required:true);

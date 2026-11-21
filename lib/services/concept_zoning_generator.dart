@@ -1,6 +1,7 @@
 import '../data/concept_zoning_profiles.dart';
 import '../data/project_requirements.dart';
 import '../data/project_taxonomy.dart';
+import '../data/survey_corridor_fields.dart';
 import '../models/automatic_floor_plan.dart';
 import '../models/concept_zoning.dart';
 import '../models/project_brief.dart';
@@ -110,7 +111,7 @@ class ConceptZoningGenerator {
       }
     }
     if (linear) {
-      if (answers['corridor_cad_mode'] == 'survey_polyline') return blocked('This brief requests survey corridor CAD, not straight zoning.');
+      if (surveyCorridorCadModes.contains(answers['corridor_cad_mode'])) return blocked('This brief requests survey corridor CAD, not straight zoning.');
       if (answers['concept_straight_alignment'] != 'confirmed') {
         return blocked('For CAD, confirm a straight measured corridor. A curved or surveyed multi-segment alignment needs a different generator.');
       }
