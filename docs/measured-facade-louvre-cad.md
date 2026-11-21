@@ -1,0 +1,13 @@
+# Measured façade louvre CAD
+
+In the Project Wizard choose **Commercial → Office / workplace → Small Office, Corporate Office or Branch Office** and **Office: measured façade louvre and profile-angle shading** under Automatic drawing. Use an early design or renovation action, and leave the separate Space program empty. The study describes one rectangular bay, independent of storey count, plot dimensions and setback inputs.
+
+Enter measured bay width and height, two equal side margins, first-blade underside above the sill, minimum top reserve, and horizontal blade projection, vertical pitch and thickness. Linear inputs normalize to millimetres. The mode packs whole blades up from the sill while preserving the top reserve, and reports the actual remaining reserve. It requires 2–60 blades and nonzero span and clear gap. The side margins and strips above and below the array are excluded from the shade calculation.
+
+Enter two profile angles **already expressed in the vertical plane perpendicular to the façade**, measured above horizontal. These are not necessarily solar altitude angles. For clear gap `G = pitch − thickness`, projection `P` and angle `α`, the shaded fraction at the façade plane is `clamp(P × tan(α) / G, 0, 1)`. The remainder is directly lit in the idealized central section. The full cutoff angle is `atan(G / P)`. The mode tests minimum directly lit fraction at the lower angle and minimum shaded fraction at the higher angle. Both checks apply to a complete inter-blade gap, not the entire bay.
+
+Export an editable exterior elevation and a separate true-scale centreline section A–A in local millimetres. The section starts at façade `x=0` and shows grazing rays through a representative gap; each stops at the façade or the lower blade, whichever it meets first. A zero-angle ray coincides with the upper blade underside and is not drawn twice. Reopen under Projects → **Façade louvre CAD**. A failed brief stays saved with its reason and no DXF or generic zoning fallback.
+
+**Check case:** A 3.600 × 2.400 m bay with 0.150 m jamb margins, 0.100 m sill and minimum head reserves, 0.400 m pitch, 0.040 m thickness and 0.360 m projection fits **6 blades** at **3.300 m** span and **0.360 m** clear gap, leaving **0.260 m** at the head. At **15°**, **73.205%** of a representative gap is directly lit; at **45°**, the gap reaches **100%** shade and full cutoff.
+
+This is direct-ray geometry only. It does not assess blade end effects, a sun path or annual exposure, diffuse light, reflections, glare, heat gain, rain, airflow, mounting, structural loads or facade approval.
