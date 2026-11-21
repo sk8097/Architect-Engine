@@ -263,7 +263,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   String _levelName(int n) => n == 0 ? 'Ground floor' : 'Floor $n';
   List<RequirementField> get _essential => [
     for (final field in _facilitySchema)
-      if ((planningEssentialIds[_programId] ?? const <String>{}).contains(field.id) || ((_warehouseCad || _crossDockCad) && field.id == 'dock_count') || (_officeCad && field.id == 'workstations') || (_diningCad && field.id=='seats') || (_cattleCad && field.id=='animal_capacity') || (_badmintonCad && field.id=='activity_areas') ||
+      if (((planningEssentialIds[_programId] ?? const <String>{}).contains(field.id) && !(_tennisCad && field.id == 'sports_dimensions')) || ((_warehouseCad || _crossDockCad) && field.id == 'dock_count') || (_officeCad && field.id == 'workstations') || (_diningCad && field.id=='seats') || (_cattleCad && field.id=='animal_capacity') || (_badmintonCad && field.id=='activity_areas') ||
           (_badmintonViewing && field.id=='spectators') ||
           (_hostelCad && const {'room_count', 'beds_per_room'}.contains(field.id)) ||
           (_inpatientWardCad && field.id == 'beds')) asRequired(field),

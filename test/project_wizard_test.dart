@@ -208,7 +208,9 @@ void main() {
       await enterField(tester, entry.key, entry.value);
     }
     await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
     await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).first, 'Outdoor courts');
     await goToReview(tester);
     await tap(tester, 'Save project brief');
