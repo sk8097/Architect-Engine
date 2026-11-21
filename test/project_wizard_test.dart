@@ -281,6 +281,42 @@ void main() {
     expect(find.text('Share rain garden plan DXF'), findsOneWidget);
   });
 
+  testWidgets('surveyed street lighting saves pole locations without generic utility fields', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Energy / utilities / communications');
+    await tap(tester, 'Street Lighting Network');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('street_light_mode', 'Surveyed pole row: equal spacing and exclusions');
+    expect(find.byKey(const ValueKey('route_length')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Street poles');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    await pick('sl_side', 'Left');
+    for (final entry in const {
+      'sl_grid': 'Example grid', 'sl_axis': '1000,2000;1060,2080', 'sl_offset': '3', 'sl_start': '10',
+      'sl_end': '90', 'sl_min': '14', 'sl_max': '22', 'sl_exclusions': '29,31',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['sl_exclusions'], '29,31');
+    expect(find.text('Share pole layout DXF'), findsOneWidget);
+    expect(find.text('Share pole coordinates CSV'), findsOneWidget);
+  });
+
   testWidgets('telecom duct bank saves levels and crossings without generic equipment inputs', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
