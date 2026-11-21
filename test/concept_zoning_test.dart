@@ -89,4 +89,23 @@ void main() {
       'a': {'width': 5, 'length': 5},
     })).issues.single, contains('rectangular or square'));
   });
+
+  test('measured corridor bands keep their widths and reject oversubscribed ROW', () {
+    final accepted = run(brief('infrastructure','transport','road', linear: true, answers: {
+      'route_length': 140, 'right_of_way': 10, 'concept_straight_alignment': 'confirmed',
+      'corridor_bands': 'Sidewalk:1.5; Roadway:6; Sidewalk:1.5',
+    }));
+    expect(accepted.issues, isEmpty);
+    final sheet = accepted.sheets.single;
+    expect(sheet.zones.map((b) => b.bounds.depth), [1500, 6000, 1500]);
+    expect(sheet.zones.map((b) => b.bounds.bottom), [0, 1500, 7500]);
+    expect(FloorPlanCad.fromZoning(sheet).toDxf(), contains('CORRIDOR_BANDS'));
+    final rejected = run(brief('infrastructure','transport','road', linear: true, answers: {
+      'route_length': 140, 'right_of_way': 8, 'concept_straight_alignment': 'confirmed',
+      'corridor_bands': 'Sidewalk:1.5; Roadway:6; Sidewalk:1.5',
+    }));
+    expect(rejected.sheets, isEmpty);
+    expect(rejected.issues.single, contains('exceed the right-of-way'));
+  });
+
 }

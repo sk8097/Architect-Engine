@@ -33,10 +33,17 @@ class EnclosedCadGenerator {
     if (data['parking_sqft'] != null || (brief.parking != null && brief.parking != ProjectParking.none)) {
       return stop('Your parking requirement is saved; this enclosed layout does not design parking or vehicle movement. Use site zoning separately for measured space allocation.');
     }
-    if (const {'renovation', 'extension', 'retrofit', 'adaptive_reuse'}.contains(selection.actionId) ||
-        const {'existing', 'partial_demolition', 'brownfield'}.contains(data['build_status']) ||
+    if (usesLinearSite(selection.categoryId, selection.subcategoryId, selection.typeId) ||
+        (selection.categoryId == 'infrastructure' && data['custom_site_kind'] == 'linear')) {
+      return stop('A linear corridor is not an enclosed building. Use the measured corridor output.');
+    }
+    if (selection.actionId != null && !const {'new_design', 'concept_design', 'feasibility'}.contains(selection.actionId)) {
+      return stop('This generator is for a new building concept. Existing work, approval and construction drawing requests need a different workflow.');
+    }
+    if (const {'existing', 'partial_demolition', 'brownfield'}.contains(data['build_status']) ||
         const {'existing', 'partial', 'renovation', 'demolish'}.contains(data['construction_status']) ||
-        selection.subcategoryId == 'residential_works' || program == 'heritage') {
+        selection.subcategoryId == 'residential_works' || program == 'heritage' ||
+        type.id == 'adaptive_reuse') {
       return stop('This case needs surveyed existing walls/structure; the enclosed floor-plan solver is for new concepts only.');
     }
     int? mm(Object? raw, {bool zero = false}) {

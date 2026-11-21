@@ -5,6 +5,8 @@ import 'package:architect_engine/models/project_brief.dart';
 import 'package:architect_engine/models/project_requirements_snapshot.dart';
 import 'package:architect_engine/services/enclosed_cad_generator.dart';
 import 'package:architect_engine/services/floor_plan_cad.dart';
+import 'package:architect_engine/screens/enclosed_cad_screen.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProjectBrief measured(String category, String subcategory, String type, {
@@ -87,4 +89,20 @@ void main() {
     expect(unfit.sheets, isEmpty);
     expect(unfit.issues.single, contains('exterior window'));
   });
+
+  testWidgets('measured screen shows CAD only for a solvable request', (tester) async {
+    Future<void> show(ProjectBrief brief) async {
+      await tester.pumpWidget(MaterialApp(home: EnclosedCadScreen(key: ObjectKey(brief),
+        name: 'Office project', brief: brief, widthFt: 100, depthFt: 140, facing: 'South')));
+      await tester.pumpAndSettle();
+    }
+    await show(measured('commercial','office','corporate_office'));
+    expect(find.text('Measured floor plan CAD'), findsOneWidget);
+    expect(find.text('Save or share DXF'), findsOneWidget);
+    await show(measured('commercial','office','corporate_office', parking: ProjectParking.car));
+    expect(find.text('No plan generated'), findsOneWidget);
+    expect(find.textContaining('does not design parking'), findsOneWidget);
+    expect(find.text('Save or share DXF'), findsNothing);
+  });
+
 }
