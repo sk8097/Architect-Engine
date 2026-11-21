@@ -46,7 +46,7 @@ class FloorPlanCad {
     for (final zone in siteZones) {
       final b = zone.bounds;
       box(zone.layer, b);
-      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR','FOOD_SEATS'}.contains(zone.layer)) continue;
+      if (const {'GROUND_PLATE_REFERENCE','SCHOOL_PLAY_FENCE','OFFICE_CHAIR_CLEAR','FOOD_SEATS','ASSEMBLY_CLEARANCE'}.contains(zone.layer)) continue;
       final x = (b.left + b.right) / 2, y = (b.bottom + b.top) / 2;
       if (zone.direction case final direction?) {
         final (dx,dy) = switch(direction) {
@@ -74,7 +74,8 @@ class FloorPlanCad {
       final horizontal = b.width > b.depth;
       if (opening.kind == PlanOpeningKind.loadingDoor || opening.kind == PlanOpeningKind.materialOpening) {
         final layer = opening.kind == PlanOpeningKind.loadingDoor ? 'DOCK_OPENINGS' : switch (opening.to) {
-          'food_kitchen' => 'FOOD_SERVE_PASS', 'food_wash' => 'FOOD_RETURN_PASS', _ => 'PACKHOUSE_OPENINGS',
+          'food_kitchen' => 'FOOD_SERVE_PASS', 'food_wash' => 'FOOD_RETURN_PASS',
+          final id when id.startsWith('assembly_') => 'ASSEMBLY_OPENINGS', _ => 'PACKHOUSE_OPENINGS',
         };
         if (horizontal) { line(layer, b.left, (b.bottom + b.top) / 2, b.right, (b.bottom + b.top) / 2); }
         else { line(layer, (b.left + b.right) / 2, b.bottom, (b.left + b.right) / 2, b.top); }
@@ -93,7 +94,8 @@ class FloorPlanCad {
         continue;
       }
       final room = rooms[opening.to]!;
-      final layer = opening.to.startsWith('dairy_pen_') ? 'DAIRY_PEN_GATES' :
+      final layer = opening.from == 'assembly_staff_passage' ? 'ASSEMBLY_STAFF' :
+        opening.to.startsWith('dairy_pen_') ? 'DAIRY_PEN_GATES' :
         opening.to.startsWith('patient_') ? 'PATIENT_ROUTE' :
         opening.from == AutomaticFloorPlan.entry && opening.to == 'school_learning_route' ? 'SCHOOL_PLAY_WALK' :
         opening.from == 'office_visitor_route' && opening.to == 'office_staff_route' ? 'OFFICE_THRESHOLD' :
@@ -135,11 +137,12 @@ class FloorPlanCad {
         final offset = vertical ? b.width / 3 : b.depth / 3;
         _labels.add(CadLabel('STAIRS', CadPoint(center + (vertical ? offset : 0), y + (vertical ? 0 : offset)),
           '${measured.up ? 'UP' : 'DOWN'} - ${measured.risers} RISERS', 145, angle: vertical ? 90 : 0));
-      } else if (const {'patient_internal_passage','service_internal_passage','school_arrival_route','school_learning_route','office_visitor_route','office_staff_route','dairy_feed_lane','dairy_scrape_left','dairy_scrape_right'}.contains(room.id)) {
+      } else if (const {'patient_internal_passage','service_internal_passage','school_arrival_route','school_learning_route','office_visitor_route','office_staff_route','dairy_feed_lane','dairy_scrape_left','dairy_scrape_right','assembly_staff_passage'}.contains(room.id)) {
         final layer = switch (room.id) {
           'patient_internal_passage' => 'PATIENT_ROUTE', 'service_internal_passage' => 'SERVICE_ROUTE',
           'school_arrival_route' => 'SCHOOL_ARRIVAL', 'office_visitor_route' => 'OFFICE_VISITOR_ROUTE',
           'office_staff_route' => 'OFFICE_STAFF_ROUTE', 'dairy_feed_lane' => 'DAIRY_FEED_ACCESS',
+          'assembly_staff_passage' => 'ASSEMBLY_STAFF',
           'dairy_scrape_left' || 'dairy_scrape_right' => 'DAIRY_CLEAN_ACCESS', _ => 'SCHOOL_LEARNING',
         };
         final vertical = b.heightLongerThanWidth;
@@ -410,6 +413,8 @@ class FloorPlanCad {
       'ROOM_LABELS': 7, 'DIMENSIONS': 6, 'ANNOTATIONS': 7, 'CORE_RESERVES': 8, 'RIGHT_OF_WAY': 8, 'PLANNING_ENVELOPE': 6,
       'ZONES_PUBLIC': 4, 'ZONES_SERVICE': 2, 'ZONES_PROGRAM': 7, 'CORRIDOR_BANDS': 3, 'VEHICLE_ROUTE': 2, 'WALK_ROUTE': 3, 'DOCK_BAYS': 4,
       'DOCK_OPENINGS': 1, 'WAREHOUSE_MARKINGS': 8, 'PATIENT_ROUTE': 4, 'SERVICE_ROUTE': 2, 'CUSTOMER_ROUTE': 4, 'RETAIL_DISPLAY': 8,
+      'ASSEMBLY_MATERIAL': 4, 'ASSEMBLY_OPENINGS': 6, 'ASSEMBLY_STAFF': 3, 'ASSEMBLY_PADS': 30,
+      'ASSEMBLY_WORK_AISLE': 3, 'ASSEMBLY_BENCHES': 5, 'ASSEMBLY_CLEARANCE': 8,
       'DAIRY_FEED_ACCESS': 3, 'DAIRY_CLEAN_ACCESS': 30, 'DAIRY_TROUGHS': 4, 'DAIRY_PEN_GATES': 6,
       'FOOD_GUEST_AISLES': 3, 'FOOD_SERVE_PASS': 4, 'FOOD_RETURN_PASS': 30,
       'FOOD_SERVICE_PADS': 6, 'FOOD_TABLES': 5, 'FOOD_SEATS': 8,
