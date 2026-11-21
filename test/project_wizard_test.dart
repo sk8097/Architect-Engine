@@ -281,6 +281,44 @@ void main() {
     expect(find.text('Share rain garden plan DXF'), findsOneWidget);
   });
 
+  testWidgets('streetscape wall saves sampled levels and opens measured CAD', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Streetscape');
+    Future<void> pick(String id, String label) async {
+      final dropdown = find.descendant(of: find.byKey(ValueKey(id)), matching: find.byType(DropdownButtonFormField<String>));
+      await tester.ensureVisible(dropdown);
+      await tester.tap(dropdown);
+      await tester.pumpAndSettle();
+      await tap(tester, label);
+    }
+    await pick('stepped_wall_mode', 'Surveyed stepped landscape wall: profile and quantities');
+    expect(find.byKey(const ValueKey('route_length')), findsNothing);
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    await tester.enterText(find.byType(TextFormField).first, 'Landscape wall');
+    await tap(tester, 'Continue');
+    expect(find.text('Site / plot / land'), findsOneWidget);
+    await pick('sw_back_side', 'Left');
+    for (final entry in const {
+      'sw_grid': 'Example grid', 'sw_datum': 'Local RL', 'sw_axis': '1000,2000;1060,2080',
+      'sw_ground': '10,100,101;40,100.3,101.6;70,100.6,102.1;90,100.8,102.4',
+      'sw_steps': '35,99.5,101.7;65,99.8,102.3;90,100.1,102.6', 'sw_width': '0.4',
+      'sw_embed': '0.45', 'sw_top_margin': '0.2', 'sw_visible_max': '2.05',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    final saved = projects.projects.single;
+    expect(saved.toMap()['width'], isNull);
+    expect(saved.brief!.requirements!.answers['sw_embed'], .45);
+    expect(find.text('Share wall plan DXF'), findsOneWidget);
+    expect(find.text('Share wall quantity CSV'), findsOneWidget);
+  });
+
   testWidgets('surveyed street lighting saves pole locations without generic utility fields', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Infrastructure / Public Works');
