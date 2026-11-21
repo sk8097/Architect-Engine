@@ -10,6 +10,8 @@ import 'tower_planner_screen.dart';
 import 'concept_zoning_screen.dart';
 import 'enclosed_cad_screen.dart';
 import 'warehouse_loading_screen.dart';
+import 'truck_sweep_screen.dart';
+import '../services/truck_sweep_generator.dart';
 import 'healthcare_cad_screen.dart';
 import 'school_cad_screen.dart';
 import 'office_cad_screen.dart';
@@ -320,6 +322,11 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     depthFt: project.length, facing: project.facing)));
                                   return;
                                 }
+                                if (val == 'truck_reverse_sweep' && project.brief != null) {
+                                  Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => TruckSweepScreen(
+                                    name:project.name,brief:project.brief!,widthFt:project.width,depthFt:project.length,facing:project.facing)));
+                                  return;
+                                }
                                 if ((val == 'warehouse_loading' || val == 'warehouse_cross_dock') && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => WarehouseLoadingScreen(
                                     name: project.name, brief: project.brief!, widthFt: project.width,
@@ -409,6 +416,8 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value: 'clinic_separated', child: Text('Clinic route CAD')),
                                 if (CrossDockCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'warehouse_cross_dock',child:Text('Warehouse cross-dock CAD')),
+                                if (TruckSweepGenerator.requested(project.brief))
+                                  const PopupMenuItem(value:'truck_reverse_sweep',child:Text('Rigid truck swept-path CAD')),
                                 if (WarehouseLoadingGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'warehouse_loading', child: Text('Warehouse loading CAD')),
                                 if (EnclosedCadGenerator.requested(project.brief))
@@ -421,7 +430,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                   const PopupMenuItem(value:'survey_profile',child:Text('Longitudinal profile CAD')),
                                 if (SurveyCorridorGenerator.requested(project.brief))
                                   const PopupMenuItem(value: 'survey_polyline', child: Text('Survey corridor CAD')),
-                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
+                                if (!SurveyCorridorGenerator.requested(project.brief) && !TJunctionCadGenerator.requested(project.brief) && !LongitudinalProfileGenerator.requested(project.brief) && !StormwaterCadGenerator.requested(project.brief) && !TruckSweepGenerator.requested(project.brief) && ConceptZoningGenerator.supportsBrief(project.brief))
                                   const PopupMenuItem(value: 'zones', child: Text('Concept zoning CAD')),
                                 const PopupMenuItem(value: 'edit', child: Text('Edit')),
                                 const PopupMenuItem(value: 'dup', child: Text('Duplicate')),

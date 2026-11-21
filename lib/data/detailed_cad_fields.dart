@@ -1,7 +1,8 @@
 import 'project_requirements.dart';
 import 'space_planning.dart';
 
-RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false}) => planningChoice('cad_output', 'Automatic drawing', {
+RequirementField cadOutputOptions({required bool warehouseLoading, bool clinicSeparated = false, bool retailFixtures = false, bool dwellingG1 = false, bool schoolArrival = false, bool packhouseFlow = false, bool mixedShopHome = false, bool crossDock = false, bool officeWorkplace = false, bool diningService = false, bool cattleShed = false, bool assembly = false, bool libraryReading = false, bool badminton = false, bool hostel = false, bool greenhouse = false, bool sharedCore = false, bool inpatientWard = false, bool truckSweep = false}) => planningChoice('cad_output', 'Automatic drawing', {
+  if (truckSweep) 'truck_reverse_sweep': 'Loading apron: rigid truck reverse swept path',
   if (inpatientWard) 'inpatient_ward': 'General ward: measured bed bays and nursing access',
   if (sharedCore) 'shared_core_shop_office': 'Shop below office: shared lobby, stair and shaft',
   if (greenhouse) 'greenhouse_benches': 'Greenhouse: measured bench banks and work aisles',
