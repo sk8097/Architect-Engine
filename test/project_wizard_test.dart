@@ -181,6 +181,46 @@ void main() {
     expect(saved.toMap()['length'], isNull);
   });
 
+  testWidgets('public toilet mode saves fixtures and opens the measured DXF preview', (tester) async {
+    final projects = await openWizard(tester);
+    await tap(tester, 'Infrastructure / Public Works');
+    await tap(tester, 'Public realm / landscape / waste');
+    await tap(tester, 'Public Toilet');
+    await choose(tester, 'Plot geometry (required)', 'Rectangular');
+    await choose(tester, 'Plot units', 'Metres');
+    await tester.enterText(find.byKey(const ValueKey('Plot width / frontage (m)')), '16');
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('Plot depth (m)')), '12');
+    await tester.pumpAndSettle();
+    final floors = find.byKey(const ValueKey('floor_count'));
+    await tester.ensureVisible(floors);
+    await tester.enterText(floors, '1');
+    await tester.pumpAndSettle();
+    final mode = find.descendant(of: find.byKey(const ValueKey('cad_output')), matching: find.byType(DropdownButtonFormField<String>));
+    await tester.ensureVisible(mode);
+    await tester.tap(mode);
+    await tester.pumpAndSettle();
+    await tap(tester, 'Public toilet: measured rooms and clear entry');
+    for (final entry in const {
+      'pt_rooms': '3', 'pt_width': '3.2', 'pt_depth': '3.5', 'pt_wall': '0.2', 'pt_door': '0.95', 'pt_gallery': '1.8',
+      'pt_entry': '0.9', 'pt_circle': '1.6', 'pt_center': '1.7', 'pt_wc_x': '0.25', 'pt_wc_y': '2.65', 'pt_wc_w': '0.7',
+      'pt_wc_d': '0.75', 'pt_basin_x': '2.4', 'pt_basin_y': '1.1', 'pt_basin_w': '0.6', 'pt_basin_d': '0.6',
+      'pt_west': '2', 'pt_south': '2',
+    }.entries) {
+      await enterField(tester, entry.key, entry.value);
+    }
+    await tap(tester, 'Continue');
+    expect(find.text('Space / room program'), findsOneWidget);
+    await tap(tester, 'Continue');
+    expect(find.text('Project information'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'Public facilities');
+    await goToReview(tester);
+    await tap(tester, 'Save project brief');
+    expect(projects.projects.single.brief!.requirements!.answers['pt_rooms'], 3);
+    expect(find.text('Public toilet block CAD'), findsOneWidget);
+    expect(find.text('Share public toilet DXF'), findsOneWidget);
+  });
+
   testWidgets('vehicle service bay wizard saves the measured lift brief', (tester) async {
     final projects = await openWizard(tester);
     await tap(tester, 'Industrial & Warehousing');
