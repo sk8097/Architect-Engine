@@ -35,13 +35,13 @@ class TypologyBayCadGenerator {
 
   TypologyBayCadResult generate(ProjectBrief brief) {
     final ans = brief.requirements?.answers ?? const <String, String>{};
-    if (!typologyBayCadEligible(brief.taxonomy?.categoryId, brief.taxonomy?.groupId, brief.taxonomy?.typeId)) {
+    if (!typologyBayCadEligible(brief.taxonomy?.categoryId, brief.taxonomy?.subcategoryId, brief.taxonomy?.typeId)) {
       return const TypologyBayCadResult(
         issue: 'Select a valid category, group, and type before generating parametric bay CAD.',
       );
     }
 
-    double? numVal(String k) => double.tryParse((ans[k] ?? '').trim());
+    double? numVal(String k) => double.tryParse((ans[k] ?? '').toString().trim());
     int? intVal(String k) {
       final d = numVal(k);
       if (d == null || d != d.roundToDouble()) return null;

@@ -8,14 +8,11 @@ import 'package:flutter_test/flutter_test.dart';
 ProjectBrief _brief(String category, String group, String type, Map<String, String> answers) =>
     ProjectBrief(
       taxonomy: TaxonomySelection(
+        version: 1,
         categoryId: category,
-        categoryLabel: category,
-        groupId: group,
-        groupLabel: group,
+        subcategoryId: group,
         typeId: type,
-        typeLabel: type,
         configurationId: 'standard',
-        configurationLabel: 'Standard',
       ),
       requirements: ProjectRequirementsSnapshot(answers: answers),
       floorCount: 1,
