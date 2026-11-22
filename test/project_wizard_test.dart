@@ -122,12 +122,11 @@ void main() {
     expect(find.text('Enter a positive quantity.'), findsOneWidget);
     await tester.enterText(quantity, '2');
     await tap(tester, 'Continue');
-    await tap(tester, 'Continue');
     expect(find.text('Enter a project name.'), findsOneWidget);
     await tester.enterText(find.byType(TextFormField).first, 'North View');
     await tap(tester, 'Continue');
     await goToReview(tester);
-    expect(find.text('Review'), findsOneWidget);
+    expect(find.text('Review & Generate'), findsOneWidget);
     expect(find.text('40 × 60 ft'), findsOneWidget);
     expect(find.text('Quantity: 2'), findsOneWidget);
     await tap(tester, 'Save project brief');
