@@ -319,9 +319,9 @@ class ProjectWizardScreen extends StatefulWidget {
 class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   static const _steps = [
     'Category', 'Subcategory', 'Project type', 'Configuration',
-    'Space / room program', 'Project information', 'Site / plot / land',
-    'Jurisdiction / rules', 'Facility requirements', 'Technical requirements',
-    'Design preferences', 'Budget & deliverables', 'Review',
+    'Project information', 'Site / plot / land', 'Jurisdiction / rules',
+    'Functional requirements', 'Category-specific requirements',
+    'Technical requirements', 'Design preferences', 'Review & Generate',
   ];
   static const _directions = [
     'North', 'North-East', 'East', 'South-East', 'South', 'South-West', 'West',
@@ -1638,14 +1638,33 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
               ),
             2 => _buildTypes(),
             3 => _buildConfiguration(),
-            4 => _buildSpaces(),
-            5 => _buildProjectInfo(),
-            6 => _buildSite(),
-            7 => _section('Authority data is recorded as provided. This app has not verified it.', _ruleSchema),
-            8 => _buildFacility(),
+            4 => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildProjectInfo(),
+                  const Divider(height: 24),
+                  _section('Capture budget, schedule and desired outputs. This does not enable generation or export.', deliveryFields),
+                ],
+              ),
+            5 => _buildSite(),
+            6 => _section('Authority data is recorded as provided. This app has not verified it.', _ruleSchema),
+            7 => Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildSpaces(),
+                  const Divider(height: 24),
+                  _fieldPanel(_operationalSchema),
+                ],
+              ),
+            8 => Form(
+                key: _sectionForms[_step],
+                child: _selectionList(
+                  'Provide capacities and requirements for ${_type!.label}. Do not enter estimated constraints as verified data.',
+                  [_fieldPanel(_facilitySchema.where((field) => !_essential.any((early) => early.id == field.id)).toList(), facility: true)],
+                ),
+              ),
             9 => _section('Record technical requirements for coordination and specialist review.', technicalFields),
             10 => _section('These are preferences, not verified design constraints. Vastu never overrides safety or local rules.', _designSchema),
-            11 => _section('Capture budget, schedule and desired outputs. This does not enable generation or export.', deliveryFields),
             _ => _buildReview(),
           };
     return PopScope<void>(

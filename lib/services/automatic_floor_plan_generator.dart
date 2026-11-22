@@ -5,6 +5,7 @@ import '../data/project_scenarios.dart';
 import '../data/project_taxonomy.dart';
 import '../models/automatic_floor_plan.dart';
 import '../models/project_brief.dart';
+import '../models/validation_state.dart';
 
 class FloorPlanResult {
   const FloorPlanResult(this.plan, this.issues, this.warnings);
@@ -14,7 +15,87 @@ class FloorPlanResult {
 
 /// A deterministic, local concept generator for supported low-rise house profiles.
 /// Its dimensions are template heuristics, never statutory minimums.
+class ValidatedFloorPlanResult {
+  const ValidatedFloorPlanResult({this.floorPlan, required this.report});
+  final FloorPlanResult? floorPlan;
+  final ProjectValidationReport report;
+}
+
 class AutomaticFloorPlanGenerator {
+  ValidatedFloorPlanResult generateWithReport(
+    ProjectBrief brief, {
+    required double frontageFt,
+    required double depthFt,
+  }) {
+    final cfg = brief.taxonomy?.configurationId;
+    final shape = brief.taxonomy?.plotShapeId;
+    final floors = brief.floorCount ?? 1;
+    final warnings = <String>[
+      'Authority rules are not verified locally (recorded as user-provided).',
+    ];
+
+    if (frontageFt <= 0 || depthFt <= 0) {
+      return ValidatedFloorPlanResult(
+        report: ProjectValidationReport(
+          inputStatus: InputStatus.incomplete,
+          capabilityStatus: CapabilityStatus.supported,
+          generationStatus: GenerationStatus.blocked,
+          warnings: warnings,
+          errors: const [
+            ValidationIssue(fieldId: 'plot_length_ft', message: 'Enter positive plot dimensions in feet.'),
+          ],
+        ),
+      );
+    }
+
+    if (floors > 1 ||
+        (shape != null && shape != 'rectangular' && shape != 'square') ||
+        (cfg != null && cfg != '1_bhk' && cfg != '2_bhk')) {
+      return ValidatedFloorPlanResult(
+        report: ProjectValidationReport(
+          inputStatus: InputStatus.complete,
+          capabilityStatus: CapabilityStatus.unsupportedConfiguration,
+          generationStatus: GenerationStatus.blocked,
+          warnings: warnings,
+          errors: const [
+            ValidationIssue(
+              fieldId: 'configuration',
+              message: 'Release 1 automatic floor-plan generation supports single-storey 1 BHK / 2 BHK on rectangular or square plots only.',
+            ),
+          ],
+        ),
+      );
+    }
+
+    final result = generate(brief: brief, frontageFt: frontageFt, depthFt: depthFt);
+    if (result.plan == null) {
+      return ValidatedFloorPlanResult(
+        floorPlan: result,
+        report: ProjectValidationReport(
+          inputStatus: InputStatus.complete,
+          capabilityStatus: CapabilityStatus.supported,
+          geometryStatus: GeometryStatus.blocked,
+          generationStatus: GenerationStatus.blocked,
+          warnings: warnings,
+          errors: [
+            ValidationIssue(fieldId: 'plot_length_ft', message: result.issue ?? 'Plot geometry is blocked.'),
+          ],
+        ),
+      );
+    }
+
+    return ValidatedFloorPlanResult(
+      floorPlan: result,
+      report: ProjectValidationReport(
+        inputStatus: InputStatus.complete,
+        capabilityStatus: CapabilityStatus.supported,
+        geometryStatus: GeometryStatus.valid,
+        generationStatus: GenerationStatus.completed,
+        warnings: warnings,
+      ),
+    );
+  }
+
   static const _bed = 'master_bedroom';
   static const _bed2 = 'secondary_bedroom';
   static const _living = 'family_living_room';

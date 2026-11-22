@@ -4,6 +4,7 @@ import 'package:architect_engine/models/automatic_floor_plan.dart';
 import 'package:architect_engine/models/project_brief.dart';
 import 'package:architect_engine/models/project_requirements_snapshot.dart';
 import 'package:architect_engine/services/automatic_floor_plan_generator.dart';
+import 'package:architect_engine/models/validation_state.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProjectBrief brief({String shape = 'rectangular', String type = 'independent_house', String? config = '1_bhk',
@@ -114,5 +115,25 @@ void main() {
     expect(run(brief(spaces: {'garden': 1})).issues.join(' '), contains('Garden'));
     expect(run(brief(details: {'master_bedroom': {'priority': 'excluded'}})).issues.join(' '), contains('essential'));
     expect(run(brief(), frontage: 12, depth: 20).issues.join(' '), contains('No supported'));
+  });
+
+  test('generateWithReport enforces orthogonal validation and draft-save rules', () {
+    final incomplete = AutomaticFloorPlanGenerator().generateWithReport(
+      brief(),
+      frontageFt: 0,
+      depthFt: 40,
+    );
+    expect(incomplete.report.inputStatus, InputStatus.incomplete);
+    expect(incomplete.report.canSaveDraft, isTrue);
+    expect(incomplete.report.canGenerate, isFalse);
+
+    final unsupported = AutomaticFloorPlanGenerator().generateWithReport(
+      brief(floors: 2),
+      frontageFt: 30,
+      depthFt: 40,
+    );
+    expect(unsupported.report.capabilityStatus, CapabilityStatus.unsupportedConfiguration);
+    expect(unsupported.report.canSaveDraft, isTrue);
+    expect(unsupported.report.canGenerate, isFalse);
   });
 }
