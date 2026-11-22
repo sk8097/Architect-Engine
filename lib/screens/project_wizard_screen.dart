@@ -1401,7 +1401,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => DockLevellerCadScreen(
         name: name, brief: brief, widthFt: width ?? 0, depthFt: length ?? 0)));
     } else if (TypologyBayCadGenerator.requested(brief)) {
-      screen = TypologyBayCadScreen(name: name, brief: brief);
+      Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => TypologyBayCadScreen(
+        name: name, brief: brief)));
     } else if (FacadeLouvreCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => FacadeLouvreCadScreen(
         name: name, brief: brief)));

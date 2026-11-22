@@ -8,10 +8,10 @@ bool typologyBayCadEligible(String? category, String? group, String? type) =>
     (type ?? '').trim().isNotEmpty;
 
 RequirementField _m(String id, String label, {num min = .001, num max = 500}) =>
-    RequirementField(id, label, kind: RequirementKind.measurement, unit: 'm', required: true, min: min, max: max);
+    RequirementField(id, label, kind: RequirementKind.decimal, unit: 'm', required: true, min: min, max: max);
 
 RequirementField _count(String id, String label, {num min = 1, num max = 20}) =>
-    RequirementField(id, label, kind: RequirementKind.number, required: true, min: min, max: max);
+    RequirementField(id, label, kind: RequirementKind.integer, required: true, min: min, max: max);
 
 final typologyBayCadFields = <RequirementField>[
   _m('tb_site_w', 'Site / parcel width', min: 3, max: 500),

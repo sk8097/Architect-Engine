@@ -91,13 +91,9 @@ class _TypologyBayCadScreenState extends State<TypologyBayCadScreen> {
                 Expanded(
                   child: drawing == null
                       ? const SizedBox.shrink()
-                      : InteractiveViewer(
-                          minScale: 0.2,
-                          maxScale: 8,
-                          child: CustomPaint(
-                            painter: FloorPlanCadPainter(drawing),
-                            size: Size.infinite,
-                          ),
+                      : Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: CadPlanPreview(key: ValueKey(_section), drawing: drawing),
                         ),
                 ),
               ],
