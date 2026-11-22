@@ -4,6 +4,13 @@ import '../models/automatic_floor_plan.dart';
 import '../models/concept_zoning.dart';
 import '../models/survey_corridor.dart';
 
+String _ftIn(num mm) {
+  final totalIn = (mm / 25.4).round();
+  final ft = totalIn ~/ 12;
+  final inch = totalIn % 12;
+  return "$ft'-$inch\"";
+}
+
 class CadPoint {
   const CadPoint(this.x, this.y);
   final num x, y;
@@ -159,7 +166,7 @@ class FloorPlanCad {
         _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y), 'PASSAGE', 180, angle: 90));
       } else {
         _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y + 120), room.label.toUpperCase(), 180));
-        _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y - 155), '${b.width} x ${b.depth}', 145));
+        _labels.add(CadLabel('ROOM_LABELS', CadPoint(center, y - 155), '${_ftIn(b.width)} x ${_ftIn(b.depth)}', 145));
       }
     }
 
