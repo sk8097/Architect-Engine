@@ -1643,7 +1643,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                 children: [
                   _buildProjectInfo(),
                   const Divider(height: 24),
-                  _section('Capture budget, schedule and desired outputs. This does not enable generation or export.', deliveryFields),
+                  const Text('Capture budget, schedule and desired outputs. This does not enable generation or export.'),
+                  const SizedBox(height: 8),
+                  _fieldPanel(deliveryFields),
                 ],
               ),
             5 => _buildSite(),
