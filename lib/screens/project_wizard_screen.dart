@@ -1737,6 +1737,90 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         _ => Icons.category_outlined,
       };
 
+  String _categorySubtitle(String id) => switch (id) {
+        'residential' => 'Houses, Villas, Apartments',
+        'commercial' => 'Shops, Offices, Malls, Hotels',
+        'industrial' => 'Factories, Warehouses, Depots',
+        'institutional' => 'Schools, Hospitals, Civic',
+        'rural' => 'Farmhouse, Sheds, Livestock',
+        'mixed_use' => 'Residential + Commercial',
+        'special' => 'Township, Campus, Heritage',
+        'infrastructure' => 'Roads, Bridges, Utilities',
+        _ => 'Project category',
+      };
+
+  Widget _buildCategories() {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text('Choose the project category (required).'),
+        const SizedBox(height: 12),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 2,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 1.28,
+          ),
+          itemCount: projectTaxonomy.length,
+          itemBuilder: (context, index) {
+            final c = projectTaxonomy[index];
+            final selected = c.id == _category?.id;
+            return InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () => _categorySelected(c),
+              child: Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: selected ? theme.colorScheme.primaryContainer : theme.colorScheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: selected ? theme.colorScheme.primary : theme.colorScheme.outlineVariant,
+                    width: selected ? 2 : 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _categoryIcon(c.id),
+                      size: 30,
+                      color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      c.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: selected ? theme.colorScheme.onPrimaryContainer : null,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _categorySubtitle(c.id),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: selected ? theme.colorScheme.onPrimaryContainer : theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
   Widget _categoryTile(TaxonomyCategory c) => Card(
         child: ListTile(
           leading: Icon(_categoryIcon(c.id)),
