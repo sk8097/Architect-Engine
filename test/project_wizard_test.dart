@@ -115,15 +115,18 @@ void main() {
   testWidgets('villa path validates and saves versioned selection, quantity and dimensions', (tester) async {
     final projects = await openWizard(tester);
     await selectVilla(tester);
-    final quantity = find.byType(TextFormField);
+    await tap(tester, 'Continue');
+    expect(find.text('Enter a project name.'), findsOneWidget);
+    await tester.enterText(find.byType(TextFormField).first, 'North View');
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
+    await tap(tester, 'Continue');
+    final quantity = find.byType(TextFormField).first;
     await tester.ensureVisible(quantity);
     await tester.enterText(quantity, '0');
     await tap(tester, 'Continue');
     expect(find.text('Enter a positive quantity.'), findsOneWidget);
     await tester.enterText(quantity, '2');
-    await tap(tester, 'Continue');
-    expect(find.text('Enter a project name.'), findsOneWidget);
-    await tester.enterText(find.byType(TextFormField).first, 'North View');
     await tap(tester, 'Continue');
     await goToReview(tester);
     expect(find.text('Review & Generate'), findsOneWidget);
