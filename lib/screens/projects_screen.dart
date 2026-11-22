@@ -66,6 +66,7 @@ import 'tennis_cad_screen.dart';
 import 'twin_tank_cad_screen.dart';
 import '../data/rain_garden_cad_fields.dart';
 import '../data/facade_louvre_cad_fields.dart';
+import '../data/typology_bay_cad_fields.dart';
 import '../data/dock_leveller_cad_fields.dart';
 import '../data/aquaculture_pond_cad_fields.dart';
 import '../data/silage_bunker_cad_fields.dart';
