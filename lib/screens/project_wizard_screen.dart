@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import '../data/project_taxonomy.dart';
 import '../data/project_requirements.dart';
 import '../data/detailed_cad_fields.dart';
+import '../data/project_cad_options.dart';
 import '../data/warehouse_cad_fields.dart';
 import '../data/truck_sweep_fields.dart';
 import '../data/solar_farm_fields.dart';
@@ -29,6 +30,7 @@ import '../data/angled_parking_cad_fields.dart';
 import '../data/cold_rack_cad_fields.dart';
 import '../data/rain_garden_cad_fields.dart';
 import '../data/facade_louvre_cad_fields.dart';
+import '../data/typology_bay_cad_fields.dart';
 import '../data/dock_leveller_cad_fields.dart';
 import '../data/aquaculture_pond_cad_fields.dart';
 import '../data/silage_bunker_cad_fields.dart';
@@ -132,6 +134,7 @@ import 'angled_parking_cad_screen.dart';
 import 'cold_rack_cad_screen.dart';
 import 'rain_garden_cad_screen.dart';
 import 'facade_louvre_cad_screen.dart';
+import 'typology_bay_cad_screen.dart';
 import 'dock_leveller_cad_screen.dart';
 import 'aquaculture_pond_cad_screen.dart';
 import 'silage_bunker_cad_screen.dart';
@@ -166,6 +169,7 @@ import 'tennis_cad_screen.dart';
 import 'twin_tank_cad_screen.dart';
 import '../services/rain_garden_cad_generator.dart';
 import '../services/facade_louvre_cad_generator.dart';
+import '../services/typology_bay_cad_generator.dart';
 import '../services/dock_leveller_cad_generator.dart';
 import '../services/aquaculture_pond_cad_generator.dart';
 import '../services/silage_bunker_cad_generator.dart';
@@ -351,6 +355,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   bool _unsupportedBrief = false;
 
   TaxonomyProgram get _program => taxonomyProgram(_group!, _type!);
+  ProjectCadOptions get _cadOptions => ProjectCadOptions(_category?.id, _group?.id, _type?.id);
   bool get _customInfrastructure => _category?.id == 'infrastructure' && _type?.id == 'custom';
   bool get _linearSite => _customInfrastructure
       ? _answers['custom_site_kind'] == 'linear'
@@ -360,10 +365,10 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   List<TaxonomyChoice> get _allSpaces => [
     for (final room in _program.spaces)
       if ((!_mixedHomeCad && !_libraryCad && (!_hostelCad || hostelCadRoomIds.contains(room.id)) && !_greenhouseCad && !_sharedCoreCad && !_inpatientWardCad && !_surveySheetOnly && !_truckSweepCad && !_pairedApartmentCad && !_solarCad && !_basinCad && !_evHubCad && !_orchardCad && !_switchbackRampCad && !_teachingLabCad && !_hotelWingCad && !_basketballCad && !_rainwaterCad && !_lapPoolCad && !_publicMarketCad && !_raisedBedCad && !_amphitheatreCad && !_parkLoopCad && !_windrowYardCad && !_galleryPanelCad && !_angledParkingCad && !_coldRackCad && !_rainGardenCad && !_silageBunkerCad && !_aquaculturePondCad && !_dockLevellerCad && !_facadeLouvreCad && !_boulderingBayCad && !_weighbridgeCad && !_coolingLoopCad && !_boardwalkCad && !_circularClarifierCad && !_bladeLaydownCad && !_cricketNetsCad && !_skateTransitionCad && !_parkFenceCad && !_transformerBundCad && !_footballPitchCad && !_guyedMastCad && !_recyclingDropoffCad && !_spillwayCad && !_batteryYardCad && !_parkingRampCad && !_cinemaSeatingCad && !_switchbackStairCad && !_jumpRunwayCad && !_plazaPavingCad && !_shelterCanopyCad && !_publicToiletCad && !_vehicleLiftCad && !_athleticsTrackCad && !_playgroundCad && !_bicycleRackCad && !_memorialNicheCad && !_tennisCad && !_twinTankCad) || _spaces.containsKey(room.id)) room,
-    if (_libraryEligible)
+    if (_cadOptions.libraryEligible)
       for (final room in libraryCadRooms)
         if (_libraryCad || _spaces.containsKey(room.id)) room,
-    if (_mixedEligible)
+    if (_cadOptions.mixedEligible)
       for (final room in mixedDwellingRooms)
         if (_mixedHomeCad || _spaces.containsKey(room.id)) room,
     for (final item in _customSpaces.entries) TaxonomyChoice(item.key, item.value),
@@ -413,205 +418,105 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   String _dimensionInSelectedUnit(double feet) => _plotUnit == 'm'
       ? (feet * .3048).toStringAsFixed(6).replaceFirst(RegExp(r'\.?0+$'), '') : feet.toString();
   bool get _enclosedCad => !_linearSite && _answers['cad_output'] == 'building';
-  bool get _warehouseEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && warehouseLoadingTypes.contains(_type?.id);
-  bool get _crossDockEligible => _category?.id == 'industrial' && _group?.id == 'logistics' && crossDockTypes.contains(_type?.id);
-  bool get _crossDockCad => _crossDockEligible && _answers['cad_output'] == 'warehouse_cross_dock';
-  bool get _pairedApartmentEligible => pairedApartmentEligible(_category?.id,_group?.id,_type?.id);
-  bool get _pairedApartmentCad => _pairedApartmentEligible && _answers['cad_output']=='paired_apartments';
-  bool get _rainGardenEligible => rainGardenCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _rainGardenCad => _rainGardenEligible && _answers['cad_output'] == rainGardenMode;
-  bool get _facadeLouvreEligible => facadeLouvreCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _dockLevellerEligible => dockLevellerCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _aquaculturePondEligible => aquaculturePondCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _silageBunkerEligible => silageBunkerCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _facadeLouvreCad => _facadeLouvreEligible && _answers['cad_output'] == facadeLouvreMode;
-  bool get _dockLevellerCad => _dockLevellerEligible && _answers['cad_output'] == dockLevellerMode;
-  bool get _aquaculturePondCad => _aquaculturePondEligible && _answers['cad_output'] == aquaculturePondMode;
-  bool get _silageBunkerCad => _silageBunkerEligible && _answers['cad_output'] == silageBunkerMode;
-  bool get _boulderingBayEligible => boulderingBayCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _boulderingBayCad => _boulderingBayEligible && _answers['cad_output'] == boulderingBayMode;
-  bool get _weighbridgeEligible => weighbridgeCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _weighbridgeCad => _weighbridgeEligible && _answers['cad_output'] == weighbridgeMode;
-  bool get _coolingLoopEligible => coolingLoopCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _coolingLoopCad => _coolingLoopEligible && _answers['cad_output'] == coolingLoopMode;
-  bool get _boardwalkEligible => boardwalkCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _boardwalkCad => _boardwalkEligible && _answers['cad_output'] == boardwalkMode;
-  bool get _circularClarifierEligible => circularClarifierCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _circularClarifierCad => _circularClarifierEligible && _answers['cad_output'] == circularClarifierMode;
-  bool get _bladeLaydownEligible => bladeLaydownCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _bladeLaydownCad => _bladeLaydownEligible && _answers['cad_output'] == bladeLaydownMode;
-  bool get _cricketNetsEligible => cricketNetsCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _cricketNetsCad => _cricketNetsEligible && _answers['cad_output'] == cricketNetsMode;
-  bool get _skateTransitionEligible => skateTransitionCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _skateTransitionCad => _skateTransitionEligible && _answers['cad_output'] == skateTransitionMode;
-  bool get _parkFenceEligible => parkFenceCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _parkFenceCad => _parkFenceEligible && _answers['cad_output'] == parkFenceMode;
-  bool get _transformerBundEligible => transformerBundCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _transformerBundCad => _transformerBundEligible && _answers['cad_output'] == transformerBundMode;
-  bool get _footballPitchEligible => footballPitchCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _footballPitchCad => _footballPitchEligible && _answers['cad_output'] == footballPitchMode;
-  bool get _guyedMastEligible => guyedMastCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _guyedMastCad => _guyedMastEligible && _answers['cad_output'] == guyedMastMode;
-  bool get _recyclingDropoffEligible => recyclingDropoffCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _recyclingDropoffCad => _recyclingDropoffEligible && _answers['cad_output'] == recyclingDropoffMode;
-  bool get _spillwayEligible => spillwayCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _spillwayCad => _spillwayEligible && _answers['cad_output'] == spillwayMode;
-  bool get _batteryYardEligible => batteryYardCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _batteryYardCad => _batteryYardEligible && _answers['cad_output'] == batteryYardMode;
-  bool get _parkingRampEligible => parkingRampCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _parkingRampCad => _parkingRampEligible && _answers['cad_output'] == parkingRampMode;
-  bool get _cinemaSeatingEligible => cinemaSeatingCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _cinemaSeatingCad => _cinemaSeatingEligible && _answers['cad_output'] == cinemaSeatingMode;
-  bool get _switchbackStairEligible => switchbackStairCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _switchbackStairCad => _switchbackStairEligible && _answers['cad_output'] == switchbackStairMode;
-  bool get _jumpRunwayEligible => jumpRunwayCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _jumpRunwayCad => _jumpRunwayEligible && _answers['cad_output'] == jumpRunwayMode;
-  bool get _plazaPavingEligible => plazaPavingCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _plazaPavingCad => _plazaPavingEligible && _answers['cad_output'] == plazaPavingMode;
-  bool get _shelterCanopyEligible => shelterCanopyCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _shelterCanopyCad => _shelterCanopyEligible && _answers['cad_output'] == 'shelter_measured_canopy';
-  bool get _publicToiletEligible => publicToiletCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _publicToiletCad => _publicToiletEligible && _answers['cad_output'] == 'public_toilet_measured_bank';
-  bool get _vehicleLiftEligible => vehicleLiftCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _vehicleLiftCad => _vehicleLiftEligible && _answers['cad_output'] == 'workshop_measured_lifts';
-  bool get _athleticsTrackEligible => athleticsTrackCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _athleticsTrackCad => _athleticsTrackEligible && _answers['cad_output'] == 'athletics_measured_track';
-  bool get _playgroundEligible => playgroundCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _playgroundCad => _playgroundEligible && _answers['cad_output'] == 'playground_measured_zones';
-  bool get _bicycleRackEligible => bicycleRackCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _bicycleRackCad => _bicycleRackEligible && _answers['cad_output'] == 'bicycle_measured_racks';
-  bool get _memorialNicheEligible => memorialNicheCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _memorialNicheCad => _memorialNicheEligible && _answers['cad_output'] == 'memorial_niche_walls';
-  bool get _tennisEligible => tennisCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _tennisCad => _tennisEligible && _answers['cad_output'] == 'tennis_measured_bank';
-  bool get _twinTankEligible => twinTankCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _twinTankCad => _twinTankEligible && _answers['cad_output'] == 'tank_twin_cell';
-  bool get _coldRackEligible => coldRackCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _coldRackCad => _coldRackEligible && _answers['cad_output'] == 'cold_storage_racks';
-  bool get _angledParkingEligible => angledParkingCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _angledParkingCad => _angledParkingEligible && _answers['cad_output'] == 'angled_surface_parking';
-  bool get _galleryPanelEligible => galleryPanelCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _galleryPanelCad => _galleryPanelEligible && _answers['cad_output'] == 'gallery_panel_layout';
-  bool get _windrowYardEligible => windrowYardCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _windrowYardCad => _windrowYardEligible && _answers['cad_output'] == 'windrow_measured_yard';
-  bool get _parkLoopEligible => parkLoopCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _parkLoopCad => _parkLoopEligible && _answers['cad_output'] == 'park_measured_loop';
-  bool get _amphitheatreEligible => amphitheatreCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _amphitheatreCad => _amphitheatreEligible && _answers['cad_output'] == 'outdoor_tiered_amphitheatre';
-  bool get _raisedBedEligible => raisedBedCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _raisedBedCad => _raisedBedEligible && _answers['cad_output'] == 'garden_raised_beds';
-  bool get _publicMarketEligible => publicMarketCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _publicMarketCad => _publicMarketEligible && _answers['cad_output'] == 'public_market_stalls';
-  bool get _lapPoolEligible => lapPoolCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _lapPoolCad => _lapPoolEligible && _answers['cad_output'] == 'lap_pool_measured';
-  bool get _rainwaterEligible => rainwaterCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _rainwaterCad => _rainwaterEligible && _answers['cad_output'] == 'rainwater_roof_tanks';
-  bool get _basketballEligible => basketballCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _basketballCad => _basketballEligible && _answers['cad_output'] == 'basketball_measured_court';
-  bool get _hotelWingEligible => hotelWingEligible(_category?.id, _group?.id, _type?.id);
-  bool get _hotelWingCad => _hotelWingEligible && _answers['cad_output'] == 'hotel_guestroom_wing';
-  bool get _teachingLabEligible => teachingLabEligible(_category?.id, _group?.id, _type?.id);
-  bool get _teachingLabCad => _teachingLabEligible && _answers['cad_output'] == 'school_teaching_lab';
-  bool get _switchbackRampEligible => switchbackRampEligible(_category?.id, _group?.id, _type?.id);
-  bool get _switchbackRampCad => _switchbackRampEligible && _answers['cad_output'] == 'measured_switchback';
-  bool get _orchardEligible => orchardCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _orchardCad => _orchardEligible && _answers['cad_output'] == 'orchard_measured_rows';
-  bool get _evHubEligible => evHubEligible(_category?.id, _group?.id, _type?.id);
-  bool get _evHubCad => _evHubEligible && _answers['cad_output'] == 'ev_measured_hub';
-  bool get _basinEligible => detentionBasinEligible(_category?.id, _group?.id, _type?.id);
-  bool get _basinCad => _basinEligible && _answers['cad_output'] == 'basin_stage_storage';
-  bool get _solarEligible => solarFarmEligible(_category?.id, _group?.id, _type?.id);
-  bool get _solarCad => _solarEligible && _answers['cad_output'] == 'solar_fixed_tilt';
-  bool get _truckSweepCad => _warehouseEligible && _answers['cad_output']=='truck_reverse_sweep';
-  bool get _warehouseCad => _warehouseEligible && _answers['cad_output'] == 'warehouse_loading';
-  bool get _clinicEligible => _category?.id == 'institutional' && _group?.id == 'healthcare' && separatedClinicTypes.contains(_type?.id);
-  bool get _clinicCad => _clinicEligible && _answers['cad_output'] == 'clinic_separated';
-  bool get _retailEligible => _category?.id == 'commercial' && _group?.id == 'retail' && retailFixtureTypes.contains(_type?.id);
-  bool get _retailCad => _retailEligible && _answers['cad_output'] == 'retail_fixtures';
-  bool get _g1Eligible => _category?.id == 'residential' && _group?.id == 'houses' && dwellingG1Types.contains(_type?.id);
-  bool get _g1Cad => _g1Eligible && _answers['cad_output'] == 'dwelling_g1';
-  bool get _inpatientWardEligible => inpatientWardEligible(_category?.id, _group?.id, _type?.id);
-  bool get _inpatientWardCad => _inpatientWardEligible && _answers['cad_output']=='inpatient_ward';
-  bool get _sharedCoreEligible => sharedCoreCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _sharedCoreCad => _sharedCoreEligible && _answers['cad_output']=='shared_core_shop_office';
-  bool get _greenhouseEligible => greenhouseCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _greenhouseCad => _greenhouseEligible && _answers['cad_output']=='greenhouse_benches';
-  bool get _hostelEligible => hostelCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _hostelCad => _hostelEligible && _answers['cad_output']=='hostel_shared_rooms';
-  bool get _badmintonEligible => _category?.id=='institutional' && _group?.id=='sports' && badmintonCadTypes.contains(_type?.id);
-  bool get _badmintonCad => _badmintonEligible && _answers['cad_output']=='badminton_hall';
+  bool get _crossDockCad => _cadOptions.crossDockEligible && _answers['cad_output'] == 'warehouse_cross_dock';
+  bool get _pairedApartmentCad => _cadOptions.pairedApartmentEligibleForType && _answers['cad_output']=='paired_apartments';
+  bool get _rainGardenCad => _cadOptions.rainGardenEligible && _answers['cad_output'] == rainGardenMode;
+  bool get _facadeLouvreCad => _cadOptions.facadeLouvreEligible && _answers['cad_output'] == facadeLouvreMode;
+  bool get _dockLevellerCad => _cadOptions.dockLevellerEligible && _answers['cad_output'] == dockLevellerMode;
+  bool get _aquaculturePondCad => _cadOptions.aquaculturePondEligible && _answers['cad_output'] == aquaculturePondMode;
+  bool get _silageBunkerCad => _cadOptions.silageBunkerEligible && _answers['cad_output'] == silageBunkerMode;
+  bool get _boulderingBayCad => _cadOptions.boulderingBayEligible && _answers['cad_output'] == boulderingBayMode;
+  bool get _weighbridgeCad => _cadOptions.weighbridgeEligible && _answers['cad_output'] == weighbridgeMode;
+  bool get _coolingLoopCad => _cadOptions.coolingLoopEligible && _answers['cad_output'] == coolingLoopMode;
+  bool get _boardwalkCad => _cadOptions.boardwalkEligible && _answers['cad_output'] == boardwalkMode;
+  bool get _circularClarifierCad => _cadOptions.circularClarifierEligible && _answers['cad_output'] == circularClarifierMode;
+  bool get _bladeLaydownCad => _cadOptions.bladeLaydownEligible && _answers['cad_output'] == bladeLaydownMode;
+  bool get _cricketNetsCad => _cadOptions.cricketNetsEligible && _answers['cad_output'] == cricketNetsMode;
+  bool get _skateTransitionCad => _cadOptions.skateTransitionEligible && _answers['cad_output'] == skateTransitionMode;
+  bool get _parkFenceCad => _cadOptions.parkFenceEligible && _answers['cad_output'] == parkFenceMode;
+  bool get _transformerBundCad => _cadOptions.transformerBundEligible && _answers['cad_output'] == transformerBundMode;
+  bool get _footballPitchCad => _cadOptions.footballPitchEligible && _answers['cad_output'] == footballPitchMode;
+  bool get _guyedMastCad => _cadOptions.guyedMastEligible && _answers['cad_output'] == guyedMastMode;
+  bool get _recyclingDropoffCad => _cadOptions.recyclingDropoffEligible && _answers['cad_output'] == recyclingDropoffMode;
+  bool get _spillwayCad => _cadOptions.spillwayEligible && _answers['cad_output'] == spillwayMode;
+  bool get _batteryYardCad => _cadOptions.batteryYardEligible && _answers['cad_output'] == batteryYardMode;
+  bool get _parkingRampCad => _cadOptions.parkingRampEligible && _answers['cad_output'] == parkingRampMode;
+  bool get _cinemaSeatingCad => _cadOptions.cinemaSeatingEligible && _answers['cad_output'] == cinemaSeatingMode;
+  bool get _switchbackStairCad => _cadOptions.switchbackStairEligible && _answers['cad_output'] == switchbackStairMode;
+  bool get _jumpRunwayCad => _cadOptions.jumpRunwayEligible && _answers['cad_output'] == jumpRunwayMode;
+  bool get _plazaPavingCad => _cadOptions.plazaPavingEligible && _answers['cad_output'] == plazaPavingMode;
+  bool get _shelterCanopyCad => _cadOptions.shelterCanopyEligible && _answers['cad_output'] == 'shelter_measured_canopy';
+  bool get _publicToiletCad => _cadOptions.publicToiletEligible && _answers['cad_output'] == 'public_toilet_measured_bank';
+  bool get _vehicleLiftCad => _cadOptions.vehicleLiftEligible && _answers['cad_output'] == 'workshop_measured_lifts';
+  bool get _athleticsTrackCad => _cadOptions.athleticsTrackEligible && _answers['cad_output'] == 'athletics_measured_track';
+  bool get _playgroundCad => _cadOptions.playgroundEligible && _answers['cad_output'] == 'playground_measured_zones';
+  bool get _bicycleRackCad => _cadOptions.bicycleRackEligible && _answers['cad_output'] == 'bicycle_measured_racks';
+  bool get _memorialNicheCad => _cadOptions.memorialNicheEligible && _answers['cad_output'] == 'memorial_niche_walls';
+  bool get _tennisCad => _cadOptions.tennisEligible && _answers['cad_output'] == 'tennis_measured_bank';
+  bool get _twinTankCad => _cadOptions.twinTankEligible && _answers['cad_output'] == 'tank_twin_cell';
+  bool get _coldRackCad => _cadOptions.coldRackEligible && _answers['cad_output'] == 'cold_storage_racks';
+  bool get _angledParkingCad => _cadOptions.angledParkingEligible && _answers['cad_output'] == 'angled_surface_parking';
+  bool get _galleryPanelCad => _cadOptions.galleryPanelEligible && _answers['cad_output'] == 'gallery_panel_layout';
+  bool get _windrowYardCad => _cadOptions.windrowYardEligible && _answers['cad_output'] == 'windrow_measured_yard';
+  bool get _parkLoopCad => _cadOptions.parkLoopEligible && _answers['cad_output'] == 'park_measured_loop';
+  bool get _amphitheatreCad => _cadOptions.amphitheatreEligible && _answers['cad_output'] == 'outdoor_tiered_amphitheatre';
+  bool get _raisedBedCad => _cadOptions.raisedBedEligible && _answers['cad_output'] == 'garden_raised_beds';
+  bool get _publicMarketCad => _cadOptions.publicMarketEligible && _answers['cad_output'] == 'public_market_stalls';
+  bool get _lapPoolCad => _cadOptions.lapPoolEligible && _answers['cad_output'] == 'lap_pool_measured';
+  bool get _rainwaterCad => _cadOptions.rainwaterEligible && _answers['cad_output'] == 'rainwater_roof_tanks';
+  bool get _basketballCad => _cadOptions.basketballEligible && _answers['cad_output'] == 'basketball_measured_court';
+  bool get _hotelWingCad => _cadOptions.hotelWingEligibleForType && _answers['cad_output'] == 'hotel_guestroom_wing';
+  bool get _teachingLabCad => _cadOptions.teachingLabEligibleForType && _answers['cad_output'] == 'school_teaching_lab';
+  bool get _switchbackRampCad => _cadOptions.switchbackRampEligibleForType && _answers['cad_output'] == 'measured_switchback';
+  bool get _orchardCad => _cadOptions.orchardEligible && _answers['cad_output'] == 'orchard_measured_rows';
+  bool get _evHubCad => _cadOptions.evHubEligibleForType && _answers['cad_output'] == 'ev_measured_hub';
+  bool get _basinCad => _cadOptions.basinEligible && _answers['cad_output'] == 'basin_stage_storage';
+  bool get _solarCad => _cadOptions.solarEligible && _answers['cad_output'] == 'solar_fixed_tilt';
+  bool get _truckSweepCad => _cadOptions.warehouseEligible && _answers['cad_output']=='truck_reverse_sweep';
+  bool get _warehouseCad => _cadOptions.warehouseEligible && _answers['cad_output'] == 'warehouse_loading';
+  bool get _clinicCad => _cadOptions.clinicEligible && _answers['cad_output'] == 'clinic_separated';
+  bool get _retailCad => _cadOptions.retailEligible && _answers['cad_output'] == 'retail_fixtures';
+  bool get _g1Cad => _cadOptions.g1Eligible && _answers['cad_output'] == 'dwelling_g1';
+  bool get _inpatientWardCad => _cadOptions.inpatientWardEligibleForType && _answers['cad_output']=='inpatient_ward';
+  bool get _sharedCoreCad => _cadOptions.sharedCoreEligible && _answers['cad_output']=='shared_core_shop_office';
+  bool get _greenhouseCad => _cadOptions.greenhouseEligible && _answers['cad_output']=='greenhouse_benches';
+  bool get _hostelCad => _cadOptions.hostelEligible && _answers['cad_output']=='hostel_shared_rooms';
+  bool get _badmintonCad => _cadOptions.badmintonEligible && _answers['cad_output']=='badminton_hall';
   bool get _badmintonViewing => _badmintonCad && activeSpaceQuantities(_spaces,_spaceDetails).containsKey('spectator_seating');
-  bool get _libraryEligible => libraryCadEligible(_category?.id,_group?.id,_type?.id);
-  bool get _libraryCad => _libraryEligible && _answers['cad_output']=='library_reading';
-  bool get _assemblyEligible => _category?.id=='industrial' && _group?.id=='manufacturing' && assemblyCadTypes.contains(_type?.id);
-  bool get _assemblyCad => _assemblyEligible && _answers['cad_output']=='assembly_workflow';
-  bool get _cattleEligible => _category?.id=='rural' && _group?.id=='farm' && cattleShedTypes.contains(_type?.id);
-  bool get _cattleCad => _cattleEligible && _answers['cad_output']=='cattle_shed';
-  bool get _diningEligible => _category?.id=='commercial' && _group?.id=='food_service' && diningCadTypes.contains(_type?.id);
-  bool get _diningCad => _diningEligible && _answers['cad_output']=='dining_service';
-  bool get _officeEligible => _category?.id == 'commercial' && _group?.id == 'office' && officeCadTypes.contains(_type?.id);
-  bool get _officeCad => _officeEligible && _answers['cad_output'] == 'office_workplace';
-  bool get _schoolEligible => _category?.id == 'institutional' && _group?.id == 'education' && schoolCadTypes.contains(_type?.id);
-  bool get _schoolCad => _schoolEligible && _answers['cad_output'] == 'school_arrival';
+  bool get _libraryCad => _cadOptions.libraryEligible && _answers['cad_output']=='library_reading';
+  bool get _assemblyCad => _cadOptions.assemblyEligible && _answers['cad_output']=='assembly_workflow';
+  bool get _cattleCad => _cadOptions.cattleEligible && _answers['cad_output']=='cattle_shed';
+  bool get _diningCad => _cadOptions.diningEligible && _answers['cad_output']=='dining_service';
+  bool get _officeCad => _cadOptions.officeEligible && _answers['cad_output'] == 'office_workplace';
+  bool get _schoolCad => _cadOptions.schoolEligible && _answers['cad_output'] == 'school_arrival';
   bool get _schoolPlayground => _schoolCad && _spaces.containsKey('playground') && !isExcludedSpace(_spaceDetails['playground'] ?? const {});
-  bool get _packhouseEligible => _category?.id == 'rural' && _group?.id == 'agro_processing' && packhouseCadTypes.contains(_type?.id);
-  bool get _packhouseCad => _packhouseEligible && _answers['cad_output'] == 'packhouse_flow';
-  bool get _cycleCrossingEligible => cycleCrossingCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _cycleCrossingCad => _cycleCrossingEligible && _answers['corridor_cad_mode'] == cycleCrossingMode;
-  bool get _refugeCrossingEligible => refugeCrossingCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _refugeCrossingCad => _refugeCrossingEligible && _answers['corridor_cad_mode'] == refugeCrossingMode;
-  RequirementField get _corridorModeField => _cycleCrossingEligible || _refugeCrossingEligible
-      ? surveyCorridorModeField(includeCycleCrossings: _cycleCrossingEligible, includeRefugeCrossing: _refugeCrossingEligible)
-      : surveyCorridorMode;
-  bool get _promenadeEligible => promenadeCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _promenadeCad => _promenadeEligible && _answers['promenade_mode'] == 'survey_promenade';
-  bool get _underpassEligible => underpassCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _underpassCad => _underpassEligible && _answers['underpass_mode'] == underpassMode;
-  bool get _steppedWallEligible => steppedWallCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _steppedWallCad => _steppedWallEligible && _answers['stepped_wall_mode'] == steppedWallMode;
-  bool get _streetLightEligible => streetLightCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _streetLightCad => _streetLightEligible && _answers['street_light_mode'] == streetLightMode;
-  bool get _ductBankEligible => ductBankCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _ductBankCad => _ductBankEligible && _answers['duct_bank_mode'] == ductBankModeId;
-  bool get _railPlatformEligible => railPlatformCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _railPlatformCad => _railPlatformEligible && _answers['rail_platform_mode'] == 'survey_side_platform';
-  bool get _footbridgeEligible => footbridgeCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _footbridgeCad => _footbridgeEligible && _answers['footbridge_mode'] == 'survey_footbridge';
-  bool get _culvertEligible => culvertCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _culvertCad => _culvertEligible && _answers['culvert_cad_mode'] == 'survey_crossing';
-  bool get _stormwaterEligible => _category?.id == 'infrastructure' && _group?.id == 'water' && stormwaterCadTypes.contains(_type?.id);
-  bool get _stormwaterCad => _stormwaterEligible && _answers['drain_cad_mode'] == 'survey_gravity';
-  bool get _openDrainCad => _stormwaterEligible && _answers['drain_cad_mode'] == 'survey_open_drain';
-  bool get _busLaybyEligible => busLaybyCadEligible(_category?.id, _group?.id, _type?.id);
-  bool get _busLaybyCad => _busLaybyEligible && _answers['bus_layby_mode'] == 'survey_layby';
+  bool get _packhouseCad => _cadOptions.packhouseEligible && _answers['cad_output'] == 'packhouse_flow';
+  bool get _cycleCrossingCad => _cadOptions.cycleCrossingEligible && _answers['corridor_cad_mode'] == cycleCrossingMode;
+  bool get _refugeCrossingCad => _cadOptions.refugeCrossingEligible && _answers['corridor_cad_mode'] == refugeCrossingMode;
+  bool get _promenadeCad => _cadOptions.promenadeEligible && _answers['promenade_mode'] == 'survey_promenade';
+  bool get _underpassCad => _cadOptions.underpassEligible && _answers['underpass_mode'] == underpassMode;
+  bool get _steppedWallCad => _cadOptions.steppedWallEligible && _answers['stepped_wall_mode'] == steppedWallMode;
+  bool get _streetLightCad => _cadOptions.streetLightEligible && _answers['street_light_mode'] == streetLightMode;
+  bool get _ductBankCad => _cadOptions.ductBankEligible && _answers['duct_bank_mode'] == ductBankModeId;
+  bool get _railPlatformCad => _cadOptions.railPlatformEligible && _answers['rail_platform_mode'] == 'survey_side_platform';
+  bool get _footbridgeCad => _cadOptions.footbridgeEligible && _answers['footbridge_mode'] == 'survey_footbridge';
+  bool get _culvertCad => _cadOptions.culvertEligible && _answers['culvert_cad_mode'] == 'survey_crossing';
+  bool get _stormwaterCad => _cadOptions.stormwaterEligible && _answers['drain_cad_mode'] == 'survey_gravity';
+  bool get _openDrainCad => _cadOptions.stormwaterEligible && _answers['drain_cad_mode'] == 'survey_open_drain';
+  bool get _busLaybyCad => _cadOptions.busLaybyEligible && _answers['bus_layby_mode'] == 'survey_layby';
   bool get _surveySheetOnly => _junctionCad || _longProfileCad || _corridorSectionCad || _earthworkCad || _stormwaterCad || _openDrainCad || _culvertCad || _busLaybyCad || _footbridgeCad || _railPlatformCad || _promenadeCad || _cycleCrossingCad || _ductBankCad || _refugeCrossingCad || _streetLightCad || _steppedWallCad || _underpassCad;
-  bool get _junctionEligible => _category?.id == 'infrastructure' && _group?.id == 'transport' && _type?.id == 'intersection';
-  bool get _junctionCad => _junctionEligible && const {'survey_t', 'survey_cross'}.contains(_answers['junction_cad_mode']);
+  bool get _junctionCad => _cadOptions.junctionEligible && const {'survey_t', 'survey_cross'}.contains(_answers['junction_cad_mode']);
   bool get _crossJunctionCad => _junctionCad && _answers['junction_cad_mode'] == 'survey_cross';
-  bool get _surveyCorridorEligible => _category?.id == 'infrastructure' && _group?.id == 'transport' && surveyCorridorTypes.contains(_type?.id);
-  bool get _surveyCorridorCad => _surveyCorridorEligible && surveyCorridorCadModes.contains(_answers['corridor_cad_mode']);
-  bool get _longProfileCad => _surveyCorridorEligible && _answers['corridor_cad_mode']=='survey_profile';
-  bool get _corridorSectionCad => _surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_section';
-  bool get _earthworkCad => _surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_earthwork';
+  bool get _surveyCorridorCad => _cadOptions.surveyCorridorEligible && surveyCorridorCadModes.contains(_answers['corridor_cad_mode']);
+  bool get _longProfileCad => _cadOptions.surveyCorridorEligible && _answers['corridor_cad_mode']=='survey_profile';
+  bool get _corridorSectionCad => _cadOptions.surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_section';
+  bool get _earthworkCad => _cadOptions.surveyCorridorEligible && _answers['corridor_cad_mode'] == 'survey_earthwork';
   bool get _circularCorridor => _surveyCorridorCad && _answers['corridor_cad_mode']=='survey_circular';
-  bool get _mixedEligible => _category?.id=='mixed_use' && _group?.id=='mixed_development' && _type?.id==mixedRetailCadType;
-  bool get _mixedCad => _mixedEligible && _answers['cad_output']=='mixed_shop_home';
-  bool get _stackedCad => _mixedEligible && _answers['cad_output']=='mixed_shop_below_home';
+  bool get _mixedCad => _cadOptions.mixedEligible && _answers['cad_output']=='mixed_shop_home';
+  bool get _stackedCad => _cadOptions.mixedEligible && _answers['cad_output']=='mixed_shop_below_home';
   bool get _mixedHomeCad => _mixedCad || _stackedCad;
   List<RequirementField> get _cadFields => [
-    if (_surveyCorridorEligible) _corridorModeField,
-    if (_junctionEligible) tJunctionCadMode,
-    if (_stormwaterEligible) stormwaterCadMode,
-    if (_culvertEligible) culvertCadMode,
-    if (_promenadeEligible) promenadeCadMode,
-    if (_underpassEligible) underpassCadMode,
-    if (_steppedWallEligible) steppedWallCadMode,
-    if (_streetLightEligible) streetLightCadMode,
-    if (_ductBankEligible) ductBankCadMode,
-    if (_railPlatformEligible) railPlatformCadMode,
-    if (_footbridgeEligible) footbridgeCadMode,
-    if (_busLaybyEligible) busLaybyCadMode,
-    if (!_linearSite) cadOutputOptions(warehouseLoading: _warehouseEligible, clinicSeparated: _clinicEligible, retailFixtures: _retailEligible, dwellingG1: _g1Eligible, schoolArrival: _schoolEligible, packhouseFlow: _packhouseEligible, mixedShopHome: _mixedEligible, crossDock: _crossDockEligible, officeWorkplace: _officeEligible, diningService:_diningEligible,cattleShed:_cattleEligible,assembly:_assemblyEligible,libraryReading:_libraryEligible,badminton:_badmintonEligible,hostel:_hostelEligible,greenhouse:_greenhouseEligible,sharedCore:_sharedCoreEligible,inpatientWard:_inpatientWardEligible,truckSweep:_warehouseEligible,pairedApartments:_pairedApartmentEligible, solarFarm:_solarEligible, detentionBasin:_basinEligible, evHub:_evHubEligible, orchard:_orchardEligible, switchbackRamp:_switchbackRampEligible, teachingLab:_teachingLabEligible, hotelWing:_hotelWingEligible, basketball:_basketballEligible, rainwater:_rainwaterEligible, lapPool:_lapPoolEligible, publicMarket:_publicMarketEligible, raisedBeds:_raisedBedEligible, amphitheatre:_amphitheatreEligible, parkLoop:_parkLoopEligible, windrowYard:_windrowYardEligible, galleryPanels:_galleryPanelEligible, angledParking:_angledParkingEligible, coldRacks:_coldRackEligible, twinTank:_twinTankEligible, tennis:_tennisEligible, memorialNiche:_memorialNicheEligible, bicycleRack:_bicycleRackEligible, playground:_playgroundEligible, athleticsTrack:_athleticsTrackEligible, vehicleLift:_vehicleLiftEligible, publicToilet:_publicToiletEligible, shelterCanopy:_shelterCanopyEligible, plazaPaving:_plazaPavingEligible, rainGarden:_rainGardenEligible, jumpRunway:_jumpRunwayEligible, switchbackStair:_switchbackStairEligible, cinemaSeating:_cinemaSeatingEligible, parkingRamp:_parkingRampEligible, batteryYard:_batteryYardEligible, spillway:_spillwayEligible, recyclingDropoff:_recyclingDropoffEligible, guyedMast:_guyedMastEligible, footballPitch:_footballPitchEligible, transformerBund:_transformerBundEligible, parkFence:_parkFenceEligible, skateTransition:_skateTransitionEligible, cricketNets:_cricketNetsEligible, bladeLaydown:_bladeLaydownEligible, circularClarifier:_circularClarifierEligible, boardwalk:_boardwalkEligible, coolingLoop:_coolingLoopEligible, weighbridge:_weighbridgeEligible, boulderingBay:_boulderingBayEligible, silageBunker:_silageBunkerEligible, aquaculturePond:_aquaculturePondEligible, dockLeveller:_dockLevellerEligible, facadeLouvre:_facadeLouvreEligible),
+    ..._cadOptions.selectionFields(linearSite: _linearSite),
     if (_g1Cad) ...[...enclosedCadFields, ...straightDwellingStairFields],
     if (_g1Cad && _wantsParking) ...[
       ...dwellingParkingCommonFields,
@@ -655,6 +560,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_angledParkingCad) ...angledParkingCadFields,
     if (_coldRackCad) ...coldRackCadFields,
     if (_rainGardenCad) ...rainGardenCadFields,
+    if (_answers['cad_output'] == typologyBayMode && _cadOptions.typologyBayEligibleForType) ...typologyBayCadFields,
     if (_facadeLouvreCad) ...facadeLouvreCadFields,
     if (_dockLevellerCad) ...dockLevellerCadFields,
     if (_aquaculturePondCad) ...aquaculturePondCadFields,
@@ -1054,7 +960,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,...openDrainCadFields,busLaybyCadMode,...busLaybyCadFields,culvertCadMode,...culvertCadFields,footbridgeCadMode,...footbridgeCadFields,underpassCadMode,...underpassCadFields,steppedWallCadMode,...steppedWallCadFields,streetLightCadMode,...streetLightCadFields,ductBankCadMode,...ductBankCadFields,railPlatformCadMode,...railPlatformCadFields,...refugeCrossingCadFields,...cycleCrossingCadFields,promenadeCadMode,...promenadeCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields,...raisedBedCadFields,...amphitheatreCadFields,...parkLoopCadFields,...windrowYardCadFields,...galleryPanelCadFields,...angledParkingCadFields,...coldRackCadFields,...twinTankCadFields, ...tennisCadFields, ...memorialNicheCadFields, ...bicycleRackCadFields, ...playgroundCadFields, playgroundCadEquipment, ...athleticsTrackCadFields, ...vehicleLiftCadFields, ...publicToiletCadFields, ...shelterCanopyCadFields, ...silageBunkerCadFields, ...aquaculturePondCadFields, ...dockLevellerCadFields, ...facadeLouvreCadFields, ...boulderingBayCadFields, ...weighbridgeCadFields, ...coolingLoopCadFields, ...boardwalkCadFields, ...circularClarifierCadFields, ...bladeLaydownCadFields, ...cricketNetsCadFields, ...skateTransitionCadFields, ...parkFenceCadFields, ...transformerBundCadFields, ...footballPitchCadFields, ...guyedMastCadFields, ...recyclingDropoffCadFields, ...spillwayCadFields, ...batteryYardCadFields, ...parkingRampCadFields, ...cinemaSeatingCadFields, ...switchbackStairCadFields, ...jumpRunwayCadFields, ...plazaPavingCadFields, ...rainGardenCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,...openDrainCadFields,busLaybyCadMode,...busLaybyCadFields,culvertCadMode,...culvertCadFields,footbridgeCadMode,...footbridgeCadFields,underpassCadMode,...underpassCadFields,steppedWallCadMode,...steppedWallCadFields,streetLightCadMode,...streetLightCadFields,ductBankCadMode,...ductBankCadFields,railPlatformCadMode,...railPlatformCadFields,...refugeCrossingCadFields,...cycleCrossingCadFields,promenadeCadMode,...promenadeCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields,...raisedBedCadFields,...amphitheatreCadFields,...parkLoopCadFields,...windrowYardCadFields,...galleryPanelCadFields,...angledParkingCadFields,...coldRackCadFields,...twinTankCadFields, ...tennisCadFields, ...memorialNicheCadFields, ...bicycleRackCadFields, ...playgroundCadFields, playgroundCadEquipment, ...athleticsTrackCadFields, ...vehicleLiftCadFields, ...publicToiletCadFields, ...shelterCanopyCadFields, ...silageBunkerCadFields, ...aquaculturePondCadFields, ...dockLevellerCadFields, ...facadeLouvreCadFields, ...typologyBayCadFields, ...boulderingBayCadFields, ...weighbridgeCadFields, ...coolingLoopCadFields, ...boardwalkCadFields, ...circularClarifierCadFields, ...bladeLaydownCadFields, ...cricketNetsCadFields, ...skateTransitionCadFields, ...parkFenceCadFields, ...transformerBundCadFields, ...footballPitchCadFields, ...guyedMastCadFields, ...recyclingDropoffCadFields, ...spillwayCadFields, ...batteryYardCadFields, ...parkingRampCadFields, ...cinemaSeatingCadFields, ...switchbackStairCadFields, ...jumpRunwayCadFields, ...plazaPavingCadFields, ...rainGardenCadFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -1494,6 +1400,9 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     } else if (DockLevellerCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => DockLevellerCadScreen(
         name: name, brief: brief, widthFt: width ?? 0, depthFt: length ?? 0)));
+    } else if (TypologyBayCadGenerator.requested(brief)) {
+      Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => TypologyBayCadScreen(
+        name: name, brief: brief)));
     } else if (FacadeLouvreCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => FacadeLouvreCadScreen(
         name: name, brief: brief)));
@@ -1829,18 +1738,18 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     key: _sectionForms[_step],
     child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       if (_customInfrastructure) _fieldPanel([customSiteKindField]),
-      if (_junctionEligible) _fieldPanel([tJunctionCadMode]),
-      if (_stormwaterEligible) _fieldPanel([stormwaterCadMode]),
-      if (_culvertEligible) _fieldPanel([culvertCadMode]),
-      if (_promenadeEligible) _fieldPanel([promenadeCadMode]),
-      if (_underpassEligible) _fieldPanel([underpassCadMode]),
-      if (_steppedWallEligible) _fieldPanel([steppedWallCadMode]),
-      if (_streetLightEligible) _fieldPanel([streetLightCadMode]),
-      if (_ductBankEligible) _fieldPanel([ductBankCadMode]),
-      if (_railPlatformEligible) _fieldPanel([railPlatformCadMode]),
-      if (_footbridgeEligible) _fieldPanel([footbridgeCadMode]),
-      if (_busLaybyEligible) _fieldPanel([busLaybyCadMode]),
-      if (_surveyCorridorEligible) _fieldPanel([_corridorModeField]),
+      if (_cadOptions.junctionEligible) _fieldPanel([tJunctionCadMode]),
+      if (_cadOptions.stormwaterEligible) _fieldPanel([stormwaterCadMode]),
+      if (_cadOptions.culvertEligible) _fieldPanel([culvertCadMode]),
+      if (_cadOptions.promenadeEligible) _fieldPanel([promenadeCadMode]),
+      if (_cadOptions.underpassEligible) _fieldPanel([underpassCadMode]),
+      if (_cadOptions.steppedWallEligible) _fieldPanel([steppedWallCadMode]),
+      if (_cadOptions.streetLightEligible) _fieldPanel([streetLightCadMode]),
+      if (_cadOptions.ductBankEligible) _fieldPanel([ductBankCadMode]),
+      if (_cadOptions.railPlatformEligible) _fieldPanel([railPlatformCadMode]),
+      if (_cadOptions.footbridgeEligible) _fieldPanel([footbridgeCadMode]),
+      if (_cadOptions.busLaybyEligible) _fieldPanel([busLaybyCadMode]),
+      if (_cadOptions.surveyCorridorEligible) _fieldPanel([_cadOptions.corridorModeField]),
       if (!_linearSite) ...[
         _dropdown('Plot geometry (required)', _shapeId, plotShapes, (value) => setState(() => _shapeId = value), required: true),
         const SizedBox(height: 12),

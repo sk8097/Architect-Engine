@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'project_brief.dart';
+import 'finish_measurement.dart';
 import 'tower_brief.dart';
 
 class ProjectModel {
@@ -12,6 +13,7 @@ class ProjectModel {
   String facing;
   ProjectBrief? brief;
   final TowerBrief? tower;
+  final List<FinishMeasurement> finishMeasurements;
   DateTime createdAt;
   DateTime updatedAt;
 
@@ -25,9 +27,10 @@ class ProjectModel {
     required this.facing,
     this.brief,
     this.tower,
+    Iterable<FinishMeasurement> finishMeasurements = const [],
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : finishMeasurements = List.unmodifiable(finishMeasurements);
 
   bool get hasPlotDimensions => width > 0 && length > 0;
 
@@ -52,6 +55,7 @@ class ProjectModel {
       'facing': facing,
       if (brief != null) 'brief': brief!.toMap(),
       if (tower != null) 'tower': tower!.toMap(),
+      if (finishMeasurements.isNotEmpty) 'finishMeasurements': finishMeasurements.map((row) => row.toMap()).toList(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -67,6 +71,8 @@ class ProjectModel {
       floors: map['floors'] ?? 'Ground floor',
       facing: map['facing'] ?? 'North',
       brief: ProjectBrief.fromMap(map['brief']),
+      finishMeasurements: (map['finishMeasurements'] is List ? map['finishMeasurements'] as List : const [])
+          .map(FinishMeasurement.fromMap).whereType<FinishMeasurement>(),
       tower: TowerBrief.fromMap(map['tower']),
       createdAt: DateTime.tryParse(map['createdAt'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(map['updatedAt'] ?? '') ?? DateTime.now(),
