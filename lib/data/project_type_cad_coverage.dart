@@ -1,5 +1,6 @@
 import 'concept_zoning_profiles.dart';
 import 'project_cad_options.dart';
+import 'project_requirements.dart' show usesLinearSite;
 import 'project_scenarios.dart';
 import 'project_taxonomy.dart';
 
