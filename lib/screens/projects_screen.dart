@@ -579,6 +579,10 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                     name: project.name, brief: project.brief!, widthFt: project.width, depthFt: project.length)));
                                   return;
                                 }
+                                if (val == typologyBayMode && project.brief != null) {
+                                  Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => TypologyBayCadScreen(name: project.name, brief: project.brief!)));
+                                  return;
+                                }
                                 if (val == facadeLouvreMode && project.brief != null) {
                                   Navigator.of(context).push<void>(MaterialPageRoute(builder: (_) => FacadeLouvreCadScreen(
                                     name: project.name, brief: project.brief!)));
@@ -928,15 +932,7 @@ class _ProjectsScreenState extends State<ProjectsScreen> {
                                 if (DockLevellerCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: dockLevellerMode, child: Text('Dock leveller CAD')),
                                 if (TypologyBayCadGenerator.requested(project.brief))
-                                  IconButton(
-                                    icon: const Icon(Icons.grid_on_outlined),
-                                    tooltip: 'Parametric Bay CAD',
-                                    onPressed: () => Navigator.of(context).push(
-                                      MaterialPageRoute<void>(
-                                        builder: (_) => TypologyBayCadScreen(name: project.name, brief: project.brief),
-                                      ),
-                                    ),
-                                  ),
+                                  const PopupMenuItem(value: typologyBayMode, child: Text('Parametric bay CAD')),
                                 if (FacadeLouvreCadGenerator.requested(project.brief))
                                   const PopupMenuItem(value: facadeLouvreMode, child: Text('Façade louvre CAD')),
                                 if (BoulderingBayCadGenerator.requested(project.brief))
