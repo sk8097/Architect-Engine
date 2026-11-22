@@ -1630,7 +1630,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
         : switch (_step) {
             0 => _selectionList(
                 'Choose a category (required).',
-                projectTaxonomy.map((c) => _selectionTile(c.label, c.id == _category?.id, () => _categorySelected(c))),
+                projectTaxonomy.map((c) => _categoryTile(c)),
               ),
             1 => _selectionList(
                 'Choose a subcategory (required).',
@@ -1668,7 +1668,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const SizedBox(height: 12),
-                    Text('STEP ${_step + 1} OF ${_steps.length}', style: theme.textTheme.labelLarge),
+                    Text('STEP ${_step + 1} OF ${_steps.length}${(_step >= 4 && _step <= 11 && _step != 5 && _step != 6) ? ' · Optional' : ''}', style: theme.textTheme.labelLarge),
                     const SizedBox(height: 8),
                     LinearProgressIndicator(value: (_step + 1) / _steps.length),
                     const SizedBox(height: 12),
@@ -1689,9 +1689,25 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
                     if (_showsContinue)
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: FilledButton(
-                          onPressed: _saving ? null : (_isReview ? _save : _next),
-                          child: Text(_saving ? 'Saving…' : (_isReview ? 'Save project brief' : 'Continue')),
+                        child: Row(
+                          children: [
+                            if (!_isReview && _step >= 4) ...[
+                              OutlinedButton(
+                                onPressed: _saving ? null : () => setState(() {
+                                  _sectionError = null;
+                                  _step = _steps.length - 1;
+                                }),
+                                child: const Text('Skip to Review'),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: FilledButton(
+                                onPressed: _saving ? null : (_isReview ? _save : _next),
+                                child: Text(_saving ? 'Saving…' : (_isReview ? 'Save project brief' : 'Continue')),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                   ],
@@ -1707,6 +1723,29 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
   Widget _selectionList(String prompt, Iterable<Widget> tiles) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [Text(prompt), const SizedBox(height: 8), ...tiles],
+      );
+
+  IconData _categoryIcon(String id) => switch (id) {
+        'residential' => Icons.home_outlined,
+        'commercial' => Icons.storefront_outlined,
+        'industrial' => Icons.factory_outlined,
+        'institutional' => Icons.account_balance_outlined,
+        'rural' => Icons.agriculture_outlined,
+        'mixed_use' => Icons.layers_outlined,
+        'special' => Icons.domain_outlined,
+        'infrastructure' => Icons.route_outlined,
+        _ => Icons.category_outlined,
+      };
+
+  Widget _categoryTile(TaxonomyCategory c) => Card(
+        child: ListTile(
+          leading: Icon(_categoryIcon(c.id)),
+          title: Text(c.label),
+          subtitle: Text('${c.groups.length} subcategories'),
+          trailing: Icon(c.id == _category?.id ? Icons.check : Icons.chevron_right),
+          selected: c.id == _category?.id,
+          onTap: () => _categorySelected(c),
+        ),
       );
 
   Widget _selectionTile(String label, bool selected, VoidCallback onTap) => Card(

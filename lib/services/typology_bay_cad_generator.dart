@@ -142,9 +142,15 @@ class TypologyBayCadGenerator {
     final originX = sbSideMm + ((siteWMm - 2 * sbSideMm - fpWMm) ~/ 2);
     final originY = sbFrontMm;
 
+    String ftIn(double m) {
+      final totalIn = (m * 39.3701).round();
+      return "${totalIn ~/ 12}'-${totalIn % 12}\"";
+    }
+
     // Circulation corridor at front of bays
     box('CIRCULATION', originX, originY, originX + fpWMm, originY + corrWMm);
-    labels.add(CadLabel('TEXT', CadPoint(originX + fpWMm / 2, originY + corrWMm / 2), 'CIRCULATION', 250));
+    labels.add(CadLabel('TEXT', CadPoint(originX + fpWMm / 2, originY + corrWMm / 2),
+        'CIRCULATION (${ftIn(footprintW)} x ${ftIn(corrW)})', 240));
 
     // Structural bays
     for (var ix = 0; ix < baysX; ix++) {
@@ -152,7 +158,8 @@ class TypologyBayCadGenerator {
         final bx = originX + ix * bayWMm;
         final by = originY + corrWMm + iy * bayDMm;
         box('GRID', bx, by, bx + bayWMm, by + bayDMm);
-        labels.add(CadLabel('TEXT', CadPoint(bx + bayWMm / 2, by + bayDMm / 2), 'BAY ${ix + 1}-${iy + 1}', 220));
+        labels.add(CadLabel('TEXT', CadPoint(bx + bayWMm / 2, by + bayDMm / 2 + 160), 'BAY ${ix + 1}-${iy + 1}', 220));
+        labels.add(CadLabel('TEXT', CadPoint(bx + bayWMm / 2, by + bayDMm / 2 - 160), '${ftIn(bayW)} x ${ftIn(bayD)}', 180));
       }
     }
 
