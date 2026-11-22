@@ -78,7 +78,10 @@ class AutomaticFloorPlanGenerator {
           generationStatus: GenerationStatus.blocked,
           warnings: warnings,
           errors: [
-            ValidationIssue(fieldId: 'plot_length_ft', message: result.issue ?? 'Plot geometry is blocked.'),
+            ValidationIssue(
+              fieldId: 'plot_length_ft',
+              message: result.issues.isNotEmpty ? result.issues.first : 'Plot geometry is blocked.',
+            ),
           ],
         ),
       );
