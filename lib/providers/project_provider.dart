@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/project_brief.dart';
+import '../models/finish_measurement.dart';
 import '../models/project_model.dart';
 import '../models/tower_brief.dart';
 
@@ -101,9 +102,28 @@ class ProjectProvider extends ChangeNotifier {
     return [..._projects]..[index] = ProjectModel(
       id: id, name: name, length: length, width: width, bhk: bhk,
       floors: floors, facing: facing, brief: brief ?? original.brief, tower: tower ?? original.tower,
+      finishMeasurements: original.finishMeasurements,
       createdAt: original.createdAt, updatedAt: DateTime.now(),
     );
   });
+
+  Future<void> saveFinishMeasurements(String id, Iterable<FinishMeasurement> rows) {
+    final snapshot = List<FinishMeasurement>.unmodifiable(rows);
+    return _mutate(() {
+      final index = _projects.indexWhere((project) => project.id == id);
+      if (index == -1) throw StateError('The project no longer exists.');
+      if (snapshot.length > FinishMeasurement.maxRows || snapshot.any((row) => row.issue != null)) {
+        throw ArgumentError('Invalid finish measurements.');
+      }
+      final original = _projects[index];
+      return [..._projects]..[index] = ProjectModel(
+        id: original.id, name: original.name, width: original.width, length: original.length,
+        bhk: original.bhk, floors: original.floors, facing: original.facing, brief: original.brief,
+        tower: original.tower, createdAt: original.createdAt, updatedAt: DateTime.now(),
+        finishMeasurements: snapshot,
+      );
+    });
+  }
 
   Future<void> duplicateProject(String id) => _mutate(() {
     final original = _projects.firstWhere((project) => project.id == id);
@@ -112,6 +132,7 @@ class ProjectProvider extends ChangeNotifier {
       ProjectModel(id: _newId(now), name: '${original.name} (Copy)',
         length: original.length, width: original.width, bhk: original.bhk,
         floors: original.floors, facing: original.facing, brief: original.brief, tower: original.tower,
+        finishMeasurements: original.finishMeasurements,
         createdAt: now, updatedAt: now),
       ..._projects,
     ];

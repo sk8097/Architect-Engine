@@ -1,3 +1,4 @@
+import 'package:architect_engine/data/project_type_cad_coverage.dart';
 import 'package:architect_engine/data/project_scenarios.dart';
 import 'package:architect_engine/data/project_taxonomy.dart';
 import 'package:architect_engine/models/project_brief.dart';
@@ -40,6 +41,24 @@ void main() {
     expect(TaxonomySelection.fromMap(selection.toMap())!.scenarioId, ready.id);
     final legacy = selection.toMap()..remove('scenarioId');
     expect(TaxonomySelection.fromMap(legacy)!.scenarioId, isNull);
+  });
+
+  test('type matrix exhaustively tracks shared and dedicated routes without counting configurations twice', () {
+    final allTypes = projectScenarios.where((s) => s.configuration == null).toList();
+    expect(projectTypeCadCoverage.length, allTypes.length);
+    expect(projectTypeCadCoverage.values.every((entry) => entry.zoning), isTrue);
+    expect(projectTypeCadCoverage['special/heritage/heritage_residence']!.hasDedicatedRoute, isFalse);
+    expect(projectTypeCadCoverage['special/complex/high_rise_supertall_building']!.highRise, isTrue);
+    expect(projectTypeCadCoverage['residential/houses/villa']!.registeredHouse, isTrue);
+    expect(projectTypeCadCoverage['rural/farm/fish_farm_aquaculture']!.specialists.map((mode) => mode.id),
+      contains('farm_measured_aquaculture_pond'));
+    final road = projectTypeCadCoverage['infrastructure/transport/road']!;
+    expect(road.offersEnclosed, isFalse);
+    expect(road.specialists.map((mode) => mode.id), contains('survey_polyline'));
+    expect(road.specialists.map((mode) => mode.id), isNot(contains('straight')));
+    final csv = projectTypeCadCoverageCsv().trim().split('\r\n');
+    expect(csv.length, projectTypeCadCoverage.length + 1);
+    print('CAD coverage: ${allTypes.length} types, ${projectTypeCadCoverage.values.where((row) => row.hasDedicatedRoute).length} with a dedicated route');
   });
 
   testWidgets('scenario search opens a separate, prefilled house variant', (tester) async {
