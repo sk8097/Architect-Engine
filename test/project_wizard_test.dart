@@ -109,7 +109,6 @@ void main() {
     await choose(tester, 'House configuration (optional)', '2 BHK');
     await enterHomeBasics(tester);
     await tap(tester, 'Continue');
-    await tap(tester, 'Garden');
   }
 
   testWidgets('villa path validates and saves versioned selection, quantity and dimensions', (tester) async {
@@ -121,6 +120,7 @@ void main() {
     await tap(tester, 'Continue');
     await tap(tester, 'Continue');
     await tap(tester, 'Continue');
+    await tap(tester, 'Garden');
     final quantity = find.byType(TextFormField).first;
     await tester.ensureVisible(quantity);
     await tester.enterText(quantity, '0');
