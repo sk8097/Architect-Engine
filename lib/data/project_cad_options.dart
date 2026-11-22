@@ -22,6 +22,7 @@ import 'angled_parking_cad_fields.dart';
 import 'cold_rack_cad_fields.dart';
 import 'rain_garden_cad_fields.dart';
 import 'facade_louvre_cad_fields.dart';
+import 'typology_bay_cad_fields.dart';
 import 'dock_leveller_cad_fields.dart';
 import 'aquaculture_pond_cad_fields.dart';
 import 'silage_bunker_cad_fields.dart';
@@ -98,6 +99,7 @@ class ProjectCadOptions {
   bool get pairedApartmentEligibleForType => pairedApartmentEligible(category,group,type);
   bool get rainGardenEligible => rainGardenCadEligible(category, group, type);
   bool get facadeLouvreEligible => facadeLouvreCadEligible(category, group, type);
+  bool get typologyBayEligibleForType => typologyBayCadEligible(category, group, type);
   bool get dockLevellerEligible => dockLevellerCadEligible(category, group, type);
   bool get aquaculturePondEligible => aquaculturePondCadEligible(category, group, type);
   bool get silageBunkerEligible => silageBunkerCadEligible(category, group, type);
@@ -269,6 +271,7 @@ class ProjectCadOptions {
       aquaculturePond: aquaculturePondEligible,
       dockLeveller: dockLevellerEligible,
       facadeLouvre: facadeLouvreEligible,
+      typologyBay: typologyBayEligibleForType,
     ),
   ];
 

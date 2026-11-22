@@ -30,6 +30,7 @@ import '../data/angled_parking_cad_fields.dart';
 import '../data/cold_rack_cad_fields.dart';
 import '../data/rain_garden_cad_fields.dart';
 import '../data/facade_louvre_cad_fields.dart';
+import '../data/typology_bay_cad_fields.dart';
 import '../data/dock_leveller_cad_fields.dart';
 import '../data/aquaculture_pond_cad_fields.dart';
 import '../data/silage_bunker_cad_fields.dart';
@@ -133,6 +134,7 @@ import 'angled_parking_cad_screen.dart';
 import 'cold_rack_cad_screen.dart';
 import 'rain_garden_cad_screen.dart';
 import 'facade_louvre_cad_screen.dart';
+import 'typology_bay_cad_screen.dart';
 import 'dock_leveller_cad_screen.dart';
 import 'aquaculture_pond_cad_screen.dart';
 import 'silage_bunker_cad_screen.dart';
@@ -167,6 +169,7 @@ import 'tennis_cad_screen.dart';
 import 'twin_tank_cad_screen.dart';
 import '../services/rain_garden_cad_generator.dart';
 import '../services/facade_louvre_cad_generator.dart';
+import '../services/typology_bay_cad_generator.dart';
 import '../services/dock_leveller_cad_generator.dart';
 import '../services/aquaculture_pond_cad_generator.dart';
 import '../services/silage_bunker_cad_generator.dart';
@@ -557,6 +560,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     if (_angledParkingCad) ...angledParkingCadFields,
     if (_coldRackCad) ...coldRackCadFields,
     if (_rainGardenCad) ...rainGardenCadFields,
+    if (_answers['cad_output'] == typologyBayMode && _cadOptions.typologyBayEligibleForType) ...typologyBayCadFields,
     if (_facadeLouvreCad) ...facadeLouvreCadFields,
     if (_dockLevellerCad) ...dockLevellerCadFields,
     if (_aquaculturePondCad) ...aquaculturePondCadFields,
@@ -956,7 +960,7 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     _answers.remove(customTypeField.id);
     _answers.remove(customSiteKindField.id);
     _answers.remove(customConfigurationField.id);
-    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,...openDrainCadFields,busLaybyCadMode,...busLaybyCadFields,culvertCadMode,...culvertCadFields,footbridgeCadMode,...footbridgeCadFields,underpassCadMode,...underpassCadFields,steppedWallCadMode,...steppedWallCadFields,streetLightCadMode,...streetLightCadFields,ductBankCadMode,...ductBankCadFields,railPlatformCadMode,...railPlatformCadFields,...refugeCrossingCadFields,...cycleCrossingCadFields,promenadeCadMode,...promenadeCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields,...raisedBedCadFields,...amphitheatreCadFields,...parkLoopCadFields,...windrowYardCadFields,...galleryPanelCadFields,...angledParkingCadFields,...coldRackCadFields,...twinTankCadFields, ...tennisCadFields, ...memorialNicheCadFields, ...bicycleRackCadFields, ...playgroundCadFields, playgroundCadEquipment, ...athleticsTrackCadFields, ...vehicleLiftCadFields, ...publicToiletCadFields, ...shelterCanopyCadFields, ...silageBunkerCadFields, ...aquaculturePondCadFields, ...dockLevellerCadFields, ...facadeLouvreCadFields, ...boulderingBayCadFields, ...weighbridgeCadFields, ...coolingLoopCadFields, ...boardwalkCadFields, ...circularClarifierCadFields, ...bladeLaydownCadFields, ...cricketNetsCadFields, ...skateTransitionCadFields, ...parkFenceCadFields, ...transformerBundCadFields, ...footballPitchCadFields, ...guyedMastCadFields, ...recyclingDropoffCadFields, ...spillwayCadFields, ...batteryYardCadFields, ...parkingRampCadFields, ...cinemaSeatingCadFields, ...switchbackStairCadFields, ...jumpRunwayCadFields, ...plazaPavingCadFields, ...rainGardenCadFields]) { _answers.remove(field.id); }
+    for (final field in [cadOutputField, ...enclosedCadFields, cadWidthMode, ...warehouseLoadingFields, ...clinicCadFields, ...retailCadFields, ...straightDwellingStairFields, ...dwellingParkingCommonFields, ...dwellingCarBayFields, ...dwellingTwoWheelerBayFields, ...schoolCadFields, ...packhouseCadFields, surveyCorridorMode, ...surveyCorridorFields,surveyCurveRadii, ...mixedRetailCadFields,...stackedRetailCadFields,...crossDockFields,...schoolPlaygroundFields,...dwellingRoofFields,...officeCadFields,...diningCadFields,...cattleShedFields,cattleShedHerdField,...assemblyCadFields,...libraryCadFields,...badmintonCadFields,...badmintonViewingFields,...hostelCadFields,...greenhouseCadFields,tJunctionCadMode,...tJunctionCadFields,...crossJunctionCadFields,...sharedCoreCadFields,...inpatientWardFields,...longitudinalProfileFields,...corridorSectionFields,...corridorEarthworkFields,stormwaterCadMode,...stormwaterCadFields,...openDrainCadFields,busLaybyCadMode,...busLaybyCadFields,culvertCadMode,...culvertCadFields,footbridgeCadMode,...footbridgeCadFields,underpassCadMode,...underpassCadFields,steppedWallCadMode,...steppedWallCadFields,streetLightCadMode,...streetLightCadFields,ductBankCadMode,...ductBankCadFields,railPlatformCadMode,...railPlatformCadFields,...refugeCrossingCadFields,...cycleCrossingCadFields,promenadeCadMode,...promenadeCadFields,...truckSweepFields,truckSweepObstacles,...pairedApartmentFields,...solarFarmFields,solarFarmObstacles,...detentionBasinFields,...evHubFields,...orchardCadFields,orchardExclusions,...switchbackRampFields,...teachingLabFields,...hotelWingFields,...basketballCadFields,...rainwaterCadFields,...lapPoolCadFields,...publicMarketCadFields,...raisedBedCadFields,...amphitheatreCadFields,...parkLoopCadFields,...windrowYardCadFields,...galleryPanelCadFields,...angledParkingCadFields,...coldRackCadFields,...twinTankCadFields, ...tennisCadFields, ...memorialNicheCadFields, ...bicycleRackCadFields, ...playgroundCadFields, playgroundCadEquipment, ...athleticsTrackCadFields, ...vehicleLiftCadFields, ...publicToiletCadFields, ...shelterCanopyCadFields, ...silageBunkerCadFields, ...aquaculturePondCadFields, ...dockLevellerCadFields, ...facadeLouvreCadFields, ...typologyBayCadFields, ...boulderingBayCadFields, ...weighbridgeCadFields, ...coolingLoopCadFields, ...boardwalkCadFields, ...circularClarifierCadFields, ...bladeLaydownCadFields, ...cricketNetsCadFields, ...skateTransitionCadFields, ...parkFenceCadFields, ...transformerBundCadFields, ...footballPitchCadFields, ...guyedMastCadFields, ...recyclingDropoffCadFields, ...spillwayCadFields, ...batteryYardCadFields, ...parkingRampCadFields, ...cinemaSeatingCadFields, ...switchbackStairCadFields, ...jumpRunwayCadFields, ...plazaPavingCadFields, ...rainGardenCadFields]) { _answers.remove(field.id); }
     _sectionError = null;
   }
 
@@ -1396,6 +1400,8 @@ class _ProjectWizardScreenState extends State<ProjectWizardScreen> {
     } else if (DockLevellerCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => DockLevellerCadScreen(
         name: name, brief: brief, widthFt: width ?? 0, depthFt: length ?? 0)));
+    } else if (TypologyBayCadGenerator.requested(brief)) {
+      screen = TypologyBayCadScreen(name: name, brief: brief);
     } else if (FacadeLouvreCadGenerator.requested(brief)) {
       Navigator.of(context).pushReplacement<void,void>(MaterialPageRoute(builder: (_) => FacadeLouvreCadScreen(
         name: name, brief: brief)));
