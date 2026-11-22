@@ -67,7 +67,7 @@ class AutomaticFloorPlanGenerator {
       );
     }
 
-    final result = generate(brief: brief, frontageFt: frontageFt, depthFt: depthFt);
+    final result = generate(brief: brief, frontageFt: frontageFt, depthFt: depthFt, facing: facing);
     if (result.plan == null) {
       return ValidatedFloorPlanResult(
         floorPlan: result,

@@ -122,6 +122,7 @@ void main() {
       brief(),
       frontageFt: 0,
       depthFt: 40,
+      facing: 'North',
     );
     expect(incomplete.report.inputStatus, InputStatus.incomplete);
     expect(incomplete.report.canSaveDraft, isTrue);
@@ -131,6 +132,7 @@ void main() {
       brief(floors: 2),
       frontageFt: 30,
       depthFt: 40,
+      facing: 'North',
     );
     expect(unsupported.report.capabilityStatus, CapabilityStatus.unsupportedConfiguration);
     expect(unsupported.report.canSaveDraft, isTrue);
