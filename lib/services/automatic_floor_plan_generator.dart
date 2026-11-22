@@ -26,6 +26,7 @@ class AutomaticFloorPlanGenerator {
     ProjectBrief brief, {
     required double frontageFt,
     required double depthFt,
+    required String facing,
   }) {
     final cfg = brief.taxonomy?.configurationId;
     final shape = brief.taxonomy?.plotShapeId;
