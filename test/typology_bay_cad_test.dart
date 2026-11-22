@@ -6,7 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 
 ProjectBrief _brief(String category, String group, String type, Map<String, String> answers) =>
     ProjectBrief(
-      type: ProjectType(category: category, group: group, type: type, configuration: 'standard'),
+      categoryId: category,
+      groupId: group,
+      typeId: type,
+      configurationId: 'standard',
       requirements: ProjectRequirements(answers: answers),
     );
 
