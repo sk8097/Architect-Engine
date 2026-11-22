@@ -14,7 +14,7 @@ ProjectBrief _brief(String category, String group, String type, Map<String, Stri
         typeId: type,
         configurationId: 'standard',
       ),
-      requirements: ProjectRequirementsSnapshot(answers: answers),
+      requirements: ProjectRequirementsSnapshot(version: 1, answers: answers),
       floorCount: 1,
       parking: ProjectParking.none,
       features: const [],

@@ -1,5 +1,6 @@
 import 'concept_zoning_profiles.dart';
 import 'project_cad_options.dart';
+import 'typology_bay_cad_fields.dart';
 import 'project_requirements.dart' show usesLinearSite;
 import 'project_scenarios.dart';
 import 'project_taxonomy.dart';
@@ -19,8 +20,12 @@ class ProjectTypeCadCoverage {
   bool get registeredHouse => configurations.any((s) => s.generator != null);
   late final configurations = [for (final option in taxonomyProgram(group, type).configurations)
     scenarioFor(category.id, group.id, type.id, option.id)!];
-  late final specialists = highRise ? const <TaxonomyChoice>[] : ProjectCadOptions(category.id, group.id, type.id)
-      .specialistChoices(linearSite: linear);
+  late final specialists = highRise
+      ? const <TaxonomyChoice>[]
+      : ProjectCadOptions(category.id, group.id, type.id)
+          .specialistChoices(linearSite: linear)
+          .where((o) => o.id != typologyBayMode)
+          .toList(growable: false);
 
   bool get hasDedicatedRoute => highRise || registeredHouse || specialists.isNotEmpty;
 }
