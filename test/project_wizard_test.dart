@@ -999,10 +999,10 @@ void main() {
 }
 
 Future<void> goToReview(WidgetTester tester) async {
-  for (var i = 0; i < 8 && find.text('Review').evaluate().isEmpty; i++) {
+  for (var i = 0; i < 8 && find.text('Review & Generate').evaluate().isEmpty; i++) {
     await tap(tester, 'Continue');
   }
-  expect(find.text('Review'), findsOneWidget);
+  expect(find.text('Review & Generate'), findsOneWidget);
 }
 
 Future<void> choose(WidgetTester tester, String label, String option) async {
