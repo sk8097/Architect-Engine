@@ -1,4 +1,3 @@
-import '../data/project_requirements.dart';
 import '../data/typology_bay_cad_fields.dart';
 import '../models/automatic_floor_plan.dart';
 import '../models/project_brief.dart';
@@ -127,98 +126,80 @@ class TypologyBayCadGenerator {
     final fpWMm = (footprintW * 1000).round();
     final fpDMm = (footprintD * 1000).round();
 
-    final rooms = <CadRoom>[];
-    final walls = <CadWall>[];
     final lines = <CadLine>[];
-    final texts = <CadText>[];
+    final labels = <CadLabel>[];
+
+    void box(String layer, num x1, num y1, num x2, num y2) {
+      lines.add(CadLine(layer, CadPoint(x1, y1), CadPoint(x2, y1)));
+      lines.add(CadLine(layer, CadPoint(x2, y1), CadPoint(x2, y2)));
+      lines.add(CadLine(layer, CadPoint(x2, y2), CadPoint(x1, y2)));
+      lines.add(CadLine(layer, CadPoint(x1, y2), CadPoint(x1, y1)));
+    }
 
     // Site boundary
-    lines.add(CadLine(0, 0, siteWMm, 0, layer: 'A-SITE'));
-    lines.add(CadLine(siteWMm, 0, siteWMm, siteDMm, layer: 'A-SITE'));
-    lines.add(CadLine(siteWMm, siteDMm, 0, siteDMm, layer: 'A-SITE'));
-    lines.add(CadLine(0, siteDMm, 0, 0, layer: 'A-SITE'));
+    box('PLOT', 0, 0, siteWMm, siteDMm);
 
     final originX = sbSideMm + ((siteWMm - 2 * sbSideMm - fpWMm) ~/ 2);
     final originY = sbFrontMm;
 
     // Circulation corridor at front of bays
-    rooms.add(CadRoom(
-      name: 'CIRCULATION',
-      x: originX,
-      y: originY,
-      width: fpWMm,
-      height: corrWMm,
-    ));
+    box('CIRCULATION', originX, originY, originX + fpWMm, originY + corrWMm);
+    labels.add(CadLabel('TEXT', CadPoint(originX + fpWMm / 2, originY + corrWMm / 2), 'CIRCULATION', 250));
 
     // Structural bays
     for (var ix = 0; ix < baysX; ix++) {
       for (var iy = 0; iy < baysY; iy++) {
         final bx = originX + ix * bayWMm;
         final by = originY + corrWMm + iy * bayDMm;
-        rooms.add(CadRoom(
-          name: 'BAY ${ix + 1}-${iy + 1}',
-          x: bx,
-          y: by,
-          width: bayWMm,
-          height: bayDMm,
-        ));
+        box('GRID', bx, by, bx + bayWMm, by + bayDMm);
+        labels.add(CadLabel('TEXT', CadPoint(bx + bayWMm / 2, by + bayDMm / 2), 'BAY ${ix + 1}-${iy + 1}', 220));
       }
     }
 
     // Perimeter walls
-    walls.add(CadWall(originX, originY, originX + fpWMm, originY, thickness: 230));
-    walls.add(CadWall(originX + fpWMm, originY, originX + fpWMm, originY + fpDMm, thickness: 230));
-    walls.add(CadWall(originX + fpWMm, originY + fpDMm, originX, originY + fpDMm, thickness: 230));
-    walls.add(CadWall(originX, originY + fpDMm, originX, originY, thickness: 230));
+    box('WALL', originX, originY, originX + fpWMm, originY + fpDMm);
 
-    texts.add(CadText(
-      x: originX,
-      y: siteDMm + 600,
-      text: '${brief.type.toUpperCase()} — ${baysX}x$baysY BAYS (${footprintW.toStringAsFixed(2)}x${footprintD.toStringAsFixed(2)} m)',
-      height: 300,
+    labels.add(CadLabel(
+      'TEXT',
+      CadPoint(originX, siteDMm + 600),
+      '${brief.type.toUpperCase()} — ${baysX}x$baysY BAYS (${footprintW.toStringAsFixed(2)}x${footprintD.toStringAsFixed(2)} m)',
+      300,
     ));
 
-    final plan = FloorPlanCad(
-      widthMm: siteWMm,
-      heightMm: siteDMm + 1200,
-      rooms: rooms,
-      walls: walls,
+    final plan = FloorPlanCad.fromEntities(
+      bounds: PlanRect(0, 0, siteWMm, siteDMm + 1200),
       lines: lines,
-      texts: texts,
+      labels: labels,
     );
 
     // Section sheet
     final secLines = <CadLine>[];
-    final secTexts = <CadText>[];
+    final secLabels = <CadLabel>[];
     final clearHMm = (clearH * 1000).round();
     final totalHMm = clearHMm * storeys;
 
-    // Ground line
-    secLines.add(CadLine(-1000, 0, fpWMm + 1000, 0, layer: 'A-SITE'));
+    secLines.add(CadLine('PLOT', const CadPoint(-1000, 0), CadPoint(fpWMm + 1000, 0)));
     for (var s = 0; s <= storeys; s++) {
       final y = s * clearHMm;
-      secLines.add(CadLine(0, y, fpWMm, y, layer: 'A-WALL'));
+      secLines.add(CadLine('WALL', CadPoint(0, y), CadPoint(fpWMm, y)));
       if (s < storeys) {
-        secTexts.add(CadText(
-          x: 250,
-          y: y + clearHMm ~/ 2,
-          text: 'LEVEL ${s + 1} (H=${clearH.toStringAsFixed(2)} m)',
-          height: 250,
+        secLabels.add(CadLabel(
+          'TEXT',
+          CadPoint(250, y + clearHMm / 2),
+          'LEVEL ${s + 1} (H=${clearH.toStringAsFixed(2)} m)',
+          250,
         ));
       }
     }
     for (var ix = 0; ix <= baysX; ix++) {
       final x = ix * bayWMm;
-      secLines.add(CadLine(x, 0, x, totalHMm, layer: 'A-GRID'));
+      secLines.add(CadLine('GRID', CadPoint(x, 0), CadPoint(x, totalHMm)));
     }
 
-    final section = FloorPlanCad(
-      widthMm: fpWMm + 2000,
-      heightMm: totalHMm + 1000,
-      rooms: const [],
-      walls: const [],
+    final section = FloorPlanCad.fromEntities(
+      bounds: PlanRect(-1000, 0, fpWMm + 1000, totalHMm + 1000),
       lines: secLines,
-      texts: secTexts,
+      labels: secLabels,
     );
 
     return TypologyBayCadResult(
