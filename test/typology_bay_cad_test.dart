@@ -1,16 +1,26 @@
+import 'package:architect_engine/data/project_taxonomy.dart';
 import 'package:architect_engine/data/typology_bay_cad_fields.dart';
 import 'package:architect_engine/models/project_brief.dart';
-import 'package:architect_engine/models/project_requirements.dart';
+import 'package:architect_engine/models/project_requirements_snapshot.dart';
 import 'package:architect_engine/services/typology_bay_cad_generator.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 ProjectBrief _brief(String category, String group, String type, Map<String, String> answers) =>
     ProjectBrief(
-      categoryId: category,
-      groupId: group,
-      typeId: type,
-      configurationId: 'standard',
-      requirements: ProjectRequirements(answers: answers),
+      taxonomy: TaxonomySelection(
+        categoryId: category,
+        categoryLabel: category,
+        groupId: group,
+        groupLabel: group,
+        typeId: type,
+        typeLabel: type,
+        configurationId: 'standard',
+        configurationLabel: 'Standard',
+      ),
+      requirements: ProjectRequirementsSnapshot(answers: answers),
+      floorCount: 1,
+      parking: ProjectParking.none,
+      features: const [],
     );
 
 void main() {

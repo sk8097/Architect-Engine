@@ -35,7 +35,7 @@ class TypologyBayCadGenerator {
 
   TypologyBayCadResult generate(ProjectBrief brief) {
     final ans = brief.requirements?.answers ?? const <String, String>{};
-    if (!typologyBayCadEligible(brief.categoryId, brief.groupId, brief.typeId)) {
+    if (!typologyBayCadEligible(brief.taxonomy?.categoryId, brief.taxonomy?.groupId, brief.taxonomy?.typeId)) {
       return const TypologyBayCadResult(
         issue: 'Select a valid category, group, and type before generating parametric bay CAD.',
       );
@@ -162,7 +162,7 @@ class TypologyBayCadGenerator {
     labels.add(CadLabel(
       'TEXT',
       CadPoint(originX, siteDMm + 600),
-      '${(brief.typeId ?? 'PROJECT').toUpperCase()} — ${baysX}x$baysY BAYS (${footprintW.toStringAsFixed(2)}x${footprintD.toStringAsFixed(2)} m)',
+      '${(brief.taxonomy?.typeId ?? 'PROJECT').toUpperCase()} — ${baysX}x$baysY BAYS (${footprintW.toStringAsFixed(2)}x${footprintD.toStringAsFixed(2)} m)',
       300,
     ));
 
